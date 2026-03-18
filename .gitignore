@@ -1,0 +1,60 @@
+# General
+.DS_Store
+Thumbs.db
+*.log
+
+# -----------------
+# petty_BE
+# -----------------
+petty_BE/.env
+petty_BE/.env.backup
+petty_BE/.env.production
+petty_BE/.phpactor.json
+petty_BE/.phpunit.result.cache
+petty_BE/.fleet/
+petty_BE/.idea/
+petty_BE/.nova/
+petty_BE/.phpunit.cache/
+petty_BE/.vscode/
+petty_BE/.zed/
+petty_BE/auth.json
+petty_BE/node_modules/
+petty_BE/public/build/
+petty_BE/public/hot/
+petty_BE/public/storage/
+petty_BE/storage/*.key
+petty_BE/storage/pail/
+petty_BE/vendor/
+petty_BE/Homestead.json
+petty_BE/Homestead.yaml
+
+# -----------------
+# petty_FE
+# -----------------
+# Logs
+petty_FE/logs
+petty_FE/npm-debug.log*
+petty_FE/yarn-debug.log*
+petty_FE/yarn-error.log*
+petty_FE/pnpm-debug.log*
+petty_FE/lerna-debug.log*
+
+petty_FE/node_modules/
+petty_FE/dist/
+petty_FE/dist-ssr/
+petty_FE/*.local
+
+# Editor directories and files
+petty_FE/.vscode/*
+!petty_FE/.vscode/extensions.json
+petty_FE/.idea
+petty_FE/*.suo
+petty_FE/*.ntvs*
+petty_FE/*.njsproj
+petty_FE/*.sln
+petty_FE/*.sw?
+
+# Extra configuration & tools
+.agent/
+.github/
+openspec/
