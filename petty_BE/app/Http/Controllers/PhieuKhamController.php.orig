@@ -4,19 +4,28 @@ namespace App\Http\Controllers;
 
 use App\Models\PhieuKham;
 use Illuminate\Http\Request;
-use App\Http\Requests\StorePhieuKhamRequest;
-use App\Http\Requests\UpdatePhieuKhamRequest;
 
 class PhieuKhamController extends Controller
 {
     /**
      * Thêm mới phiếu khám
      */
-    public function store(StorePhieuKhamRequest $request)
+    public function store(Request $request)
     {
         try {
             // Validate dữ liệu
-            $validated = $request->validated();
+            $validated = $request->validate([
+                'lich_hen_id' => 'required|exists:lich_hens,id',
+                'nhiet_do' => 'nullable|numeric|between:30,45',
+                'can_nang' => 'nullable|numeric|min:0',
+                'nhip_tim' => 'nullable|integer|between:30,200',
+                'nhip_tho' => 'nullable|integer|between:5,50',
+                'ly_do_den_kham' => 'nullable|string|max:255',
+                'trieu_chung' => 'nullable|string',
+                'chan_doan' => 'nullable|string',
+                'ghi_chu' => 'nullable|string',
+                'loai_chi_dinh' => 'required|in:chi_dinh_can_lam_sang,don_thuoc,hen_tai_kham',
+            ]);
 
             // Lấy user đang đăng nhập
             $user = auth('sanctum')->user();
@@ -57,7 +66,7 @@ class PhieuKhamController extends Controller
 
             return response()->json([
                 'message' => 'Thêm phiếu khám thành công',
-                'data' => new \App\Http\Resources\PhieuKhamResource($phieuKham),
+                'data' => $phieuKham,
             ], 201);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -84,7 +93,7 @@ class PhieuKhamController extends Controller
 
             return response()->json([
                 'message' => 'Lấy danh sách phiếu khám thành công',
-                'data' => \App\Http\Resources\PhieuKhamResource::collection($phieuKhams->items()),
+                'data' => $phieuKhams->items(),
                 'pagination' => [
                     'total' => $phieuKhams->total(),
                     'per_page' => $phieuKhams->perPage(),
@@ -227,11 +236,21 @@ class PhieuKhamController extends Controller
     /**
      * Cập nhật phiếu khám
      */
-    public function update(UpdatePhieuKhamRequest $request, PhieuKham $phieuKham)
+    public function update(Request $request, PhieuKham $phieuKham)
     {
         try {
             // Validate dữ liệu cập nhật
-            $validated = $request->validated();
+            $validated = $request->validate([
+                'nhiet_do' => 'nullable|numeric|between:30,45',
+                'can_nang' => 'nullable|numeric|min:0',
+                'nhip_tim' => 'nullable|integer|between:30,200',
+                'nhip_tho' => 'nullable|integer|between:5,50',
+                'ly_do_den_kham' => 'nullable|string|max:255',
+                'trieu_chung' => 'nullable|string',
+                'chan_doan' => 'nullable|string',
+                'ghi_chu' => 'nullable|string',
+                'loai_chi_dinh' => 'nullable|in:chi_dinh_can_lam_sang,don_thuoc,hen_tai_kham',
+            ]);
 
             // Cập nhật phiếu khám
             $phieuKham->update($validated);
@@ -239,7 +258,7 @@ class PhieuKhamController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Cập nhật phiếu khám thành công',
-                'data' => new \App\Http\Resources\PhieuKhamResource($phieuKham)
+                'data' => $phieuKham
             ], 200);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -319,7 +338,7 @@ class PhieuKhamController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Lấy danh sách phiếu khám của bác sĩ thành công',
-                'data' => \App\Http\Resources\PhieuKhamResource::collection($phieuKhams->items()),
+                'data' => $phieuKhams->items(),
                 'pagination' => [
                     'total' => $phieuKhams->total(),
                     'per_page' => $phieuKhams->perPage(),

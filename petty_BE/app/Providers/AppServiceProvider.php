@@ -32,5 +32,8 @@ class AppServiceProvider extends ServiceProvider
         // Register observers để tự động gán quyền
         Admin::observe(AdminObserver::class);
         NhanVien::observe(NhanVienObserver::class);
+        \App\Models\PhieuKham::observe(\App\Observers\PhieuKhamObserver::class);
+        \App\Models\PhieuChi::observe(\App\Observers\PhieuChiObserver::class);
+        \App\Models\PhieuNhapKho::observe(\App\Observers\PhieuNhapKhoObserver::class);
     }
 }

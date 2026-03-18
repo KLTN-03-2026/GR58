@@ -120,8 +120,8 @@
               class="h-1.5 w-1.5 opacity-70 transition-all duration-300 group-hover:translate-x-2 group-hover:opacity-100"
             />
           </a>
-          <a
-            href="#"
+          <router-link
+            to="/about"
             class="group flex items-center gap-2 text-gray-100 transition-all duration-300 ease-out hover:text-white hover:translate-x-2"
           >
             <span
@@ -133,7 +133,7 @@
               alt="Arrow"
               class="h-1.5 w-1.5 opacity-70 transition-all duration-300 group-hover:translate-x-2 group-hover:opacity-100"
             />
-          </a>
+          </router-link>
           <a
             href="#"
             class="group flex items-center gap-2 text-gray-100 transition-all duration-300 ease-out hover:text-white hover:translate-x-2"

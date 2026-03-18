@@ -1,16 +1,16 @@
 <template>
   <div class="w-full overflow-x-hidden">
     <section
-      class="flex gap-16 items-center justify-center px-[120px] py-[100px] w-full"
+      class="container mx-auto flex flex-col lg:flex-row gap-12 lg:gap-16 items-center justify-between px-6 md:px-12 py-16 md:py-24"
     >
-      <div class="flex flex-col gap-[24px] items-start w-[480px] shrink-0">
+      <div class="flex flex-col gap-[24px] items-start w-full lg:w-1/2 max-w-xl shrink-0">
         <div class="inline-grid relative shrink-0">
           <h1
-            class="font-extrabold text-[64px] text-[#432323] leading-[72px] tracking-[0px] text-left"
+            class="font-extrabold text-5xl md:text-6xl lg:text-[64px] text-[#432323] leading-tight tracking-tight text-left"
           >
             Đặt lịch dễ<br />Chăm sóc mê!
           </h1>
-          <p class="font-medium text-[#393e46] w-[480px] text-left mt-6">
+          <p class="font-medium text-[#393e46] w-full text-left mt-6">
             <span class="text-base md:text-lg]"
               >Cùng bạn chăm sóc thú cưng tốt hơn – khám phá, đặt lịch và đồng
               hành cùng bác sĩ tại
@@ -104,12 +104,12 @@
       </div>
 
       <div
-        class="h-[480px] w-[700px] rounded-[28.77px] relative shrink-0 overflow-hidden shadow-2xl group"
+        class="w-full lg:w-1/2 h-[300px] md:h-[480px] rounded-3xl relative shrink-0 overflow-hidden shadow-2xl group"
       >
         <img
           :src="heroImage"
           alt="PETTY VCMS Hero"
-          class="absolute inset-0 w-full h-[150%] top-[-5.86%] object-cover transition-transform duration-700 group-hover:scale-110"
+          class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />
       </div>
     </section>
@@ -121,7 +121,7 @@
           <p class="text-2xl font-semibold text-white text-center">
             Được tin chọn bởi 1k+ khách hàng và đối tác thú y
           </p>
-          <div class="flex gap-12 items-center justify-center w-full px-1">
+          <div class="flex flex-wrap gap-8 lg:gap-12 items-center justify-center w-full px-4">
             <div
               v-for="item in trustItems"
               :key="item.label"
@@ -165,14 +165,14 @@
         </div>
 
         <!-- Service Cards -->
-        <div class="flex gap-6 items-center justify-center w-full">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-7xl mx-auto px-6">
           <!-- Card 1 - Tiêm phòng Vaccine -->
           <div
-            class="relative w-[448px] h-[288px] cursor-pointer group hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden"
+            class="relative w-full aspect-[4/3] cursor-pointer group hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden"
           >
             <img
               src="/src/assets/img_imports/public_img/hp-pic7.png"
-              alt=""
+              alt="Dịch vụ"
               class="absolute inset-0 w-full h-full object-cover"
             />
             <div
@@ -180,7 +180,7 @@
             ></div>
 
             <div
-              class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-[#EEE] backdrop-blur-sm rounded-xl px-6 py-3 w-[380px] shadow-lg"
+              class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-[#EEE] backdrop-blur-sm rounded-xl px-6 py-3 w-[90%] md:w-[320px] shadow-lg"
             >
               <div class="flex gap-2 items-start">
                 <div
@@ -194,7 +194,7 @@
                   >
                     Tiêm phòng Vaccine
                   </h3>
-                  <p class="text-xs font-medium text-[#393e46] leading-relaxed">
+                  <p class="text-sm font-medium text-[#393e46] leading-relaxed">
                     Kiểm tra sức khỏe toàn diện và tiêm phòng định kỳ để thú
                     cưng luôn khỏe mạnh, an toàn
                   </p>
@@ -205,11 +205,11 @@
 
           <!-- Card 2 - Phẫu thuật triệt sản -->
           <div
-            class="relative w-[448px] h-[288px] cursor-pointer group hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden"
+            class="relative w-full aspect-[4/3] cursor-pointer group hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden"
           >
             <img
               src="/src/assets/img_imports/public_img/hp-pic2.png"
-              alt=""
+              alt="Dịch vụ"
               class="absolute inset-0 w-full h-full object-cover"
             />
             <div
@@ -217,7 +217,7 @@
             ></div>
 
             <div
-              class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-[#EEE] backdrop-blur-sm rounded-xl px-6 py-3 w-[380px] shadow-lg"
+              class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-[#EEE] backdrop-blur-sm rounded-xl px-6 py-3 w-[90%] md:w-[320px] shadow-lg"
             >
               <div class="flex gap-2 items-start">
                 <div
@@ -231,7 +231,7 @@
                   >
                     Phẫu thuật triệt sản
                   </h3>
-                  <p class="text-xs font-medium text-[#393e46] leading-relaxed">
+                  <p class="text-sm font-medium text-[#393e46] leading-relaxed">
                     Quy trình triệt sản an toàn, giúp thú cưng khỏe mạnh và sống
                     vui hơn
                   </p>
@@ -242,11 +242,11 @@
 
           <!-- Card 3 - Điều trị nội trú -->
           <div
-            class="relative w-[448px] h-[288px] cursor-pointer group hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden"
+            class="relative w-full aspect-[4/3] cursor-pointer group hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden"
           >
             <img
               src="/src/assets/img_imports/public_img/hp-pic3.png"
-              alt=""
+              alt="Dịch vụ"
               class="absolute inset-0 w-full h-full object-cover"
             />
             <div
@@ -254,7 +254,7 @@
             ></div>
 
             <div
-              class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-[#EEE] backdrop-blur-sm rounded-xl px-6 py-3 w-[380px] shadow-lg"
+              class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-[#EEE] backdrop-blur-sm rounded-xl px-6 py-3 w-[90%] md:w-[320px] shadow-lg"
             >
               <div class="flex gap-2 items-start">
                 <div
@@ -268,7 +268,7 @@
                   >
                     Điều trị nội trú
                   </h3>
-                  <p class="text-xs font-medium text-[#393e46] leading-relaxed">
+                  <p class="text-sm font-medium text-[#393e46] leading-relaxed">
                     Chăm sóc toàn diện cho thú cưng trong môi trường an toàn và
                     tiện nghi
                   </p>
@@ -305,9 +305,9 @@
         </div>
 
         <!-- About Content -->
-        <div class="flex items-center justify-center w-full mt-[44px]">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center max-w-7xl mx-auto w-full mt-12 px-6">
           <div
-            class="w-[640px] h-[414px] rounded-[24px] overflow-hidden shadow-2xl -mr-24 z-10 relative"
+            class="lg:col-span-7 h-[300px] md:h-[414px] w-full rounded-[24px] overflow-hidden shadow-2xl relative lg:-mr-12 z-10"
           >
             <img
               src="/src/assets/img_imports/public_img/hp-pic4.png"
@@ -316,9 +316,9 @@
             />
           </div>
           <div
-            class="bg-[#eeeeee] px-[33px] py-6 rounded-2xl shadow-xl w-[576px] h-auto -ml-24 z-20 flex flex-col gap-[10px] justify-center"
+            class="lg:col-span-5 bg-[#eeeeee] px-6 lg:px-8 py-8 rounded-2xl shadow-xl w-full h-auto z-20 lg:-ml-12 flex flex-col gap-4 justify-center"
           >
-            <div class="flex flex-col gap-8 w-[384px]">
+            <div class="flex flex-col gap-8 w-full">
               <div
                 class="inline-flex items-center gap-2 px-[10px] py-[6px] border-2 border-[#5a9690] rounded-full bg-[#eeeeee] w-fit"
               >
@@ -347,7 +347,8 @@
                   bạch và tận tâm.
                 </p>
               </div>
-              <div
+              <router-link
+                to="/about"
                 class="inline-flex items-center gap-1 px-[10px] py-1 border-2 border-[#5a9690] rounded-full bg-[#2f5755] hover:bg-[#3a6b68] transition-all cursor-pointer w-fit"
               >
                 <div
@@ -368,7 +369,7 @@
                   </svg>
                 </div>
                 <span class="text-xs font-bold text-white pr-3">Biết Thêm</span>
-              </div>
+              </router-link>
             </div>
           </div>
         </div>
@@ -376,10 +377,10 @@
         <!-- Thống kê -->
         <div
           ref="statsSection"
-          class="flex gap-20 justify-center items-center w-full"
+          class="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10 justify-items-center w-full max-w-7xl mx-auto mt-16 px-6 pb-12 cursor-default"
         >
-          <div class="flex gap-9 items-center">
-            <div class="flex flex-col gap-6 w-[184px]">
+          <div class="flex gap-4 lg:gap-9 items-center w-full">
+            <div class="flex flex-col gap-6 w-full">
               <p class="text-5xl font-black text-[#eeeeee] leading-[48px]">
                 {{ stats.partners }}+
               </p>
@@ -394,10 +395,10 @@
                 </p>
               </div>
             </div>
-            <div class="w-px h-[152px] bg-white"></div>
+            <div class="hidden lg:block w-px h-32 bg-white/30"></div>
           </div>
-          <div class="flex gap-9 items-center">
-            <div class="flex flex-col gap-6 w-[184px]">
+          <div class="flex gap-4 lg:gap-9 items-center w-full">
+            <div class="flex flex-col gap-6 w-full">
               <p class="text-5xl font-black text-[#eeeeee] leading-[48px]">
                 {{ stats.doctors }}+
               </p>
@@ -412,10 +413,10 @@
                 </p>
               </div>
             </div>
-            <div class="w-px h-[152px] bg-white"></div>
+            <div class="hidden lg:block w-px h-32 bg-white/30"></div>
           </div>
-          <div class="flex gap-9 items-center">
-            <div class="flex flex-col gap-6 w-[184px]">
+          <div class="flex gap-4 lg:gap-9 items-center w-full">
+            <div class="flex flex-col gap-6 w-full">
               <p class="text-5xl font-black text-[#eeeeee] leading-[48px]">
                 {{ stats.rating }}★
               </p>
@@ -430,9 +431,9 @@
                 </p>
               </div>
             </div>
-            <div class="w-px h-[152px] bg-white"></div>
+            <div class="hidden lg:block w-px h-32 bg-white/30"></div>
           </div>
-          <div class="flex flex-col gap-6 w-[228px]">
+          <div class="flex flex-col gap-6 w-full">
             <p class="text-5xl font-black text-[#eeeeee] leading-[48px]">
               {{ Number(stats.pets).toLocaleString("vi-VN") }}+
             </p>

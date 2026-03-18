@@ -16,87 +16,7 @@ class LichHenController extends Controller
     /**
      * Transform a single LichHen model to an array replacing khach_hang_id with khach_hang (full name).
      */
-    private function transformLichHenModel($lichHen)
-    {
-        $arr = $lichHen->toArray();
-
-        // replace khach_hang_id with khach_hang (full_name)
-        $arr['khach_hang'] = optional($lichHen->khachHang)->full_name ?? null;
-        unset($arr['khach_hang_id']);
-
-        // Format thu_cung data properly for FE
-        if (isset($arr['thu_cung']) && is_array($arr['thu_cung'])) {
-            $thuCung = &$arr['thu_cung'];
-
-            // Map backend fields to FE expected fields
-            $thuCung['loai'] = $thuCung['loai_thu_cung'] ?? null;
-            $thuCung['species'] = $thuCung['loai_thu_cung'] ?? null;
-            $thuCung['giong'] = $thuCung['giong_thu_cung'] ?? null;
-            $thuCung['giong_loai'] = $thuCung['giong_thu_cung'] ?? null;
-            $thuCung['breed'] = $thuCung['giong_thu_cung'] ?? null;
-            $thuCung['ngay_sinh'] = $thuCung['tuoi_thu_cung'] ?? null;
-            $thuCung['ten'] = $thuCung['ten_thu_cung'] ?? null;
-        }
-
-        // Format y_ta_checkin info if exists
-        if (isset($arr['y_ta_checkin']) && is_array($arr['y_ta_checkin'])) {
-            $arr['y_ta_checkin_info'] = [
-                'id' => $arr['y_ta_checkin']['id'] ?? null,
-                'full_name' => $arr['y_ta_checkin']['full_name'] ?? null,
-                'vai_tro' => $arr['y_ta_checkin']['vai_tro'] ?? null,
-            ];
-        }
-
-        // Format nhan_vien (bac si) info if exists
-        if (isset($arr['nhan_vien']) && is_array($arr['nhan_vien'])) {
-            $arr['bac_si_info'] = [
-                'id' => $arr['nhan_vien']['id'] ?? null,
-                'full_name' => $arr['nhan_vien']['full_name'] ?? null,
-                'vai_tro' => $arr['nhan_vien']['vai_tro'] ?? null,
-            ];
-        }
-
-        return $arr;
-    }
-
-    /**
-     * Transform collection, paginator or single model into standardized response data
-     */
-    private function transformData($data)
-    {
-        // Paginator
-        if (method_exists($data, 'items')) {
-            $items = collect($data->items())->map(function ($item) {
-                // $item may be array or model
-                if (is_array($item)) {
-                    $khName = data_get($item, 'khach_hang.full_name') ?? data_get($item, 'khach_hang');
-                    $item['khach_hang'] = $khName ?: (data_get($item, 'khach_hang_id') ?? null);
-                    unset($item['khach_hang_id']);
-                    return $item;
-                }
-
-                return $this->transformLichHenModel($item);
-            })->all();
-
-            // build paginator array preserving meta
-            return array_merge($data->toArray(), ['data' => $items]);
-        }
-
-        // Collection
-        if ($data instanceof \Illuminate\Database\Eloquent\Collection) {
-            return $data->map(function ($item) {
-                return $this->transformLichHenModel($item);
-            })->all();
-        }
-
-        // Single model
-        if ($data instanceof \Illuminate\Database\Eloquent\Model) {
-            return $this->transformLichHenModel($data);
-        }
-
-        // Fallback: return as-is
-        return $data;
-    }
+    
     /**
      * Store a newly created appointment in storage.
      */
@@ -139,7 +59,7 @@ class LichHenController extends Controller
 
         $lichHen = LichHen::create($data);
 
-        $payload = $this->transformData($lichHen->fresh()->load(['thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'khachHang']));
+        $payload = new \App\Http\Resources\LichHenResource($lichHen->fresh()->load(['thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'khachHang']));
 
         return response()->json([
             'status' => true,
@@ -209,7 +129,7 @@ class LichHenController extends Controller
             $data = $query->get();
         }
 
-        $payload = $this->transformData($data);
+        $payload = \App\Http\Resources\LichHenResource::collection($data);
 
         return response()->json([
             'status' => true,
@@ -286,7 +206,7 @@ class LichHenController extends Controller
             $data = $query->get();
         }
 
-        $payload = $this->transformData($data);
+        $payload = \App\Http\Resources\LichHenResource::collection($data);
 
         return response()->json([
             'status' => true,
@@ -312,7 +232,7 @@ class LichHenController extends Controller
         }
         // Staff (Admin/NhanVien) có thể xem bất kỳ lịch hẹn nào
 
-        $payload = $this->transformData($lichHen->load(['thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'thanhToan', 'khachHang']));
+        $payload = new \App\Http\Resources\LichHenResource($lichHen->load(['thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'thanhToan', 'khachHang']));
 
         return response()->json([
             'status' => true,
@@ -323,14 +243,10 @@ class LichHenController extends Controller
     /**
      * Update lịch hẹn (gán bác sĩ hoặc cập nhật thông tin)
      */
-    public function update(Request $request, LichHen $lichHen): JsonResponse
+    public function update(\App\Http\Requests\UpdateLichHenRequest $request, LichHen $lichHen): JsonResponse
     {
         try {
-            $validated = $request->validate([
-                'nhan_vien_id' => 'nullable|exists:nhan_viens,id',
-                'trang_thai' => 'nullable|in:pending,confirmed,in-progress,completed,cancelled',
-                'ghi_chu' => 'nullable|string',
-            ]);
+            $validated = $request->validated();
 
             // Cập nhật các trường được phép
             if (isset($validated['nhan_vien_id'])) {
@@ -350,7 +266,7 @@ class LichHenController extends Controller
             // Load relationships để trả lại dữ liệu đầy đủ
             $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'thanhToan']);
 
-            $payload = $this->transformData($lichHen);
+            $payload = new \App\Http\Resources\LichHenResource($lichHen);
 
             return response()->json([
                 'status' => true,
@@ -392,7 +308,7 @@ class LichHenController extends Controller
             // Load relationships để trả lại dữ liệu đầy đủ
             $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'thanhToan']);
 
-            $payload = $this->transformData($lichHen);
+            $payload = new \App\Http\Resources\LichHenResource($lichHen);
 
             return response()->json([
                 'status' => true,
@@ -411,7 +327,7 @@ class LichHenController extends Controller
      * Update only the ngay_gio (date/time) of the appointment.
      * Customer can update their own, staff can update any.
      */
-    public function updateNgayGio(Request $request, LichHen $lichHen): JsonResponse
+    public function updateNgayGio(\App\Http\Requests\UpdateLichHenRequest $request, LichHen $lichHen): JsonResponse
     {
         $user = $request->user();
 
@@ -426,14 +342,12 @@ class LichHenController extends Controller
         }
         // Staff có thể sửa bất kỳ lịch hẹn nào
 
-        $validated = $request->validate([
-            'ngay_gio' => ['required', 'date'],
-        ]);
+        $validated = $request->validated();
 
         $lichHen->ngay_gio = Carbon::parse($validated['ngay_gio'])->format('Y-m-d H:i:s');
         $lichHen->save();
 
-        $payload = $this->transformData($lichHen->fresh()->load(['thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'khachHang']));
+        $payload = new \App\Http\Resources\LichHenResource($lichHen->fresh()->load(['thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'khachHang']));
 
         return response()->json([
             'status' => true,
@@ -525,7 +439,7 @@ class LichHenController extends Controller
             // Load relationships để trả lại dữ liệu đầy đủ
             $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'thanhToan']);
 
-            $payload = $this->transformData($lichHen);
+            $payload = new \App\Http\Resources\LichHenResource($lichHen);
 
             return response()->json([
                 'status' => true,
@@ -591,7 +505,7 @@ class LichHenController extends Controller
             $perPage = (int) $request->get('per_page', 15);
             $data = $query->paginate($perPage);
 
-            $payload = $this->transformData($data);
+            $payload = \App\Http\Resources\LichHenResource::collection($data);
 
             return response()->json([
                 'status' => true,
@@ -653,7 +567,7 @@ class LichHenController extends Controller
             $perPage = (int) $request->get('per_page', 15);
             $data = $query->paginate($perPage);
 
-            $payload = $this->transformData($data);
+            $payload = \App\Http\Resources\LichHenResource::collection($data);
 
             return response()->json([
                 'status' => true,
@@ -726,7 +640,7 @@ class LichHenController extends Controller
             $perPage = (int) $request->get('per_page', 15);
             $data = $query->paginate($perPage);
 
-            $payload = $this->transformData($data);
+            $payload = \App\Http\Resources\LichHenResource::collection($data);
 
             return response()->json([
                 'status' => true,
@@ -804,7 +718,7 @@ class LichHenController extends Controller
             // Load relationships
             $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'nhanVien', 'thanhToan']);
 
-            $payload = $this->transformData($lichHen);
+            $payload = new \App\Http\Resources\LichHenResource($lichHen);
 
             return response()->json([
                 'status' => true,
@@ -876,7 +790,7 @@ class LichHenController extends Controller
             $perPage = (int) $request->get('per_page', 15);
             $data = $query->paginate($perPage);
 
-            $payload = $this->transformData($data);
+            $payload = \App\Http\Resources\LichHenResource::collection($data);
 
             return response()->json([
                 'status' => true,
@@ -894,7 +808,7 @@ class LichHenController extends Controller
     /**
      * Hoàn thành khám bệnh
      */
-    public function hoanThanhKham(Request $request, LichHen $lichHen): JsonResponse
+    public function hoanThanhKham(\App\Http\Requests\UpdateLichHenRequest $request, LichHen $lichHen): JsonResponse
     {
         try {
             $user = $request->user();
@@ -940,10 +854,7 @@ class LichHenController extends Controller
             }
 
             // Validation cho dữ liệu bổ sung (nếu có)
-            $validated = $request->validate([
-                'ghi_chu' => 'nullable|string',
-                'huong_dan' => 'nullable|string',
-            ]);
+            $validated = $request->validated();
 
             // Hoàn thành khám
             $lichHen->thoi_gian_hoan_thanh = now();
@@ -962,7 +873,7 @@ class LichHenController extends Controller
             // Load relationships
             $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'nhanVien', 'thanhToan']);
 
-            $payload = $this->transformData($lichHen);
+            $payload = new \App\Http\Resources\LichHenResource($lichHen);
 
             return response()->json([
                 'status' => true,

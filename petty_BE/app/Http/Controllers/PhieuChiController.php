@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\PhieuChi;
 use App\Models\NhaCungCap;
 use Illuminate\Http\Request;
+use App\Http\Requests\StorePhieuChiRequest;
+use App\Http\Requests\UpdatePhieuChiRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -113,44 +115,9 @@ class PhieuChiController extends Controller
     /**
      * Thêm mới phiếu chi
      */
-    public function store(Request $request)
+    public function store(StorePhieuChiRequest $request)
     {
-        // Validate dữ liệu
-        $validator = Validator::make($request->all(), [
-            'loai_phieu_chi' => 'required|in:chi_nhap_hang,chi_van_hanh',
-            'ly_do_chi' => 'required|string',
-            'tong_so_tien' => 'required|numeric|min:0',
-            'so_tien_thanh_toan_ngay' => 'nullable|numeric|min:0',
-            'tien_mat' => 'nullable|numeric|min:0',
-            'tien_chuyen_khoan' => 'nullable|numeric|min:0',
-            'doi_tuong_nhan_tien' => 'required_if:loai_phieu_chi,chi_van_hanh|string|nullable',
-            'nha_cung_cap_id' => 'required_if:loai_phieu_chi,chi_nhap_hang|exists:nha_cung_caps,id|nullable',
-            'ngay_chi' => 'required|date',
-            'ghi_chu' => 'nullable|string',
-            'anh_chung_tu' => 'nullable|array',
-            'anh_chung_tu.*' => 'nullable|string', // Base64 hoặc URL
-        ], [
-            'loai_phieu_chi.required' => 'Vui lòng chọn loại phiếu chi',
-            'loai_phieu_chi.in' => 'Loại phiếu chi không hợp lệ',
-            'ly_do_chi.required' => 'Vui lòng nhập lý do chi',
-            'tong_so_tien.required' => 'Vui lòng nhập tổng số tiền',
-            'tong_so_tien.numeric' => 'Tổng số tiền phải là số',
-            'tong_so_tien.min' => 'Tổng số tiền phải lớn hơn hoặc bằng 0',
-            'doi_tuong_nhan_tien.required_if' => 'Vui lòng nhập đối tượng nhận tiền khi chi vận hành',
-            'nha_cung_cap_id.required_if' => 'Vui lòng chọn nhà cung cấp khi chi nhập hàng',
-            'nha_cung_cap_id.exists' => 'Nhà cung cấp không tồn tại',
-            'ngay_chi.required' => 'Vui lòng chọn ngày chi',
-            'ngay_chi.date' => 'Ngày chi không hợp lệ',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Dữ liệu không hợp lệ',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
+        
         DB::beginTransaction();
         try {
             // Tạo mã phiếu chi tự động
@@ -327,7 +294,7 @@ class PhieuChiController extends Controller
     /**
      * Cập nhật phiếu chi
      */
-    public function update(Request $request, $id)
+    public function update(UpdatePhieuChiRequest $request, $id)
     {
         $phieuChi = PhieuChi::find($id);
 
@@ -338,30 +305,7 @@ class PhieuChiController extends Controller
             ], 404);
         }
 
-        // Validate dữ liệu
-        $validator = Validator::make($request->all(), [
-            'loai_phieu_chi' => 'nullable|in:chi_nhap_hang,chi_van_hanh',
-            'ly_do_chi' => 'nullable|string',
-            'tong_so_tien' => 'nullable|numeric|min:0',
-            'so_tien_thanh_toan_ngay' => 'nullable|numeric|min:0',
-            'tien_mat' => 'nullable|numeric|min:0',
-            'tien_chuyen_khoan' => 'nullable|numeric|min:0',
-            'doi_tuong_nhan_tien' => 'nullable|string',
-            'nha_cung_cap_id' => 'nullable|exists:nha_cung_caps,id',
-            'ngay_chi' => 'nullable|date',
-            'ghi_chu' => 'nullable|string',
-            'anh_chung_tu' => 'nullable|array',
-            'anh_chung_tu.*' => 'nullable|string',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Dữ liệu không hợp lệ',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
+        
         DB::beginTransaction();
         try {
             // Xử lý ảnh chứng từ nếu có

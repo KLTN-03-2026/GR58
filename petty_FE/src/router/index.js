@@ -18,6 +18,11 @@ const routes = [
     component: () => import("../components/trangchu/Contact/index.vue"),
     meta: { layout: "main" },
   },
+  {
+    path: "/about",
+    component: () => import("../components/trangchu/AboutUs/index.vue"),
+    meta: { layout: "main" },
+  },
   /********************** Khách Hàng ************************* */
   {
     path: "/khach-hang/dang-ky",

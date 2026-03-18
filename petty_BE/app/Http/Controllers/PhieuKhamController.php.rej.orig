@@ -1,0 +1,46 @@
+@@ -10,6 +10,8 @@
+ use App\Models\LichHen;
+ use App\Models\ChiTietHoSoBenhAn;
+ use App\Models\ThanhToan;
++use App\Http\Requests\StorePhieuKhamRequest;
++use App\Http\Requests\UpdatePhieuKhamRequest;
+ use Illuminate\Support\Facades\Log;
+ use Illuminate\Support\Carbon;
+ 
+@@ -16,16 +18,5 @@
+-    public function store(Request $request)
++    public function store(StorePhieuKhamRequest $request)
+     {
+         try {
+-            $validated = $request->validate([
+-                'lich_hen_id' => 'required|exists:lich_hens,id',
+-                'nhiet_do' => 'nullable|numeric|between:30,45',
+-                'can_nang' => 'nullable|numeric|min:0',
+-                'nhip_tim' => 'nullable|integer|between:30,200',
+-                'nhip_tho' => 'nullable|integer|between:5,50',
+-                'ly_do_den_kham' => 'nullable|string|max:255',
+-                'trieu_chung' => 'nullable|string',
+-                'chan_doan' => 'nullable|string',
+-                'ghi_chu' => 'nullable|string',
+-                'loai_chi_dinh' => 'required|in:chi_dinh_can_lam_sang,don_thuoc,hen_tai_kham',
+-            ]);
++            $validated = $request->validated();
+ 
+@@ -242,16 +233,5 @@
+-    public function update(Request $request, $id)
++    public function update(UpdatePhieuKhamRequest $request, $id)
+     {
+         try {
+             $phieuKham = PhieuKham::findOrFail($id);
+ 
+-            $validated = $request->validate([
+-                'nhiet_do' => 'nullable|numeric|between:30,45',
+-                'can_nang' => 'nullable|numeric|min:0',
+-                'nhip_tim' => 'nullable|integer|between:30,200',
+-                'nhip_tho' => 'nullable|integer|between:5,50',
+-                'ly_do_den_kham' => 'nullable|string|max:255',
+-                'trieu_chung' => 'nullable|string',
+-                'chan_doan' => 'nullable|string',
+-                'ghi_chu' => 'nullable|string',
+-                'loai_chi_dinh' => 'nullable|in:chi_dinh_can_lam_sang,don_thuoc,hen_tai_kham',
+-            ]);

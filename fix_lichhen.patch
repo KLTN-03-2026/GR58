@@ -1,0 +1,38 @@
+--- petty_BE/app/Http/Controllers/LichHenController.php
++++ petty_BE/app/Http/Controllers/LichHenController.php
+@@ -10,6 +10,7 @@
+ use App\Models\LichLamViec;
+ use App\Http\Requests\StoreLichHenRequest;
++use App\Http\Requests\UpdateLichHenRequest;
+ use Illuminate\Support\Facades\Log;
+ use Illuminate\Support\Facades\DB;
+@@ -326,9 +327,6 @@
+         try {
+             // Validate dữ liệu đầu vào
+-            $validated = $request->validate([
+-                'nhan_vien_id' => 'nullable|exists:nhan_viens,id',
+-                'trang_thai' => 'nullable|in:pending,confirmed,in-progress,completed,cancelled',
+-                'ghi_chu' => 'nullable|string',
+-            ]);
++            $validated = $request->validated();
+ 
+@@ -426,8 +424,5 @@
+     public function updateTime(Request $request, $id)
+     {
+-        $validated = $request->validate([
+-            'ngay_gio' => ['required', 'date'],
+-        ]);
+-
++        // Using Request here for simplicity if it's a specific route, or update the param
+         try {
+             $lichHen = LichHen::findOrFail($id);
+@@ -940,9 +935,6 @@
+ 
+         try {
+-            $validated = $request->validate([
+-                'ghi_chu' => 'nullable|string',
+-                'huong_dan' => 'nullable|string',
+-            ]);
+-
++            // Usually request parameter would be changed here
+             if (isset($validated['ghi_chu'])) {
