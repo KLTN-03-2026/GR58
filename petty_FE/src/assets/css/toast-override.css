@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Minimal overrides: remove extra padding and keep layout tweaks, but
+     preserve variant backgrounds and text colors so success/error toasts
+     show their color. */
+.Vue-Toastification__container {
+  padding: 10px !important;
+  top: 80px !important; /* push down below header */
+  z-index: 11000 !important; /* ensure toasts appear above modals/overlays */
+  overflow: visible !important; /* allow long toasts to expand without being clipped */
+}
+
+.Vue-Toastification__toast {
+  /* keep rounded corners and visible backgrounds for variants */
+  padding: 12px 14px !important;
+  min-height: 48px !important;
+  border-radius: 8px !important;
+  font-family: inherit !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(2, 6, 23, 0.15) !important;
+  overflow: visible !important; /* allow inner content to wrap/show fully */
+  max-width: 520px !important;
+  width: auto !important;
+}
+
+/* Ensure any inner component (our custom MyToast) does not draw a white card
+   that covers the variant background. Make inner backgrounds transparent. */
+.Vue-Toastification__toast .toast-container,
+.Vue-Toastification__toast .toast-container * {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.Vue-Toastification__toast {
+  /* ensure the toast wrapper paints its background fully, even if children
+     have their own border-radius */
+  background-clip: padding-box !important;
+}
+
+/* Variant backgrounds - align with Tailwind teal/green/red/blue/orange */
+.Vue-Toastification__toast--success {
+  background-color: #16a34a !important; /* green-600 */
+}
+.Vue-Toastification__toast--error {
+  background-color: #dc2626 !important; /* red-600 */
+}
+.Vue-Toastification__toast--info {
+  background-color: #2563eb !important; /* blue-600 */
+}
+.Vue-Toastification__toast--warning {
+  background-color: #d97706 !important; /* amber-600 */
+}
+
+/* Make close button area easier to tap and visible */
+.Vue-Toastification__toast button[role="button"] {
+  background: transparent !important;
+  border: none !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  padding: 6px !important;
+  margin-left: 8px !important;
+}
+
+/* Slightly more subtle progress bar */
+.Vue-Toastification__progress-bar {
+  opacity: 0.85 !important;
+  background: rgba(255, 255, 255, 0.22) !important;
+}
+
+/* Ensure title/message have good contrast and spacing */
+.Vue-Toastification__toast-body {
+  margin: 0;
+  padding: 0;
+}
+.Vue-Toastification__title {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+/* Keep progress bar visible but subtle */
+.Vue-Toastification__progress-bar {
+  height: 4px !important;
+  border-radius: 4px !important;
+  opacity: 0.9 !important;
+}
+
+/* Small responsive tweak for long messages */
+@media (max-width: 420px) {
+  .Vue-Toastification__toast {
+    padding: 10px !important;
+    min-height: 44px !important;
+  }
+}
