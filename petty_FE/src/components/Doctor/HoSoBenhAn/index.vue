@@ -20,6 +20,7 @@
           </div>
           <input
             v-model="searchQuery"
+            @input="onSearchInput"
             type="text"
             placeholder="Nhập SĐT, Tên chủ hoặc Tên thú cưng để tra cứu..."
             class="w-full h-12 bg-[#f3f3f5] border-0 rounded-lg pl-12 pr-3 py-1 text-sm text-[#717182] focus:outline-none focus:ring-2 focus:ring-[#155dfc]"
@@ -29,7 +30,7 @@
         <!-- Filter Buttons -->
         <div class="flex gap-2">
           <button
-            @click="selectedFilter = 'all'"
+            @click="onFilterChange('all')"
             :class="[
               'h-9 px-3 rounded-lg flex items-center gap-2',
               selectedFilter === 'all'
@@ -37,11 +38,10 @@
                 : 'bg-white border !border-gray-300 text-gray-900',
             ]"
           >
-            <!-- <img :src="selectedFilter === 'all' ? icons.filterWhite : icons.filterBlack" alt="" class="w-4 h-4" /> -->
             <span class="text-sm font-medium">Tất cả</span>
           </button>
           <button
-            @click="selectedFilter = 'member'"
+            @click="onFilterChange('member')"
             :class="[
               'h-9 px-3 rounded-lg flex items-center gap-2',
               selectedFilter === 'member'
@@ -49,11 +49,10 @@
                 : 'bg-white border !border-gray-300 text-gray-900',
             ]"
           >
-            <!-- <img :src="selectedFilter === 'member' ? icons.memberWhite : icons.memberBlack" alt="" class="w-4 h-4" /> -->
             <span class="text-sm font-medium">Member</span>
           </button>
           <button
-            @click="selectedFilter = 'vanglai'"
+            @click="onFilterChange('vanglai')"
             :class="[
               'h-9 px-3 rounded-lg flex items-center gap-2',
               selectedFilter === 'vanglai'
@@ -61,15 +60,24 @@
                 : 'bg-white border !border-gray-300 text-gray-900',
             ]"
           >
-            <!-- <img :src="selectedFilter === 'vanglai' ? icons.vanglaiWhite : icons.vanglaiBlack" alt="" class="w-4 h-4" /> -->
             <span class="text-sm font-medium">Vãng lai</span>
           </button>
         </div>
       </div>
     </div>
 
+    <!-- Loading state -->
+    <div v-if="loading" class="flex justify-center py-12">
+      <p class="text-gray-400">Đang tải...</p>
+    </div>
+
+    <!-- Empty state -->
+    <div v-else-if="filteredCustomers.length === 0" class="bg-white border !border-gray-300 rounded-[14px] shadow-sm p-12 text-center">
+      <p class="text-gray-400">Chưa có hồ sơ bệnh án nào.</p>
+    </div>
+
     <!-- Patient Records List -->
-    <div class="flex flex-col gap-4">
+    <div v-else class="flex flex-col gap-4">
       <!-- Customer Card -->
       <div
         v-for="customer in filteredCustomers"
@@ -163,7 +171,6 @@
 
               <!-- Last Visit -->
               <div class="flex items-center gap-2">
-                <!-- <img :src="icons.clock" alt="" class="w-4 h-4" /> -->
                 <span class="text-sm font-normal text-gray-500">
                   Lần khám cuối:
                 </span>
@@ -175,13 +182,17 @@
                 <span
                   class="text-sm font-normal text-[#4a5565] leading-5 tracking-[-0.1504px]"
                 >
-                  - Chẩn đoán: {{ pet.diagnosis }}
+                  - Chẩn đoán: {{ pet.lastDiagnosis }}
                 </span>
               </div>
 
               <!-- Pet Details -->
               <p class="text-xs font-normal text-[#6a7282] leading-4">
                 {{ pet.age }} • {{ pet.gender }} • {{ pet.weight }}
+              </p>
+              <!-- Tổng số lần khám -->
+              <p v-if="pet.totalExams" class="text-xs text-[#009689] font-medium">
+                {{ pet.totalExams }} lần khám
               </p>
             </div>
 
@@ -390,18 +401,33 @@ const icons = {
 // State
 const searchQuery = ref("");
 const selectedFilter = ref("all");
-const phieuKhamList = ref([]);
+const customers = ref([]);
 const loading = ref(false);
-const expandedPets = ref(new Set()); // Track which pets show their exam records
-const pagination = ref({
-  total: 0,
-  per_page: 15,
-  current_page: 1,
-  last_page: 1,
-});
+const expandedPets = ref(new Set());
 
-// Sample data
-const customers = ref([
+// Load danh sách hồ sơ bệnh án từ API
+const loadHoSoBenhAn = async () => {
+  loading.value = true;
+  try {
+    const response = await api.get("/ho-so-benh-an", {
+      params: {
+        search: searchQuery.value || undefined,
+        type: selectedFilter.value !== "all" ? selectedFilter.value : undefined,
+      },
+    });
+    if (response.data.success) {
+      customers.value = response.data.data || [];
+    }
+  } catch (error) {
+    console.error("Error loading hồ sơ bệnh án:", error);
+    showErrorToast("Lỗi khi tải danh sách hồ sơ bệnh án");
+  } finally {
+    loading.value = false;
+  }
+};
+
+/* FAKE DATA - commented out, now loading from API
+const FAKE_customers = [
   {
     id: 1,
     name: "Nguyễn Văn A",
@@ -495,78 +521,28 @@ const customers = ref([
     ],
   },
 ]);
+*/
 
-// Computed filtered customers
-const filteredCustomers = computed(() => {
-  let filtered = customers.value;
+// Computed: lấy từ API đã filter rồi
+const filteredCustomers = computed(() => customers.value);
 
-  // Filter by type
-  if (selectedFilter.value === "member") {
-    filtered = filtered.filter((c) => c.type === "member");
-  } else if (selectedFilter.value === "vanglai") {
-    filtered = filtered.filter((c) => c.type === "vanglai");
-  }
-
-  // Filter by search query
-  if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter((customer) => {
-      const matchCustomer =
-        customer.name.toLowerCase().includes(query) ||
-        customer.phone.includes(query);
-
-      const matchPet = customer.pets.some((pet) =>
-        pet.name.toLowerCase().includes(query)
-      );
-
-      return matchCustomer || matchPet;
-    });
-  }
-
-  return filtered;
-});
-
-// Methods
-const loadPhieuKham = async () => {
-  loading.value = true;
-  try {
-    const response = await api.get("/phieu-kham", {
-      params: {
-        page: pagination.value.current_page,
-      },
-    });
-
-    console.log("=== Phiếu Khám API Response ===");
-    console.log("Response:", response.data);
-
-    if (response.data.status || response.data.message) {
-      phieuKhamList.value = response.data.data || [];
-      if (response.data.pagination) {
-        pagination.value = response.data.pagination;
-      }
-      console.log("Loaded phieuKham:", phieuKhamList.value);
-    }
-  } catch (error) {
-    console.error("Error loading phiếu khám:", error);
-    showErrorToast("Lỗi khi tải danh sách phiếu khám");
-  } finally {
-    loading.value = false;
-  }
+// Debounce search
+let searchTimer = null;
+const onSearchInput = () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadHoSoBenhAn(), 400);
 };
 
-// Get exam records for a specific pet
-const getPhieuKhamForPet = (petId) => {
-  return phieuKhamList.value.filter((pk) => pk.lich_hen?.thu_cung_id === petId);
+// Filter theo type
+const onFilterChange = (type) => {
+  selectedFilter.value = type;
+  loadHoSoBenhAn();
 };
 
-// Get exam records for a specific customer
-const getPhieuKhamForCustomer = (customerId) => {
-  return phieuKhamList.value.filter((pk) => {
-    const khachHangId =
-      pk.lich_hen?.khach_hang_id || pk.lich_hen?.khachHang?.id;
-    return khachHangId === customerId;
-  });
-};
+// Phiếu khám history đã nhúng trong customer.pets từ API
+const getPhieuKhamForPet = (_petId) => [];
+
+
 
 // Toggle pet detail expansion
 const togglePetDetail = (petId) => {
@@ -587,13 +563,16 @@ const formatDateTime = (dateString) => {
   }
 };
 
+// Xem chi tiết hồ sơ - truyền thu_cung_id và khach_hang_id
 const viewRecord = (customerId, petId) => {
-  console.log("View record:", customerId, petId);
-  router.push("/doctor/benh-an/chi-tiet");
+  router.push({
+    path: "/doctor/benh-an/chi-tiet",
+    query: { thu_cung_id: petId, khach_hang_id: customerId },
+  });
 };
 
 // Load data on mount
 onMounted(() => {
-  loadPhieuKham();
+  loadHoSoBenhAn();
 });
 </script>

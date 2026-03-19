@@ -25,6 +25,7 @@ use App\Http\Controllers\KhuyenMaiController;
 use App\Http\Controllers\PhanQuyenController;
 use App\Http\Controllers\LichDangKyController;
 use App\Http\Controllers\PhieuKhamController;
+use App\Http\Controllers\HoSoBenhAnController;
 
 
 Route::post('/khach-hang/dang-ki', [KhachHangController::class, 'dangKi']);
@@ -305,4 +306,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Kiểm tra mã khuyến mãi (public - cho khách hàng)
     Route::post('/khuyen-mai/check-code', [KhuyenMaiController::class, 'checkCode']);
+
+    // Hồ sơ bệnh án: danh sách bệnh nhân (staff only - bác sĩ xem)
+    Route::get('/ho-so-benh-an', [HoSoBenhAnController::class, 'index'])->middleware('staff.only');
+    // Lịch sử khám của 1 thú cưng
+    Route::get('/ho-so-benh-an/thu-cung/{thuCungId}', [HoSoBenhAnController::class, 'lichSuKham'])->middleware('staff.only');
 });
