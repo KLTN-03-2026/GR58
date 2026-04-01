@@ -27,7 +27,7 @@ use App\Http\Controllers\LichDangKyController;
 use App\Http\Controllers\PhieuKhamController;
 use App\Http\Controllers\HoSoBenhAnController;
 use App\Http\Controllers\ChatbotController;
-
+use App\Http\Controllers\PaymentController;
 
 Route::post('/khach-hang/dang-ki', [KhachHangController::class, 'dangKi']);
 Route::post('/khach-hang/dang-nhap', [KhachHangController::class, 'dangNhap']);
@@ -196,7 +196,9 @@ Route::get('/bai-viet/{baiViet}', [BaiVietController::class, 'show']);
 
 // Admin login route
 Route::post('/admin/dang-nhap', [AdminController::class, 'dangNhap']);
-
+// route cho momo
+    Route::post('/payment/momo/create', [PaymentController::class, 'createMoMoPayment']);
+    Route::post('/payment/momo/ipn', [PaymentController::class, 'momoIPN']);
 // Admin authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/dang-xuat', [AdminController::class, 'dangXuat']);
@@ -312,5 +314,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Hồ sơ bệnh án: danh sách bệnh nhân (staff only - bác sĩ xem)
     Route::get('/ho-so-benh-an', [HoSoBenhAnController::class, 'index'])->middleware('staff.only');
     // Lịch sử khám của 1 thú cưng
-    Route::get('/ho-so-benh-an/thu-cung/{thuCungId}', [HoSoBenhAnController::class, 'lichSuKham'])->middleware('staff.only');
+    Route::get('/ho-so-benh-an/thu-cung/{thuCungId}', [HoSoBenhAnController::class, 'lichSuKham'])->middleware('staff.only');   
 });
+
