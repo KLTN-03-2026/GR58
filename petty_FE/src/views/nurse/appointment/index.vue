@@ -658,7 +658,7 @@
               </td>
               <td class="px-2 py-3">
                 <span class="font-nunito text-sm text-gray-700">
-                  {{ appointment.khach_hang || "N/A" }}
+                  {{ appointment.khach_hang?.full_name || "N/A" }}
                 </span>
               </td>
               <td class="px-2 py-3">
@@ -668,7 +668,7 @@
               </td>
               <td class="px-2 py-3">
                 <span class="font-nunito text-sm text-gray-700">
-                  {{ appointment.dich_vu?.ten || "N/A" }}
+                  {{ appointment.dich_vu?.ten_dich_vu || "N/A" }}
                 </span>
               </td>
               <td class="px-2 py-3">
@@ -917,7 +917,7 @@
               </td>
               <td class="px-2 py-3">
                 <span class="font-nunito text-sm text-gray-700">
-                  {{ appointment.khach_hang || "N/A" }}
+                  {{ appointment.khach_hang?.full_name || "N/A" }}
                 </span>
               </td>
               <td class="px-2 py-3">
@@ -927,7 +927,7 @@
               </td>
               <td class="px-2 py-3">
                 <span class="font-nunito text-sm text-gray-700">
-                  {{ appointment.dich_vu?.ten || "N/A" }}
+                  {{ appointment.dich_vu?.ten_dich_vu || "N/A" }}
                 </span>
               </td>
               <td class="px-2 py-3">
@@ -1835,8 +1835,8 @@ const fetchAllAppointments = async () => {
           petName: app.thu_cung?.ten_thu_cung || "N/A",
           hasMale:
             app.thu_cung?.giong_loai?.toLowerCase().includes("đực") || false,
-          ownerName: app.khach_hang || "N/A",
-          service: app.dich_vu?.ten || "N/A",
+          ownerName: app.khach_hang?.full_name || "N/A",
+          service: app.dich_vu?.ten_dich_vu || "N/A",
           doctor: app.nhan_vien?.full_name || "Chưa phân công",
           room: "Phòng 102", // Mock - có thể thêm từ backend
           status,

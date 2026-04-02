@@ -95,6 +95,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/khach-hang/cap-nhat', [KhachHangController::class, 'capNhat']);
     Route::put('/khach-hang/{id}', [KhachHangController::class, 'update']);
+    Route::get('/khach-hang', [KhachHangController::class, 'index'])->middleware('staff.only');
 
     // Thu cưng routes (require authentication)
     Route::get('/thu-cung', [ThuCungController::class, 'index']);

@@ -21,6 +21,47 @@ use Illuminate\Support\Facades\URL;
 
 class KhachHangController extends Controller
 {
+    public function index(Request $request): JsonResponse
+    {
+        $query = KhachHang::with(['thuCungs:id,khach_hang_id,ten_thu_cung']);
+
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                  ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        $paginator = $query->paginate(20);
+
+        $data = collect($paginator->items())->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'full_name' => $item->full_name,
+                'so_dien_thoai' => $item->phone,
+                'email' => $item->email,
+                'thu_cung' => $item->thuCungs->map(function ($pet) {
+                    return [
+                        'id' => $pet->id,
+                        'ten_thu_cung' => $pet->ten_thu_cung,
+                    ];
+                })->toArray(),
+                'updated_at' => $item->updated_at,
+            ];
+        });
+
+        return response()->json([
+            'status' => true,
+            'data' => $data,
+            'meta' => [
+                'total' => $paginator->total(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+            ]
+        ]);
+    }
+
     public function dangKi(Request $request): JsonResponse
     {
         $input = $request->all();

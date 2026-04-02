@@ -219,9 +219,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import CreateCustomerModal from "./create-customer/index.vue";
 import EditCustomerInfo from "./edit-customer-info/index.vue";
+import { getKhachHangList } from "../../../utils/khachHang";
 
 // Icons
 const iconSearch =
@@ -251,62 +252,39 @@ const isEditCustomerPanelOpen = ref(false);
 const selectedCustomer = ref(null);
 
 // Filters
-const filters = ref([
-  { key: "all", label: "Tất cả (4)" },
+const filters = computed(() => [
+  { key: "all", label: `Tất cả (${customers.value.length})` },
   { key: "member", label: "Thành Viên" },
   { key: "walkin", label: "Vãng Lai" },
 ]);
 
 // Customer data
-const customers = ref([
-  {
-    id: 1,
-    name: "Nguyễn Văn A",
-    phone: "0901234567",
-    hasZalo: true,
-    tier: "gold",
-    pets: [
-      { name: "Milo", image: petMilo },
-      { name: "Luna", image: petLuna },
-    ],
-    lastVisit: "20/11/2024",
-    lastVisitRelative: "Hôm qua",
-    isMember: true,
-  },
-  {
-    id: 2,
-    name: "Trần Thị B",
-    phone: "0912345678",
-    hasZalo: true,
-    tier: "diamond",
-    pets: [{ name: "Max", image: petMax }],
-    lastVisit: "15/11/2024",
-    lastVisitRelative: "6 ngày trước",
-    isMember: true,
-  },
-  {
-    id: 3,
-    name: "Lê Văn C",
-    phone: "0923456789",
-    hasZalo: false,
-    tier: "silver",
-    pets: [{ name: "Bella", emoji: "🐶" }],
-    lastVisit: "10/11/2024",
-    lastVisitRelative: "11 ngày trước",
-    isMember: false,
-  },
-  {
-    id: 4,
-    name: "Phạm Thị D",
-    phone: "0934567890",
-    hasZalo: true,
-    tier: "regular",
-    pets: [{ name: "Rocky", image: petRocky }],
-    lastVisit: "05/11/2024",
-    lastVisitRelative: "16 ngày trước",
-    isMember: false,
-  },
-]);
+const customers = ref([]);
+
+const fetchCustomers = async () => {
+  try {
+    const res = await getKhachHangList();
+    if (res && res.data) {
+      customers.value = res.data.map((c) => ({
+        id: c.id,
+        name: c.full_name,
+        phone: c.so_dien_thoai || "N/A",
+        hasZalo: false,
+        tier: "regular",
+        pets: Array.isArray(c.thu_cung) ? c.thu_cung.map(pet => ({ name: pet.ten_thu_cung, emoji: "🐾" })) : [],
+        lastVisit: c.updated_at ? new Date(c.updated_at).toLocaleDateString("vi-VN") : "N/A",
+        lastVisitRelative: "",
+        isMember: false,
+      }));
+    }
+  } catch (error) {
+    console.error("Error fetching customers:", error);
+  }
+};
+
+onMounted(() => {
+  fetchCustomers();
+});
 
 // Computed
 const filteredCustomers = computed(() => {

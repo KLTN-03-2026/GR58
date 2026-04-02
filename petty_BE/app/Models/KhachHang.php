@@ -70,4 +70,9 @@ class KhachHang extends Authenticatable
     {
         return $this->hasMany(SocialAccount::class);
     }
+
+    public function thuCungs()
+    {
+        return $this->hasMany(ThuCung::class, 'khach_hang_id');
+    }
 }

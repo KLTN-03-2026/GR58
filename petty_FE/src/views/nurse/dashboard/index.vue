@@ -96,7 +96,10 @@
       </div>
 
       <!-- Appointments List -->
-      <div class="flex flex-col">
+      <div v-if="loading" class="flex justify-center items-center py-8">
+        <span class="text-gray-500">Đang tải dữ liệu...</span>
+      </div>
+      <div v-else class="flex flex-col">
         <div
           v-for="(appointment, index) in appointments"
           :key="index"
@@ -313,10 +316,11 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import CheckInModal from "../appointment/check-in-modal.vue";
 import CreateAppointmentModal from "../appointment/create-appointment/index.vue";
 import CreateCustomerModal from "../customer/create-customer/index.vue";
+import { getAllAppointments } from "../../../services/lichHenService";
 
 // Icons from Figma
 const iconCalendarPlus =
@@ -359,129 +363,69 @@ const iconRemaining =
 const petImage =
   "https://www.figma.com/api/mcp/asset/c4b42828-cb1a-488a-94f3-8d406a0ef20a";
 
+// Loading State
+const loading = ref(true);
+
 // Stats
 const stats = ref({
-  upcoming: 1,
-  waiting: 2,
-  payment: 2,
-  total: 5,
+  upcoming: 0,
+  waiting: 0,
+  payment: 0,
+  total: 0,
 });
 
 // Appointments data
-const appointments = ref([
-  {
-    id: 1,
-    type: "scheduled",
-    status: "upcoming",
-    petName: "Milo",
-    petType: "Chó Poodle",
-    petImage: petImage,
-    ownerName: "Nguyễn Văn A",
-    appointmentTime: "09:00",
-    checkedIn: false,
-    checkInTime: null,
-    service: "Khám tổng quát",
-    doctor: "BS. Hùng",
-    room: null,
-    delay: {
-      type: "late",
-      text: "Trễ 30 phút",
-      icon: iconLate,
-    },
-  },
-  {
-    id: 2,
-    type: "walkin",
-    status: "arrived",
-    petName: "Lu",
-    petType: "Mèo Anh Lông Ngắn",
-    petImage: petImage,
-    ownerName: "Đỗ Thị D",
-    appointmentTime: "--:--",
-    checkedIn: true,
-    checkInTime: "09:12",
-    service: "Khám tổng quát",
-    doctor: "BS. Hùng",
-    room: "P.102",
-    delay: {
-      type: "waiting",
-      text: "Chờ 18 phút",
-      icon: iconWaiting,
-    },
-  },
-  {
-    id: 3,
-    type: "member",
-    status: "arrived",
-    petName: "Luna",
-    petType: "Mèo Ba Tư",
-    petImage: petImage,
-    ownerName: "Đỗ Thị D",
-    appointmentTime: "--:--",
-    checkedIn: true,
-    checkInTime: "09:24",
-    service: "Tiêm Phòng Vắc-Xin",
-    doctor: "BS. Hùng",
-    room: "P.102",
-    delay: {
-      type: "short",
-      text: "6 phút",
-      icon: iconShort,
-    },
-  },
-  {
-    id: 4,
-    type: "scheduled",
-    status: "upcoming",
-    petName: "Max",
-    petType: "Chó Husky",
-    petImage: petImage,
-    ownerName: "Lê Văn C",
-    appointmentTime: "10:30",
-    checkedIn: false,
-    checkInTime: null,
-    service: "Khám tổng quát",
-    doctor: "BS. Hùng",
-    room: null,
-    delay: {
-      type: "remaining",
-      text: "Còn 60 phút",
-      icon: iconRemaining,
-    },
-  },
-  {
-    id: 5,
-    type: null,
-    status: "payment",
-    petName: "MiMi",
-    petType: "Chó Poodle",
-    petImage: petImage,
-    ownerName: "Phạm Thị D",
-    appointmentTime: null,
-    checkedIn: false,
-    checkInTime: null,
-    service: "Cắt tỉa lông",
-    doctor: "CV. Hoài",
-    room: null,
-    delay: null,
-  },
-  {
-    id: 6,
-    type: null,
-    status: "payment",
-    petName: "Rocky",
-    petType: "Chó Bulldog",
-    petImage: petImage,
-    ownerName: "Hoàng Văn E",
-    appointmentTime: null,
-    checkedIn: false,
-    checkInTime: null,
-    service: "Khám tổng quát",
-    doctor: "BS. Nam",
-    room: null,
-    delay: null,
-  },
-]);
+const appointments = ref([]);
+
+const loadDashboardData = async () => {
+  loading.value = true;
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const res = await getAllAppointments({ per_page: 100, from_date: today, to_date: today });
+    const data = res.data || [];
+    
+    let upcoming = 0;
+    let waiting = 0;
+
+    appointments.value = data.map((item) => {
+      const statusGroup = item.trang_thai === 'checked_in' ? 'arrived' : (item.trang_thai === 'pending' || item.trang_thai === 'confirmed' ? 'upcoming' : 'payment');
+      if (statusGroup === 'upcoming') upcoming++;
+      if (statusGroup === 'arrived') waiting++;
+
+      return {
+        id: item.id,
+        type: "scheduled",
+        status: statusGroup,
+        petName: item.thu_cung?.ten_thu_cung || 'N/A',
+        petType: item.thu_cung?.giong || 'N/A',
+        petImage: petImage, 
+        ownerName: item.khach_hang?.full_name || 'N/A',
+        appointmentTime: item.ngay_gio ? new Date(item.ngay_gio).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}) : '--:--',
+        checkedIn: !!item.thoi_gian_checkin,
+        checkInTime: item.thoi_gian_checkin ? new Date(item.thoi_gian_checkin).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}) : null,
+        service: item.dich_vu?.ten_dich_vu || 'N/A',
+        doctor: item.nhan_vien?.full_name || 'N/A',
+        room: item.nhan_vien?.phong_kham || null,
+        delay: null,
+      }
+    });
+
+    stats.value = {
+      upcoming,
+      waiting,
+      payment: 0, // Mock for now
+      total: appointments.value.length,
+    };
+  } catch (error) {
+    console.error("Dashboard data error:", error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  loadDashboardData();
+});
 
 // Modal State
 const isCheckInModalOpen = ref(false);
