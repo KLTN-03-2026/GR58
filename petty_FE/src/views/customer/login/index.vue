@@ -224,6 +224,7 @@ import { useRouter, useRoute } from "vue-router";
 import axios from "axios";
 import { useToast } from "vue-toastification";
 import { showInfoToast } from "@/utils/toast";
+import { setAuth, getToken, getUser } from "@/utils/auth";
 import MailIcon from "@/assets/svg/mail.svg";
 import LockIcon from "@/assets/svg/password.svg";
 import GoogleIcon from "@/assets/svg/google.svg";
@@ -247,13 +248,7 @@ const passwordInput = ref(null);
 const agreeRef = ref(null);
 
 // Lấy thông tin user đã lưu (nếu có)
-let storedUser = null;
-try {
-  const su = localStorage.getItem("auth_user");
-  storedUser = su ? JSON.parse(su) : null;
-} catch (e) {
-  storedUser = null;
-}
+let storedUser = getUser("customer");
 
 if (storedUser?.email) {
   form.value.email = storedUser.email;
@@ -274,10 +269,8 @@ const checkShowSuggestion = () => {
 };
 
 // Kiểm tra xem đã đăng nhập chưa
-const existingToken =
-  localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
+const existingToken = getToken("customer");
 if (existingToken) {
-  axios.defaults.headers.common["Authorization"] = `Bearer ${existingToken}`;
   router.push("/");
 }
 
@@ -320,26 +313,7 @@ const handleLogin = async () => {
       toast.success(res.data.message || "Đăng nhập thành công");
       const token = res.data.token;
       if (token) {
-        if (rememberMe.value) {
-          localStorage.setItem("auth_token", token);
-          sessionStorage.removeItem("auth_token");
-        } else {
-          sessionStorage.setItem("auth_token", token);
-          localStorage.removeItem("auth_token");
-        }
-
-        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-        if (res.data.data) {
-          const userStr = JSON.stringify(res.data.data);
-          if (rememberMe.value) {
-            localStorage.setItem("auth_user", userStr);
-            sessionStorage.removeItem("auth_user");
-          } else {
-            sessionStorage.setItem("auth_user", userStr);
-            localStorage.removeItem("auth_user");
-          }
-        }
+        setAuth(token, res.data.data || null, rememberMe.value, "customer");
       }
 
       // After login, redirect to original page if provided
@@ -377,10 +351,8 @@ const useRememberedAccount = async () => {
   await nextTick();
   passwordInput.value?.focus();
 
-  const token =
-    localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
+  const token = getToken("customer");
   if (token) {
-    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     router.push("/");
   }
 };

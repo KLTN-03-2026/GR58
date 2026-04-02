@@ -1,35 +1,54 @@
 import axios from "axios";
 
-const TOKEN_KEY = "auth_token";
-const USER_KEY = "auth_user";
+export const ROLE_KEYS = {
+  customer: { token: "auth_token_customer", user: "auth_user_customer" },
+  staff: { token: "auth_token_staff", user: "auth_user_staff" },
+  admin: { token: "auth_token_admin", user: "auth_user_admin" },
+};
 
-export function setAuth(token, user = null, remember = true) {
+export function resolveRole(role) {
+  if (role) return role;
+  if (typeof window === "undefined" || !window.location) return "customer";
+
+  const path = window.location.pathname;
+  if (path.startsWith("/admin")) return "admin";
+  if (path.startsWith("/nhan-vien") || path.startsWith("/doctor") || path.startsWith("/nurse") || path.startsWith("/receptionist") || path.startsWith("/assistant")) return "staff";
+  return "customer";
+}
+
+function getKeys(role) {
+  const r = resolveRole(role);
+  return ROLE_KEYS[r] || ROLE_KEYS.customer;
+}
+
+export function setAuth(token, user = null, remember = true, role = "customer") {
+  const keys = getKeys(role);
   try {
     if (remember) {
-      localStorage.setItem(TOKEN_KEY, token);
-      if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
-      sessionStorage.removeItem(TOKEN_KEY);
-      sessionStorage.removeItem(USER_KEY);
+      localStorage.setItem(keys.token, token);
+      if (user) localStorage.setItem(keys.user, JSON.stringify(user));
+      sessionStorage.removeItem(keys.token);
+      sessionStorage.removeItem(keys.user);
     } else {
-      sessionStorage.setItem(TOKEN_KEY, token);
-      if (user) sessionStorage.setItem(USER_KEY, JSON.stringify(user));
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
+      sessionStorage.setItem(keys.token, token);
+      if (user) sessionStorage.setItem(keys.user, JSON.stringify(user));
+      localStorage.removeItem(keys.token);
+      localStorage.removeItem(keys.user);
     }
   } catch (e) {
-    // ignore storage errors
     console.warn("auth: storage error", e);
   }
 
   if (token) axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 }
 
-export function clearAuth() {
+export function clearAuth(role) {
+  const keys = getKeys(role);
   try {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    sessionStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(USER_KEY);
+    localStorage.removeItem(keys.token);
+    localStorage.removeItem(keys.user);
+    sessionStorage.removeItem(keys.token);
+    sessionStorage.removeItem(keys.user);
   } catch (e) {
     console.warn("auth: clear storage error", e);
   }
@@ -43,11 +62,12 @@ export function clearAuth() {
   }
 }
 
-export function getToken() {
+export function getToken(role) {
+  const keys = getKeys(role);
   try {
     return (
-      localStorage.getItem(TOKEN_KEY) ||
-      sessionStorage.getItem(TOKEN_KEY) ||
+      localStorage.getItem(keys.token) ||
+      sessionStorage.getItem(keys.token) ||
       null
     );
   } catch (e) {
@@ -55,11 +75,12 @@ export function getToken() {
   }
 }
 
-export function getUser() {
+export function getUser(role) {
+  const keys = getKeys(role);
   try {
     const raw =
-      localStorage.getItem(USER_KEY) ||
-      sessionStorage.getItem(USER_KEY) ||
+      localStorage.getItem(keys.user) ||
+      sessionStorage.getItem(keys.user) ||
       null;
     return raw ? JSON.parse(raw) : null;
   } catch (e) {
@@ -67,40 +88,23 @@ export function getUser() {
   }
 }
 
-export function logout(router) {
-  clearAuth();
-  // If router provided, navigate to login page; otherwise do a hard navigation
-  try {
-    // Decide which login page to redirect to based on current path.
-    // If the current location is under /admin, send to admin login; otherwise customer login.
-    const currentPath =
-      typeof window !== "undefined" &&
-      window.location &&
-      window.location.pathname
-        ? window.location.pathname
-        : "";
-    const target = currentPath.startsWith("/admin")
-      ? "/admin/dang-nhap"
-      : "/khach-hang/dang-nhap";
+export function logout(router, role) {
+  const resolvedRole = resolveRole(role);
+  clearAuth(resolvedRole);
+  
+  let target = "/customer/login";
+  if (resolvedRole === "admin") target = "/admin/login";
+  else if (resolvedRole === "staff") target = "/staff/login";
 
+  try {
     if (router && typeof router.replace === "function") {
-      // replace so the current history entry is replaced (reduces chance of going back)
       router.replace(target);
     } else {
-      // use location.replace to avoid adding a new history entry
       window.location.replace(target);
     }
   } catch (e) {
-    // fallback
     try {
-      window.location.replace(
-        typeof window !== "undefined" &&
-          window.location &&
-          window.location.pathname &&
-          window.location.pathname.startsWith("/admin")
-          ? "/admin/dang-nhap"
-          : "/khach-hang/dang-nhap"
-      );
+      window.location.replace(target);
     } catch (ee) {
       // give up
     }
@@ -108,6 +112,8 @@ export function logout(router) {
 }
 
 export default {
+  ROLE_KEYS,
+  resolveRole,
   setAuth,
   clearAuth,
   getToken,

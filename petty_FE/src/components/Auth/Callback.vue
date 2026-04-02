@@ -20,6 +20,7 @@ import { onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useToast } from "vue-toastification";
 import axios from "axios";
+import { setAuth, clearAuth } from "@/utils/auth";
 
 const router = useRouter();
 const route = useRoute();
@@ -47,18 +48,16 @@ onMounted(async () => {
   // Nếu có token trong URL query
   if (token) {
     try {
-      // Lưu token vào localStorage
-      localStorage.setItem("auth_token", token);
-      
-      // Thiết lập Authorization header cho Axios
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-      // Gọi API để lấy thông tin người dùng
-      const response = await axios.get("http://127.0.0.1:8000/api/user");
+      // Gọi API để lấy thông tin người dùng (tùy chọn: auth framework auto handles headers in api instances, but we'll manually set initially via setAuth)
+      // Actually we need to set token FIRST for the GET request if not handled globally, but api reqs use defaults.
+      // Wait, we can just fetch first using explicit header:
+      const response = await axios.get("http://127.0.0.1:8000/api/user", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       
       if (response.data && response.data.status) {
-        // Lưu thông tin người dùng
-        localStorage.setItem("auth_user", JSON.stringify(response.data.data));
+        // Lưu thông tin người dùng và token theo role customer
+        setAuth(token, response.data.data, true, "customer");
         
         toast.success("Đăng nhập thành công!");
         
@@ -74,9 +73,7 @@ onMounted(async () => {
       toast.error("Có lỗi xảy ra khi xác thực. Vui lòng đăng nhập lại.");
       
       // Xóa token lỗi
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("auth_user");
-      delete axios.defaults.headers.common["Authorization"];
+      clearAuth("customer");
       
       router.push("/khach-hang/dang-nhap");
     }
@@ -90,16 +87,8 @@ onMounted(async () => {
         const authData = JSON.parse(socialAuthData);
         
         if (authData.status && authData.token) {
-          // Lưu token
-          localStorage.setItem("auth_token", authData.token);
-          
-          // Lưu thông tin người dùng
-          if (authData.data) {
-            localStorage.setItem("auth_user", JSON.stringify(authData.data));
-          }
-          
-          // Thiết lập Authorization header
-          axios.defaults.headers.common["Authorization"] = `Bearer ${authData.token}`;
+          // Lưu token & thông tin người dùng bằng auth helper
+          setAuth(authData.token, authData.data || null, true, "customer");
           
           // Xóa dữ liệu tạm thời
           sessionStorage.removeItem('social_auth_response');

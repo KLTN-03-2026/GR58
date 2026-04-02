@@ -123,6 +123,7 @@ import axios from "axios";
 import { useRouter, useRoute } from "vue-router";
 import { useToast } from "vue-toastification";
 import { showInfoToast, showSuccessToast } from "@/utils/toast";
+import { setAuth } from "@/utils/auth";
 // Icon SVG
 import SecurityIcon from "@/assets/svg/security.svg";
 import EmailAddressIcon from "@/assets/svg/emailaddress.svg";
@@ -140,15 +141,7 @@ const form = ref({
   password: "",
 });
 
-// If existing token is present, set axios header so components can use it
-try {
-  const existingToken =
-    localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
-  if (existingToken)
-    axios.defaults.headers.common["Authorization"] = `Bearer ${existingToken}`;
-} catch (e) {
-  // ignore storage errors
-}
+// api.js handles auth state automatically now.
 
 // Show toasts on mount so plugin/UI are ready
 onMounted(() => {
@@ -183,34 +176,16 @@ const handleLogin = async () => {
 
     // Adjust base URL if your API runs elsewhere. Using the same host from other login forms.
     const res = await axios.post(
-        "http://127.0.0.1:8000/api/admin/dang-nhap",
-        payload
-      );
+      "http://127.0.0.1:8000/api/admin/dang-nhap",
+      payload
+    );
 
     if (res.data && res.data.status) {
       toast.success(res.data.message || "Đăng nhập thành công");
       const token = res.data.token;
       if (token) {
-        if (rememberMe.value) {
-          localStorage.setItem("auth_token", token);
-          sessionStorage.removeItem("auth_token");
-        } else {
-          sessionStorage.setItem("auth_token", token);
-          localStorage.removeItem("auth_token");
-        }
-
-        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-        if (res.data.data) {
-          const userStr = JSON.stringify(res.data.data);
-          if (rememberMe.value) {
-            localStorage.setItem("auth_user", userStr);
-            sessionStorage.removeItem("auth_user");
-          } else {
-            sessionStorage.setItem("auth_user", userStr);
-            localStorage.removeItem("auth_user");
-          }
-        }
+        // Save auth data
+        setAuth(token, res.data.data || null, rememberMe.value, "admin");
       }
 
       // redirect to original admin page if provided (preserve redirect)

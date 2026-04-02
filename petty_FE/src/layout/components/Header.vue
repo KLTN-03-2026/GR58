@@ -108,6 +108,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import axios from "axios";
 import { showSuccessToast, showInfoToast } from "@/utils/toast";
+import { getUser, logout } from "@/utils/auth";
 // Icon SVG
 import searchIcon from "@/assets/svg/search.svg";
 import notificationIcon from "@/assets/svg/notification.svg";
@@ -133,15 +134,7 @@ const props = defineProps({
 });
 
 // Prefer stored auth_user (set by login) if present
-const storedUser = (() => {
-  try {
-    const raw =
-      localStorage.getItem("auth_user") || sessionStorage.getItem("auth_user");
-    return raw ? JSON.parse(raw) : null;
-  } catch (e) {
-    return null;
-  }
-})();
+const storedUser = getUser();
 
 // Normalized user data used by the template
 const userData = computed(() => {
@@ -249,56 +242,10 @@ const handleLogout = async () => {
       await axios.post("http://127.0.0.1:8000/api/admin/dang-xuat");
     }
   } catch (err) {
-    // If backend call fails (network or 401), we still proceed to clear client state.
-    // No toast here: the login page will show the logout success message via query flag.
     console.error("Logout error:", err);
   }
 
-  // Clear stored auth token and user (both localStorage and sessionStorage)
-  try {
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("auth_user");
-    localStorage.removeItem("user_role");
-  } catch (e) {}
-  try {
-    sessionStorage.removeItem("auth_token");
-    sessionStorage.removeItem("auth_user");
-    sessionStorage.removeItem("user_role");
-  } catch (e) {}
-
-  // Remove axios default header if set
-  try {
-    if (
-      axios &&
-      axios.defaults &&
-      axios.defaults.headers &&
-      axios.defaults.headers.common
-    ) {
-      delete axios.defaults.headers.common["Authorization"];
-    }
-  } catch (e) {
-    // ignore
-  }
-
-  // Replace current location so browser back won't restore protected page.
-  // Add a query flag so the login page can show a success toast after redirect.
-  try {
-    // Determine which login page to redirect to
-    const userRole =
-      localStorage.getItem("user_role") || sessionStorage.getItem("user_role");
-    if (
-      userRole === "bac_si" ||
-      userRole === "y_ta" ||
-      userRole === "le_tan" ||
-      userRole === "tro_ly"
-    ) {
-      window.location.replace("/nhan-vien/dang-nhap?logged_out=1");
-    } else {
-      window.location.replace("/admin/dang-nhap?logged_out=1");
-    }
-  } catch (e) {
-    router.replace({ path: "/admin/dang-nhap", query: { logged_out: 1 } });
-  }
+  logout(router);
 };
 
 // Close dropdown when clicking outside

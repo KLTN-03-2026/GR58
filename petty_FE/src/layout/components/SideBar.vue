@@ -161,6 +161,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { getMenuByRole, sharedIcons } from "@/config/menuConfig";
+import { logout } from "@/utils/auth";
 // Icon SVG
 import ChevronDownIcon from "@/assets/svg/chevron-down.svg";
 import PettyIcon from "@/assets/img_imports/healthicons_guide-dog.svg";
@@ -243,9 +244,7 @@ const navigateTo = (itemKey) => {
 // Logout handler
 const handleLogout = () => {
   console.log("Logging out...");
-  localStorage.removeItem("authToken");
-  localStorage.removeItem("authUser");
-  router.push("/login");
+  logout(router);
 };
 </script>
 

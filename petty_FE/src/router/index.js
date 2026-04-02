@@ -270,4 +270,20 @@ const router = createRouter({
   routes: routes,
 });
 
+router.beforeEach((to, from, next) => {
+  if (to.meta.requiresAuth) {
+    let role = "customer";
+    if (to.path.startsWith("/admin")) role = "admin";
+    else if (to.path.startsWith("/doctor") || to.path.startsWith("/nurse") || to.path.startsWith("/staff") || to.path.startsWith("/receptionist") || to.path.startsWith("/assistant")) role = "staff";
+
+    const token = getToken(role);
+    if (!token) {
+      if (role === "admin") return next({ path: "/admin/login", query: { redirect: to.fullPath } });
+      if (role === "staff") return next({ path: "/staff/login", query: { redirect: to.fullPath } });
+      return next({ path: "/customer/login", query: { redirect: to.fullPath } });
+    }
+  }
+  next();
+});
+
 export default router;

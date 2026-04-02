@@ -61,3 +61,5 @@ petty_FE/*.sw?
 openspec/
 GEMINI.md
 skills-lock.json
+CLAUDE.md
+.claude/
