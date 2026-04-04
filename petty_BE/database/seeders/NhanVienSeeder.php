@@ -22,7 +22,7 @@ class NhanVienSeeder extends Seeder
 
         // Bật lại kiểm tra khóa ngoại
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
+       
         $samples = [
             [
                 'full_name' => 'Nguyễn Văn An',
