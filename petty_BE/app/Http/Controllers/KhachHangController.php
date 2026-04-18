@@ -430,6 +430,7 @@ class KhachHangController extends Controller
                 $customer = KhachHang::create([
                     'full_name' => $name,
                     'email' => $email,
+                    'email_verified_at' => now(),
                     'password' => null, // Không có mật khẩu cho đăng nhập mạng xã hội
                     'anh_dai_dien' => $avatar,
                     'rank' => 'Silver',
@@ -460,6 +461,60 @@ class KhachHangController extends Controller
         }
     }
 
+    public function guiLaiXacNhan(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => Lang::get('messages.validation_failed'),
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $email = $request->input('email');
+        $customer = KhachHang::where('email', $email)->first();
+
+        if (! $customer) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Email xác nhận đã được gửi lại thành công.'
+            ], 200);
+        }
+
+        if ($customer->email_verified_at != null) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Tài khoản đã được xác minh. Vui lòng đăng nhập.'
+            ], 400);
+        }
+
+        try {
+            $verificationUrl = URL::temporarySignedRoute(
+                'verification.verify',
+                now()->addMinutes(60),
+                ['id' => $customer->id, 'hash' => sha1($customer->email)]
+            );
+
+            Mail::to($customer->email)->send(new VerifyEmail($verificationUrl));
+            
+            return response()->json([
+                'status' => true,
+                'message' => 'Email xác nhận đã được gửi lại thành công.'
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Resend verification email failed: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => Lang::get('messages.server_error')
+            ], 500);
+        }
+    }
+
     public function verifyEmail(Request $request, $id)
     {
         if (! $request->hasValidSignature()) {
@@ -484,6 +539,7 @@ class KhachHangController extends Controller
         $token = $customer->createToken('api-token')->plainTextToken;
 
         // Chuyển hướng về Frontend kèm token
-        return redirect('http://localhost:5173/?token=' . $token . '&verified=true');
+        $frontendUrl = config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173'));
+        return redirect($frontendUrl . '/auth/verified?token=' . $token);
     }
 }

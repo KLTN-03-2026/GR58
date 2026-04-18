@@ -297,14 +297,13 @@
 import { ref, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
-import { useToast } from "vue-toastification";
+import { showSuccessToast, showErrorToast } from "@/utils/toast.js";
 import Tick from "@/assets/svg/tick.svg";
 import UserIcon from "@/assets/svg/User.svg";
 import EmailAddressIcon from "@/assets/svg/emailaddress.svg";
 import PasswordIcon from "@/assets/svg/password.svg";
 
 const router = useRouter();
-const toast = useToast();
 
 const formData = ref({
   full_name: "",
@@ -360,7 +359,7 @@ const handleSubmit = async () => {
   const required = ["full_name", "email", "password", "confirmPassword"];
   const missingKey = required.find((k) => !formData.value[k]);
   if (missingKey) {
-    toast.error("Vui lòng điền đầy đủ các trường bắt buộc");
+    showErrorToast("Vui lòng điền đầy đủ các trường bắt buộc");
     isSubmitting.value = false;
     await nextTick();
     focusByKey(missingKey);
@@ -377,7 +376,7 @@ const handleSubmit = async () => {
 
   if (!formData.value.agreeTerms) {
     errors.value.agreeTerms = ["Bạn cần đồng ý với điều khoản"];
-    toast.error("Bạn cần đồng ý với Điều khoản và Chính sách bảo mật");
+    showErrorToast("Bạn cần đồng ý với Điều khoản và Chính sách bảo mật");
     isSubmitting.value = false;
     await nextTick();
     focusByKey("agreeTerms");
@@ -397,19 +396,16 @@ const handleSubmit = async () => {
     );
 
     if (res.data.status) {
-      toast.success("Đăng ký thành công! Vui lòng đăng nhập để tiếp tục");
-      setTimeout(() => {
-        router.push("/khach-hang/dang-nhap");
-      }, 1500);
+      router.push('/verify-email?email=' + encodeURIComponent(formData.value.email));
     }
   } catch (err) {
     if (err.response?.status === 422) {
       errors.value = err.response.data.errors;
-      toast.error("Vui lòng kiểm tra lại thông tin đăng ký");
+      showErrorToast("Vui lòng kiểm tra lại thông tin đăng ký");
       await nextTick();
       focusFirstError(errors.value);
     } else {
-      toast.error(
+      showErrorToast(
         err.response?.data?.message || "Đã có lỗi xảy ra, vui lòng thử lại"
       );
     }
@@ -450,7 +446,7 @@ const handleGoogleLogin = () => {
       if (popup) popup.close();
 
       // Hiển thị thông báo
-      toast.success("Đăng nhập Google thành công!");
+      showSuccessToast("Đăng nhập Google thành công!");
 
       // Redirect về trang chủ
       setTimeout(() => {
@@ -494,7 +490,7 @@ const handleFacebookLogin = () => {
 
       if (popup) popup.close();
 
-      toast.success("Đăng nhập Facebook thành công!");
+      showSuccessToast("Đăng nhập Facebook thành công!");
 
       setTimeout(() => {
         router.push("/");

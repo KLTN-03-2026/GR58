@@ -7,37 +7,20 @@
       <!-- Icon + Content -->
       <div class="flex gap-3 items-start flex-1 min-w-0">
         <!-- Icon -->
-        <div class="flex-shrink-0 w-6 h-6 mt-1">
-          <img
-            v-if="type === 'success'"
-            src="https://www.figma.com/api/mcp/asset/43a15868-7fcf-487b-ad7f-3c8568e2b337"
-            alt="Success"
-            class="w-full h-full"
-          />
-          <img
-            v-else-if="type === 'error'"
-            src="https://www.figma.com/api/mcp/asset/09288516-18e8-43d5-847e-8739497ed26b"
-            alt="Error"
-            class="w-full h-full"
-          />
-          <img
-            v-else
-            src="https://www.figma.com/api/mcp/asset/43a15868-7fcf-487b-ad7f-3c8568e2b337"
-            alt="Info"
-            class="w-full h-full"
-          />
+        <div class="flex-shrink-0 w-6 h-6 mt-0.5 flex justify-center items-center">
+          <component :is="iconComponent" :size="24" :class="iconColorClass" />
         </div>
 
         <!-- Title + Description -->
         <div class="flex flex-col gap-1 flex-1 min-w-0">
           <p
-            class="text-sm md:text-base font-semibold leading-5"
+            class="text-sm md:text-base font-semibold leading-5 font-nunitoSans"
             style="color: #ffffff"
           >
             {{ title }}
           </p>
           <p
-            class="text-sm font-normal leading-5 whitespace-pre-wrap"
+            class="text-sm font-normal leading-5 whitespace-pre-wrap font-nunitoSans"
             v-html="message"
             style="color: rgba(255, 255, 255, 0.95)"
           ></p>
@@ -48,15 +31,10 @@
       <button
         @click.stop="$emit('close-toast')"
         aria-label="Close"
-        class="flex-shrink-0 p-2 rounded-md hover:bg-white/10 transition"
+        class="flex-shrink-0 p-1.5 -m-1.5 rounded-md hover:bg-white/10 transition"
         style="color: rgba(255, 255, 255, 0.95)"
       >
-        <img
-          src="https://www.figma.com/api/mcp/asset/49f78819-105c-45d8-8483-0997990ee4e9"
-          alt="Close"
-          class="w-3 h-3"
-          style="filter: invert(1) brightness(2)"
-        />
+        <X :size="16" />
       </button>
     </div>
     <!-- Progress Bar -->
@@ -86,7 +64,10 @@
 </style>
 
 <script setup>
-defineProps({
+import { computed } from 'vue';
+import { CheckCircle2, XCircle, Info, AlertTriangle, X } from 'lucide-vue-next';
+
+const props = defineProps({
   type: {
     type: String,
     default: "success",
@@ -106,6 +87,26 @@ defineProps({
 });
 
 defineEmits(["close-toast"]);
+
+const iconComponent = computed(() => {
+  switch (props.type) {
+    case 'success': return CheckCircle2;
+    case 'error': return XCircle;
+    case 'info': return Info;
+    case 'warning': return AlertTriangle;
+    default: return Info;
+  }
+});
+
+const iconColorClass = computed(() => {
+  switch (props.type) {
+    case 'success': return 'text-green-500';
+    case 'error': return 'text-red-500';
+    case 'info': return 'text-blue-500';
+    case 'warning': return 'text-amber-500';
+    default: return 'text-white';
+  }
+});
 </script>
 
 <style scoped>

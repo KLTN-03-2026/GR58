@@ -41,6 +41,16 @@ const routes = [
     meta: { layout: "dangki_dangnhap" },
   },
   {
+    path: "/verify-email",
+    component: () => import("../views/customer/verify-email/index.vue"),
+    meta: { layout: "default" },
+  },
+  {
+    path: "/auth/verified",
+    component: () => import("../views/auth/verified/index.vue"),
+    meta: { layout: "default" },
+  },
+  {
     path: "/customer/my-account",
     component: () => import("../views/customer/account-management/index.vue"),
     meta: { layout: "dangki_dangnhap", requiresAuth: true },

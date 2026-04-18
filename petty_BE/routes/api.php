@@ -31,6 +31,7 @@ use App\Http\Controllers\PaymentController;
 
 Route::post('/khach-hang/dang-ki', [KhachHangController::class, 'dangKi']);
 Route::post('/khach-hang/dang-nhap', [KhachHangController::class, 'dangNhap']);
+Route::post('/khach-hang/gui-lai-xac-nhan', [KhachHangController::class, 'guiLaiXacNhan']);
 
 // Admin login route
 Route::post('/admin/dang-nhap', [AdminController::class, 'dangNhap']);
