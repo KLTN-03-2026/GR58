@@ -1,598 +1,664 @@
 <template>
-  <div class="w-full px-8 py-6">
-    <div class="w-full">
-      <!-- Stats Cards Grid -->
-      <div class="grid grid-cols-4 gap-6 mb-6">
-        <!-- Card 1: Doanh thu hôm nay -->
-        <div
-          class="bg-white border-l-4 border-l-green-500 border-t border-r border-b border-gray-100 rounded-[14px] p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <p class="font-nunitoSans font-medium text-[#4b5563] text-sm">
-              Doanh thu hôm nay
-            </p>
-            <DollarIcon class="w-6 h-6 text-green-500" />
-          </div>
-          <div class="flex flex-col gap-2">
-            <p class="font-nunitoSans font-medium text-[#16a34a] text-3xl">
-              {{ formatCurrency(stats.todayRevenue) }}
-            </p>
-            <div class="flex gap-1 items-center">
-              <ArrowUpIcon class="w-4 h-4 text-green-500" />
-              <span
-                class="font-nunitoSans font-medium text-[#16a34a] text-base"
-              >
-                {{ stats.revenueChange }}%
-              </span>
-              <span
-                class="font-nunitoSans font-medium text-[#4b5563] text-base"
-              >
-                so với hôm qua
-              </span>
-            </div>
-          </div>
-        </div>
+  <div class="dashboard-page">
 
-        <!-- Card 2: Lịch hẹn hôm nay -->
-        <div
-          class="bg-white border-l-4 border-l-blue-500 border-t border-r border-b border-gray-100 rounded-[14px] p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <p class="font-nunitoSans font-medium text-[#4b5563] text-sm">
-              Lịch hẹn hôm nay
-            </p>
-            <CalendarIcon class="w-6 h-6 text-blue-500" />
-          </div>
-          <div class="flex flex-col gap-2">
-            <p class="font-nunitoSans font-medium text-[#2563eb] text-3xl">
-              {{ stats.todayAppointments }}
-            </p>
-            <div class="flex gap-4 items-center">
-              <div class="flex gap-1 items-center">
-                <TickIcon class="w-4 h-4 text-green-500" />
-                <span
-                  class="font-nunitoSans font-medium text-[#4b5563] text-base"
-                >
-                  {{ stats.completedAppointments }} hoàn thành
-                </span>
-              </div>
-              <div class="flex gap-1 items-center">
-                <CancelIcon class="w-4 h-4 text-red-500" />
-                <span
-                  class="font-nunitoSans font-medium text-[#4b5563] text-base"
-                >
-                  {{ stats.cancelledAppointments }} hủy
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card 3: Khách hàng mới -->
-        <div
-          class="bg-white border-l-4 border-l-purple-500 border-t border-r border-b border-gray-100 rounded-[14px] p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <p class="font-nunitoSans font-medium text-[#4b5563] text-sm">
-              Khách hàng mới
-            </p>
-            <UsersIcon class="w-6 h-6 text-purple-500" />
-          </div>
-          <div class="flex flex-col gap-2">
-            <p class="font-nunitoSans font-medium text-[#9333ea] text-3xl">
-              {{ stats.newCustomers }}
-            </p>
-            <p class="font-nunitoSans font-medium text-[#4b5563] text-base">
-              Khách lần đầu tới khám
-            </p>
-          </div>
-        </div>
-
-        <!-- Card 4: Cảnh báo Kho -->
-        <div
-          class="bg-white border-l-4 border-l-red-500 border-t border-r border-b border-gray-100 rounded-[14px] p-6"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <p class="font-nunitoSans font-medium text-[#4b5563] text-sm">
-              Cảnh báo Kho
-            </p>
-            <WarningIcon class="w-6 h-6 text-red-500" />
-          </div>
-          <div class="flex flex-col gap-2">
-            <p class="font-nunitoSans font-medium text-[#dc2626] text-3xl">
-              {{ stats.stockAlerts }}
-            </p>
-            <p class="font-nunitoSans font-medium text-[#4b5563] text-base">
-              Thuốc sắp hết hạn/hết hàng
-            </p>
-          </div>
-        </div>
+    <!-- ── HEADER + BỘ LỌC THỜI GIAN ── -->
+    <div class="dashboard-header">
+      <div>
+        <h1 class="page-title">Dashboard Tổng Quan</h1>
+        <p class="page-sub">Dữ liệu từ {{ meta.from }} đến {{ meta.to }}</p>
       </div>
 
-      <!-- Charts Section -->
-      <div class="grid grid-cols-[1fr_358px] gap-6 mb-6">
-        <!-- Revenue Chart -->
-        <div
-          class="bg-white border !border-gray-100 shadow-sm rounded-[14px] p-6"
+      <div class="filter-bar">
+        <button
+          v-for="opt in presets"
+          :key="opt.key"
+          class="preset-btn"
+          :class="{ active: activePreset === opt.key }"
+          @click="applyPreset(opt)"
         >
-          <div class="flex items-center justify-between mb-8">
-            <h3 class="font-nunitoSans font-medium text-black text-lg">
-              Doanh thu 7 ngày gần nhất
-            </h3>
-            <button
-              class="bg-[#f3f4f6] border !border-gray-200 rounded-lg px-3 py-2 flex items-center gap-2"
-            >
-              <span class="font-nunitoSans font-medium text-black text-base">
-                7 ngày
-              </span>
-              <ChevronDownIcon />
-            </button>
-          </div>
+          {{ opt.label }}
+        </button>
 
-          <!-- Column Chart -->
-          <div class="h-[300px] relative">
-            <apexchart
-              type="bar"
-              height="300"
-              :options="revenueChartOptions"
-              :series="revenueChartSeries"
-            ></apexchart>
-          </div>
-
-          <div class="flex items-center justify-center gap-2 mt-4">
-            <div class="w-3 h-3 rounded-sm bg-[#0d9488]"></div>
-            <span class="font-nunitoSans font-medium text-[#0d9488] text-base">
-              Doanh thu
-            </span>
-          </div>
-        </div>
-
-        <!-- Revenue Distribution Pie Chart -->
-        <div
-          class="bg-white border !border-gray-100 shadow-sm rounded-[14px] p-6"
-        >
-          <h3 class="font-nunitoSans font-medium text-black text-lg mb-6">
-            Tỷ trọng doanh thu
-          </h3>
-
-          <!-- Pie Chart -->
-          <div class="h-[300px] mb-4 relative flex items-center justify-center">
-            <apexchart
-              type="donut"
-              height="300"
-              :options="pieChartOptions"
-              :series="pieChartSeries"
-            ></apexchart>
-          </div>
-
-          <!-- Legend -->
-          <div class="flex flex-col gap-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="w-3 h-3 rounded-full bg-[#0d9488]"></div>
-                <span
-                  class="font-nunitoSans font-medium text-[#374151] text-base"
-                >
-                  Lâm sàng
-                </span>
-              </div>
-              <span class="font-nunitoSans font-medium text-black text-base"
-                >45%</span
-              >
-            </div>
-
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="w-3 h-3 rounded-full bg-[#06b6d4]"></div>
-                <span
-                  class="font-nunitoSans font-medium text-[#374151] text-base"
-                >
-                  Spa & Grooming
-                </span>
-              </div>
-              <span class="font-nunitoSans font-medium text-black text-base"
-                >30%</span
-              >
-            </div>
-
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="w-3 h-3 rounded-full bg-[#a855f7]"></div>
-                <span
-                  class="font-nunitoSans font-medium text-[#374151] text-base"
-                >
-                  Nội trú & Điều trị
-                </span>
-              </div>
-              <span class="font-nunitoSans font-medium text-black text-base"
-                >15%</span
-              >
-            </div>
-
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="w-3 h-3 rounded-full bg-[#fb923c]"></div>
-                <span
-                  class="font-nunitoSans font-medium text-[#374151] text-base"
-                >
-                  Khác
-                </span>
-              </div>
-              <span class="font-nunitoSans font-medium text-black text-base"
-                >10%</span
-              >
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bottom Section: Doctors & Activities -->
-      <div class="grid grid-cols-2 gap-6">
-        <!-- Bác sĩ đang trực -->
-        <div
-          class="bg-white border !border-gray-100 shadow-sm rounded-[14px] p-6"
-        >
-          <div class="flex items-center gap-2 mb-8">
-            <h3 class="font-nunitoSans font-medium text-black text-lg">
-              Bác sĩ đang trực
-            </h3>
-          </div>
-
-          <div class="flex flex-col gap-4">
-            <div
-              v-for="doctor in doctors"
-              :key="doctor.id"
-              class="bg-[#f3f4f6] rounded-[10px] px-3 py-3 flex items-center justify-between"
-            >
-              <div class="flex items-center gap-3">
-                <div
-                  class="bg-[#0d9488] rounded-full w-10 h-10 flex items-center justify-center"
-                >
-                  <span
-                    class="font-nunitoSans font-medium text-white text-base"
-                  >
-                    {{ doctor.initials }}
-                  </span>
-                </div>
-                <div class="flex flex-col">
-                  <p class="font-nunitoSans font-medium text-black text-base">
-                    {{ doctor.name }}
-                  </p>
-                </div>
-              </div>
-              <div
-                class="border !border-gray-200 rounded-lg px-2 py-1"
-                :class="doctor.isActive ? 'bg-green-100' : 'bg-gray-200'"
-              >
-                <span
-                  class="font-medium text-sm"
-                  :class="doctor.isActive ? 'text-green-600' : 'text-gray-500'"
-                >
-                  {{ doctor.statusLabel }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Hoạt động gần đây -->
-        <div
-          class="bg-white border !border-gray-100 shadow-sm rounded-[14px] p-6"
-        >
-          <h3 class="font-nunitoSans font-medium text-black text-lg mb-8">
-            Hoạt động gần đây
-          </h3>
-
-          <div class="flex flex-col gap-4">
-            <div
-              v-for="activity in activities"
-              :key="activity.id"
-              class="relative pl-5"
-            >
-              <div
-                class="absolute left-0 top-2 w-2 h-2 rounded-full"
-                :class="activity.colorClass"
-              ></div>
-              <div class="flex flex-col">
-                <p class="font-nunitoSans font-medium text-black text-base">
-                  {{ activity.text }}
-                </p>
-                <p class="font-nunitoSans font-medium text-[#6b7280] text-base">
-                  {{ activity.time }}
-                </p>
-              </div>
-            </div>
-          </div>
+        <div class="date-range">
+          <input type="date" v-model="customFrom" @change="applyCustomRange" />
+          <span>–</span>
+          <input type="date" v-model="customTo" @change="applyCustomRange" />
         </div>
       </div>
     </div>
+
+    <!-- ── LOADING ── -->
+    <div v-if="loading" class="loading-overlay">
+      <div class="spinner"></div>
+      <span>Đang tải dữ liệu...</span>
+    </div>
+
+    <template v-else-if="data">
+      <!-- ── KPI CARDS ── -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <p class="kpi-label">Doanh thu</p>
+          <p class="kpi-value">{{ formatCurrency(data.kpi.doanh_thu.value) }}</p>
+          <p class="kpi-change" :class="changeClass(data.kpi.doanh_thu.change)">
+            <span>{{ changeIcon(data.kpi.doanh_thu.change) }}</span>
+            {{ Math.abs(data.kpi.doanh_thu.change) }}% so với kỳ trước
+          </p>
+        </div>
+
+        <div class="kpi-card">
+          <p class="kpi-label">Lịch hẹn</p>
+          <p class="kpi-value">{{ data.kpi.lich_hen.value.toLocaleString('vi-VN') }}</p>
+          <p class="kpi-change" :class="changeClass(data.kpi.lich_hen.change)">
+            <span>{{ changeIcon(data.kpi.lich_hen.change) }}</span>
+            {{ Math.abs(data.kpi.lich_hen.change) }}% so với kỳ trước
+          </p>
+        </div>
+
+        <div class="kpi-card">
+          <p class="kpi-label">Khách hàng mới</p>
+          <p class="kpi-value">{{ data.kpi.khach_hang_moi.value.toLocaleString('vi-VN') }}</p>
+          <p class="kpi-change" :class="changeClass(data.kpi.khach_hang_moi.change)">
+            <span>{{ changeIcon(data.kpi.khach_hang_moi.change) }}</span>
+            {{ Math.abs(data.kpi.khach_hang_moi.change) }}% so với kỳ trước
+          </p>
+        </div>
+
+        <div class="kpi-card">
+          <p class="kpi-label">Chi phí</p>
+          <p class="kpi-value">{{ formatCurrency(data.kpi.chi_phi.value) }}</p>
+          <p class="kpi-change" :class="changeClass(data.kpi.chi_phi.change, true)">
+            <span>{{ changeIcon(data.kpi.chi_phi.change) }}</span>
+            {{ Math.abs(data.kpi.chi_phi.change) }}% so với kỳ trước
+          </p>
+        </div>
+      </div>
+
+      <!-- ── DOANH THU + TRẠNG THÁI LỊCH HẸN ── -->
+      <div class="row-2-1">
+        <div class="card">
+          <h3 class="card-title">Biểu đồ doanh thu</h3>
+          <apexchart
+            type="bar"
+            height="240"
+            :options="revenueChartOptions"
+            :series="revenueChartSeries"
+          />
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Trạng thái lịch hẹn</h3>
+          <apexchart
+            type="donut"
+            height="240"
+            :options="donutOptions"
+            :series="donutSeries"
+          />
+        </div>
+      </div>
+
+      <!-- ── TOP DỊCH VỤ + NHÂN VIÊN ── -->
+      <div class="row-2-1">
+        <div class="card">
+          <h3 class="card-title">Top 5 dịch vụ phổ biến</h3>
+          <apexchart
+            type="bar"
+            height="220"
+            :options="topServicesOptions"
+            :series="topServicesSeries"
+          />
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Hiệu suất nhân viên</h3>
+          <div class="staff-table-wrap">
+            <table class="staff-table">
+              <thead>
+                <tr>
+                  <th>Tên</th>
+                  <th>Vai trò</th>
+                  <th>Lịch hẹn</th>
+                  <th>Tỷ lệ HT</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="s in data.staff_performance" :key="s.name">
+                  <td>{{ s.name }}</td>
+                  <td>
+                    <span class="badge" :class="s.vai_tro === 'Bác sĩ' ? 'badge-blue' : 'badge-teal'">
+                      {{ s.vai_tro }}
+                    </span>
+                  </td>
+                  <td>{{ s.total }}</td>
+                  <td>
+                    <span class="badge" :class="rateClass(s.completion_rate)">
+                      {{ s.completion_rate }}%
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── KHÁCH HÀNG + PHÂN HẠNG + KHO ── -->
+      <div class="row-3">
+        <div class="card">
+          <h3 class="card-title">Khách hàng mới (6 tháng)</h3>
+          <apexchart
+            type="bar"
+            height="200"
+            :options="newCustomersOptions"
+            :series="newCustomersSeries"
+          />
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Phân hạng khách hàng</h3>
+          <div class="rank-list">
+            <div v-for="r in data.customer_rank" :key="r.rank" class="rank-row">
+              <span class="rank-label">
+                <span class="rank-icon" :class="'rank-' + r.rank.toLowerCase()">
+                  {{ r.rank === 'Diamond' ? '◆' : r.rank === 'Gold' ? '★' : '●' }}
+                </span>
+                {{ r.rank }}
+              </span>
+              <div class="rank-bar-wrap">
+                <div
+                  class="rank-bar"
+                  :class="'rank-bar-' + r.rank.toLowerCase()"
+                  :style="{ width: r.percentage + '%' }"
+                ></div>
+              </div>
+              <span class="rank-pct">{{ r.percentage }}%</span>
+              <span class="rank-count">({{ r.count }})</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">
+            Cảnh báo kho hàng
+            <span v-if="data.inventory_alerts.length" class="alert-badge">
+              {{ data.inventory_alerts.length }}
+            </span>
+          </h3>
+          <div v-if="!data.inventory_alerts.length" class="empty-state">
+            Kho hàng đang ổn định
+          </div>
+          <table v-else class="inv-table">
+            <thead>
+              <tr>
+                <th>Mặt hàng</th>
+                <th>Tồn kho</th>
+                <th>Tối thiểu</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in data.inventory_alerts" :key="item.ma_hang_hoa">
+                <td>
+                  <p class="item-name">{{ item.name }}</p>
+                  <p class="item-code">{{ item.ma_hang_hoa }}</p>
+                </td>
+                <td>
+                  <span class="badge" :class="item.ton_kho === 0 ? 'badge-red' : 'badge-orange'">
+                    {{ item.ton_kho }} {{ item.don_vi_tinh }}
+                  </span>
+                </td>
+                <td class="text-muted">{{ item.dinh_muc_toi_thieu }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+
+    <!-- ── LỖI ── -->
+    <div v-else-if="error" class="error-state">
+      <p>{{ error }}</p>
+      <button @click="fetchData">Thử lại</button>
+    </div>
+
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-// Icon SVG
-import WarningIcon from "@/assets/svg/warning.svg";
-import DollarIcon from "@/assets/svg/dollar.svg";
-import CalendarIcon from "@/assets/svg/calendar.svg";
-import UsersIcon from "@/assets/svg/users.svg";
-import TickIcon from "@/assets/svg/tick.svg";
-import CancelIcon from "@/assets/svg/cancel.svg";
-import ChevronDownIcon from "@/assets/svg/chevron-down.svg";
-import ArrowUpIcon from "@/assets/svg/arrow-up.svg";
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
+import VueApexCharts from 'vue3-apexcharts'
 
-// Icons from Figma
-const icons = {
-  revenue:
-    "https://www.figma.com/api/mcp/asset/04d7756f-ddb8-4eb9-bd34-d589e4d33e19",
-  calendar:
-    "https://www.figma.com/api/mcp/asset/1ae8c621-ceff-4d3c-a154-dd78148fd745",
-  users:
-    "https://www.figma.com/api/mcp/asset/4fb86ec6-6a45-4a7c-951a-06a4c898c34d",
-  warning:
-    "https://www.figma.com/api/mcp/asset/5d8e76f1-fd64-435f-bda0-9ed95f949800",
-  arrowUp:
-    "https://www.figma.com/api/mcp/asset/59aa0818-ee27-42a8-8f0f-366c8ce84bae",
-  check:
-    "https://www.figma.com/api/mcp/asset/757c9048-2756-4649-a3fc-f8016f6d65c2",
-  cancel:
-    "https://www.figma.com/api/mcp/asset/80f4431b-a99a-4517-b775-b3dfff4c5216",
-  chevronDown:
-    "https://www.figma.com/api/mcp/asset/54afa36e-0deb-4712-9267-114647c779ea",
-  chartLegend:
-    "https://www.figma.com/api/mcp/asset/1498c99f-1b98-48fe-ab5e-46e668749e8f",
-  doctor:
-    "https://www.figma.com/api/mcp/asset/9a494e17-cbd6-4c70-8aee-d90c131ba391",
-};
+// ── Đặt tên component ──
+const apexchart = VueApexCharts
 
-// Chart images (these are exported from Figma)
-const charts = {
-  revenueChart:
-    "https://www.figma.com/api/mcp/asset/e5489b73-4bdf-4a02-8845-60764e1ef7e2",
-  pieChart:
-    "https://www.figma.com/api/mcp/asset/24674e33-3f5f-4ca7-b184-b6f8a51768b3",
-};
+// ── State ──
+const loading     = ref(false)
+const error       = ref(null)
+const data        = ref(null)
+const meta        = ref({ from: '', to: '' })
+const activePreset = ref('30d')
 
-// Dashboard stats data
-const stats = ref({
-  todayRevenue: 15500000,
-  revenueChange: 12.5,
-  todayAppointments: 45,
-  completedAppointments: 32,
-  cancelledAppointments: 3,
-  newCustomers: 12,
-  stockAlerts: 5,
-});
+// Date range
+const today      = new Date().toISOString().split('T')[0]
+const customFrom = ref(
+  new Date(Date.now() - 29 * 86400000).toISOString().split('T')[0]
+)
+const customTo   = ref(today)
 
-// Revenue Chart Data (7 days: T2-CN)
-const revenueChartSeries = ref([
-  {
-    name: "Doanh thu",
-    data: [2100000, 1850000, 2400000, 2200000, 2800000, 2500000, 1700000], // VND
-  },
-]);
+// Preset buttons
+const presets = [
+  { key: 'today',  label: 'Hôm nay',    days: 0  },
+  { key: '7d',     label: '7 ngày',     days: 6  },
+  { key: '30d',    label: '30 ngày',    days: 29 },
+  { key: 'month',  label: 'Tháng này',  days: null },
+  { key: 'year',   label: 'Năm nay',    days: null },
+]
 
-const revenueChartOptions = ref({
-  chart: {
-    type: "bar",
-    height: 300,
-    toolbar: {
-      show: false,
-    },
-    fontFamily: "Nunito Sans, sans-serif",
-  },
-  plotOptions: {
-    bar: {
-      borderRadius: 8,
-      columnWidth: "60%",
-      dataLabels: {
-        position: "top",
-      },
-    },
-  },
-  dataLabels: {
-    enabled: false,
-  },
-  colors: ["#0d9488"], // Teal color
+// ── Helpers ──
+function formatCurrency(val) {
+  if (val >= 1_000_000_000) return (val / 1_000_000_000).toFixed(1) + ' tỷ'
+  if (val >= 1_000_000)     return (val / 1_000_000).toFixed(1) + ' tr'
+  return new Intl.NumberFormat('vi-VN').format(Math.round(val)) + ' đ'
+}
+
+function changeClass(val, invert = false) {
+  if (val === 0) return 'neutral'
+  const positive = invert ? val < 0 : val > 0
+  return positive ? 'up' : 'down'
+}
+
+function changeIcon(val) {
+  if (val > 0) return '▲'
+  if (val < 0) return '▼'
+  return '─'
+}
+
+function rateClass(rate) {
+  if (rate >= 90) return 'badge-green'
+  if (rate >= 70) return 'badge-orange'
+  return 'badge-red'
+}
+
+// ── Fetch API ──
+async function fetchData() {
+  loading.value = true
+  error.value   = null
+  try {
+    const token = localStorage.getItem('auth_token_admin')
+    const { data: res } = await axios.get('/api/statistics/dashboard', {
+      headers: { Authorization: `Bearer ${token}` },
+      params:  { from: customFrom.value, to: customTo.value },
+    })
+    data.value = res.data
+    meta.value = res.meta
+  } catch (e) {
+    error.value = e.response?.data?.message ?? 'Không thể tải dữ liệu. Vui lòng thử lại.'
+  } finally {
+    loading.value = false
+  }
+}
+
+// ── Preset xử lý ──
+function applyPreset(opt) {
+  activePreset.value = opt.key
+  const now = new Date()
+  customTo.value = today
+
+  if (opt.key === 'today') {
+    customFrom.value = today
+  } else if (opt.key === 'month') {
+    customFrom.value = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString().split('T')[0]
+  } else if (opt.key === 'year') {
+    customFrom.value = `${now.getFullYear()}-01-01`
+  } else {
+    const d = new Date(Date.now() - opt.days * 86400000)
+    customFrom.value = d.toISOString().split('T')[0]
+  }
+  fetchData()
+}
+
+function applyCustomRange() {
+  activePreset.value = 'custom'
+  fetchData()
+}
+
+onMounted(() => fetchData())
+
+// ──────────────────────────────────────────
+// CHART OPTIONS
+// ──────────────────────────────────────────
+
+// 1. Biểu đồ doanh thu
+const revenueChartSeries = computed(() => [{
+  name: 'Doanh thu',
+  data: data.value?.revenue_chart?.data?.map(d => d.value) ?? [],
+}])
+
+const revenueChartOptions = computed(() => ({
+  chart: { toolbar: { show: false }, fontFamily: 'inherit' },
+  plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
+  dataLabels: { enabled: false },
   xaxis: {
-    categories: ["T2", "T3", "T4", "T5", "T6", "T7", "CN"],
-    labels: {
-      style: {
-        colors: "#6b7280",
-        fontSize: "14px",
-        fontWeight: 500,
-      },
-    },
-    axisBorder: {
-      show: false,
-    },
-    axisTicks: {
-      show: false,
-    },
+    categories: data.value?.revenue_chart?.data?.map(d => {
+      if (data.value.revenue_chart.group_by === 'day') {
+        const [, m, d2] = d.label.split('-')
+        return `${d2}/${m}`
+      }
+      return d.label
+    }) ?? [],
+    labels: { rotate: -45, style: { fontSize: '11px' } },
+    tickAmount: Math.min(14, (data.value?.revenue_chart?.data?.length ?? 0)),
   },
   yaxis: {
     labels: {
-      style: {
-        colors: "#6b7280",
-        fontSize: "12px",
-      },
-      formatter: function (value) {
-        if (value >= 1000000) {
-          return (value / 1000000).toFixed(1) + "M";
-        } else if (value >= 1000) {
-          return (value / 1000).toFixed(0) + "K";
-        }
-        return value + "đ";
-      },
-    },
-    min: 0,
-    max: 3000000,
-    tickAmount: 4,
-  },
-  grid: {
-    borderColor: "#e5e7eb",
-    strokeDashArray: 5,
-    xaxis: {
-      lines: {
-        show: false,
-      },
-    },
-    yaxis: {
-      lines: {
-        show: true,
-      },
-    },
-    padding: {
-      top: 0,
-      right: 0,
-      bottom: 0,
-      left: 10,
+      formatter: v => v >= 1_000_000
+        ? (v / 1_000_000).toFixed(0) + 'tr'
+        : v.toLocaleString('vi-VN'),
     },
   },
+  colors: ['#378ADD'],
   tooltip: {
-    enabled: true,
-    y: {
-      formatter: function (value) {
-        return formatCurrency(value);
-      },
-    },
-    style: {
-      fontSize: "14px",
-      fontFamily: "Nunito Sans, sans-serif",
-    },
+    y: { formatter: v => new Intl.NumberFormat('vi-VN').format(Math.round(v)) + ' đ' },
   },
-});
+  grid: { borderColor: '#f0f0f0' },
+}))
 
-// Pie Chart Data (Revenue Distribution)
-const pieChartSeries = ref([45, 30, 15, 10]); // Percentages
+// 2. Donut trạng thái lịch hẹn
+const donutSeries = computed(() => {
+  const s = data.value?.appointment_status
+  if (!s) return [0, 0, 0, 0]
+  return [s.completed, s.confirmed, s.pending, s.cancelled]
+})
 
-const pieChartOptions = ref({
-  chart: {
-    type: "donut",
-    fontFamily: "Nunito Sans, sans-serif",
-  },
-  labels: ["Lâm sàng", "Spa & Grooming", "Nội trú & Điều trị", "Khác"],
-  colors: ["#0d9488", "#06b6d4", "#a855f7", "#fb923c"], // Teal, Cyan, Purple, Orange
-  dataLabels: {
-    enabled: false, // Hide labels on chart
-  },
-  plotOptions: {
-    pie: {
-      donut: {
-        size: "70%", // Larger donut for better visual
-        labels: {
-          show: false,
-        },
-      },
-      expandOnClick: false,
-    },
-  },
-  legend: {
-    show: false, // We'll use custom legend below
-  },
-  stroke: {
-    show: true,
-    width: 3,
-    colors: ["#fff"],
-  },
+const donutOptions = computed(() => ({
+  chart: { fontFamily: 'inherit' },
+  labels: ['Hoàn thành', 'Đã xác nhận', 'Chờ xử lý', 'Đã huỷ'],
+  colors: ['#1D9E75', '#378ADD', '#EF9F27', '#E24B4A'],
+  legend: { position: 'bottom', fontSize: '12px' },
+  dataLabels: { enabled: true, formatter: v => Math.round(v) + '%' },
+  plotOptions: { pie: { donut: { size: '60%' } } },
+  tooltip: { y: { formatter: v => v + ' lịch hẹn' } },
+}))
+
+// 3. Top dịch vụ (horizontal bar)
+const topServicesSeries = computed(() => [{
+  name: 'Lịch hẹn',
+  data: data.value?.top_services?.map(s => s.total_appointments) ?? [],
+}])
+
+const topServicesOptions = computed(() => ({
+  chart: { toolbar: { show: false }, fontFamily: 'inherit' },
+  plotOptions: { bar: { horizontal: true, borderRadius: 4, barHeight: '55%' } },
+  dataLabels: { enabled: false },
+  xaxis: { categories: data.value?.top_services?.map(s => s.name) ?? [] },
+  colors: ['#5DCAA5'],
   tooltip: {
-    enabled: true,
     y: {
-      formatter: function (val) {
-        return val + "%";
-      },
-      title: {
-        formatter: function (seriesName) {
-          return seriesName + ": ";
-        },
-      },
-    },
-    style: {
-      fontSize: "14px",
-      fontFamily: "Nunito Sans, sans-serif",
-    },
-  },
-  states: {
-    hover: {
-      filter: {
-        type: "lighten",
-        value: 0.1,
-      },
-    },
-    active: {
-      filter: {
-        type: "darken",
-        value: 0.1,
+      formatter: (v, { dataPointIndex }) => {
+        const s = data.value?.top_services?.[dataPointIndex]
+        const rev = s ? new Intl.NumberFormat('vi-VN').format(Math.round(s.revenue)) + ' đ' : ''
+        return `${v} lịch · DT: ${rev}`
       },
     },
   },
-});
+  grid: { borderColor: '#f0f0f0' },
+}))
 
-// Doctors data
-const doctors = ref([
-  {
-    id: 1,
-    name: "BS. Nguyễn Văn A",
-    initials: "NVA",
-    status: "Đang khám",
-    statusLabel: "Đang khám",
-    isActive: true,
-  },
-  {
-    id: 2,
-    name: "BS. Trần Thị B",
-    initials: "TTB",
-    status: "Rảnh",
-    statusLabel: "Rảnh",
-    isActive: false,
-  },
-  {
-    id: 3,
-    name: "Y tá Lê Văn C",
-    initials: "LVC",
-    status: "Đang khám",
-    statusLabel: "Đang khám",
-    isActive: true,
-  },
-]);
+// 4. Khách hàng mới
+const newCustomersSeries = computed(() => [{
+  name: 'Khách mới',
+  data: data.value?.new_customers_chart?.map(d => d.value) ?? [],
+}])
 
-// Recent activities data
-const activities = ref([
-  {
-    id: 1,
-    text: "Y tá Lê Văn C vừa nhập kho 50 liều Vaccine Rabies",
-    time: "5 phút trước",
-    colorClass: "bg-[#a855f7]",
-  },
-  {
-    id: 2,
-    text: "Lịch hẹn mới: Khách hàng Nguyễn Thị D đặt lịch tắm rửa cho Milo",
-    time: "15 phút trước",
-    colorClass: "bg-[#3b82f6]",
-  },
-  {
-    id: 3,
-    text: "Hoàn thành thanh toán hóa đơn HD001234 - 350.000đ",
-    time: "30 phút trước",
-    colorClass: "bg-[#22c55e]",
-  },
-  {
-    id: 4,
-    text: "BS. Nguyễn Văn A cập nhật hồ sơ bệnh án cho Luna",
-    time: "1 giờ trước",
-    colorClass: "bg-[#f97316]",
-  },
-]);
-
-// Helper function to format currency
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(amount);
-};
+const newCustomersOptions = computed(() => ({
+  chart: { toolbar: { show: false }, fontFamily: 'inherit' },
+  plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } },
+  dataLabels: { enabled: false },
+  xaxis: { categories: data.value?.new_customers_chart?.map(d => d.label) ?? [] },
+  colors: ['#639922'],
+  grid: { borderColor: '#f0f0f0' },
+}))
 </script>
 
 <style scoped>
-/* Custom scrollbar for activities if needed */
+.dashboard-page {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: inherit;
+}
+
+/* Header */
+.dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.page-title {
+  font-size: 22px;
+  font-weight: 500;
+  margin: 0 0 4px;
+}
+.page-sub {
+  font-size: 13px;
+  color: #888;
+  margin: 0;
+}
+
+/* Filter */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.preset-btn {
+  padding: 6px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 13px;
+  cursor: pointer;
+  color: #555;
+  transition: all .15s;
+}
+.preset-btn:hover { background: #f5f5f5; }
+.preset-btn.active {
+  background: #E6F1FB;
+  border-color: #378ADD;
+  color: #185FA5;
+  font-weight: 500;
+}
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #888;
+}
+.date-range input {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 13px;
+  outline: none;
+}
+
+/* Loading */
+.loading-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 80px 0;
+  color: #888;
+  font-size: 14px;
+}
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #eee;
+  border-top-color: #378ADD;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* KPI Grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+@media (max-width: 900px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.kpi-card {
+  background: #f8f8f8;
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.kpi-label {
+  font-size: 12px;
+  color: #888;
+  margin: 0 0 8px;
+}
+.kpi-value {
+  font-size: 24px;
+  font-weight: 500;
+  margin: 0 0 6px;
+  color: #1a1a1a;
+}
+.kpi-change {
+  font-size: 12px;
+  margin: 0;
+}
+.kpi-change.up      { color: #1D9E75; }
+.kpi-change.down    { color: #E24B4A; }
+.kpi-change.neutral { color: #888; }
+
+/* Layout rows */
+.row-2-1 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.row-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+@media (max-width: 1024px) {
+  .row-2-1, .row-3 { grid-template-columns: 1fr; }
+}
+
+/* Card */
+.card {
+  background: #fff;
+  border: 1px solid #ebebeb;
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 16px;
+  color: #1a1a1a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Badge */
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.badge-blue   { background: #E6F1FB; color: #185FA5; }
+.badge-teal   { background: #E1F5EE; color: #0F6E56; }
+.badge-green  { background: #EAF3DE; color: #3B6D11; }
+.badge-orange { background: #FAEEDA; color: #854F0B; }
+.badge-red    { background: #FCEBEB; color: #A32D2D; }
+
+/* Alert badge */
+.alert-badge {
+  background: #FCEBEB;
+  color: #A32D2D;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+/* Staff table */
+.staff-table-wrap { overflow-x: auto; }
+.staff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.staff-table th {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #888;
+  font-weight: 400;
+  font-size: 12px;
+}
+.staff-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f8f8f8;
+  color: #333;
+}
+
+/* Rank */
+.rank-list { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.rank-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.rank-label { width: 80px; display: flex; align-items: center; gap: 6px; color: #444; }
+.rank-icon { font-size: 12px; }
+.rank-silver .rank-icon { color: #888; }
+.rank-gold   .rank-icon { color: #BA7517; }
+.rank-diamond .rank-icon { color: #378ADD; }
+.rank-bar-wrap { flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
+.rank-bar { height: 100%; border-radius: 4px; transition: width .4s; }
+.rank-bar-silver  { background: #B4B2A9; }
+.rank-bar-gold    { background: #EF9F27; }
+.rank-bar-diamond { background: #378ADD; }
+.rank-pct   { font-weight: 500; color: #333; min-width: 36px; text-align: right; }
+.rank-count { font-size: 11px; color: #999; min-width: 40px; }
+
+/* Inventory */
+.inv-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.inv-table th {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #888;
+  font-weight: 400;
+}
+.inv-table td { padding: 7px 8px; border-bottom: 1px solid #fafafa; }
+.item-name { font-size: 12px; color: #333; margin: 0 0 2px; font-weight: 500; }
+.item-code { font-size: 11px; color: #999; margin: 0; }
+.text-muted { color: #999; }
+
+/* Empty / Error */
+.empty-state { text-align: center; color: #aaa; font-size: 13px; padding: 24px 0; }
+.error-state { text-align: center; padding: 60px 0; }
+.error-state p { color: #E24B4A; margin-bottom: 12px; }
+.error-state button {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+}
 </style>

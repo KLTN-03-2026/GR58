@@ -283,6 +283,11 @@ const routes = [
       },
     ],
   },
+  {
+  path: "/admin/dashboard",
+  component: () => import("@/views/admin/dashboard/index.vue"),
+  meta: { requiresAdminAuth: true }
+}
 ];
 
 const router = createRouter({
@@ -305,5 +310,6 @@ router.beforeEach((to, from, next) => {
   }
   next();
 });
+
 
 export default router;
