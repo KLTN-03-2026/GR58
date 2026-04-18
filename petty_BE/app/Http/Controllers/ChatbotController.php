@@ -6,15 +6,29 @@ use App\Http\Requests\ChatbotMessageRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ChatbotController extends Controller
 {
     public function message(ChatbotMessageRequest $request): JsonResponse
     {
+        $traceId = (string) Str::uuid();
+        $startedAt = microtime(true);
+
         $apiKey = config('services.together.api_key');
         $model = config('services.together.model', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8');
 
+        Log::info('Chatbot request received', [
+            'trace_id' => $traceId,
+            'model' => $model,
+            'has_api_key' => ! empty($apiKey),
+        ]);
+
         if (! $apiKey) {
+            Log::error('Chatbot missing API key', [
+                'trace_id' => $traceId,
+            ]);
+
             return response()->json([
                 'status' => false,
                 'message' => 'Chưa cấu hình Together API key ở backend.',
@@ -77,6 +91,14 @@ class ChatbotController extends Controller
             [['role' => 'user', 'content' => $userContent]]
         );
 
+        Log::debug('Chatbot payload prepared', [
+            'trace_id' => $traceId,
+            'message_length' => mb_strlen($userText),
+            'history_count' => count($history),
+            'image_count' => count($images),
+            'message_count' => count($messages),
+        ]);
+
         try {
             $response = Http::withToken($apiKey)
                 ->timeout(30)
@@ -85,8 +107,17 @@ class ChatbotController extends Controller
                     'messages' => $messages,
                 ]);
 
+            $elapsedMs = (int) ((microtime(true) - $startedAt) * 1000);
+
             if (! $response->ok()) {
                 $error = $response->json('error.message') ?: ('Together API Error: ' . $response->status());
+
+                Log::error('Chatbot upstream returned non-OK response', [
+                    'trace_id' => $traceId,
+                    'http_status' => $response->status(),
+                    'elapsed_ms' => $elapsedMs,
+                    'response_body' => $response->body(),
+                ]);
 
                 return response()->json([
                     'status' => false,
@@ -96,13 +127,22 @@ class ChatbotController extends Controller
 
             $reply = data_get($response->json(), 'choices.0.message.content', 'Không có nội dung phản hồi.');
 
+            Log::info('Chatbot reply generated', [
+                'trace_id' => $traceId,
+                'http_status' => $response->status(),
+                'elapsed_ms' => $elapsedMs,
+                'reply_length' => mb_strlen((string) $reply),
+            ]);
+
             return response()->json([
                 'status' => true,
                 'reply' => $reply,
             ]);
         } catch (\Throwable $e) {
             Log::error('Chatbot message failed', [
+                'trace_id' => $traceId,
                 'message' => $e->getMessage(),
+                'elapsed_ms' => (int) ((microtime(true) - $startedAt) * 1000),
             ]);
 
             return response()->json([
