@@ -449,7 +449,11 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
+
+const route = useRoute();
+const router = useRouter();
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
 import { getUser } from "@/utils/auth";
 //Icon SVG
@@ -465,7 +469,7 @@ import TickIcon from "@/assets/svg/tick.svg";
 const props = defineProps({
   isOpen: {
     type: Boolean,
-    default: false,
+    default: true,
   },
   customerName: {
     type: String,
@@ -516,6 +520,14 @@ const fetchPets = async () => {
     }
 
     pets.value = list.map(mapBackendPetSimple);
+
+    if (route.query.pet_id) {
+      const petIdToSelect = Number(route.query.pet_id);
+      const foundPet = pets.value.find(p => p.id === petIdToSelect);
+      if (foundPet) {
+        selectedPet.value = foundPet;
+      }
+    }
   } catch (err) {
     // giữ danh sách rỗng/mặc định nếu có lỗi
     console.warn("Lỗi khi lấy thú cưng của khách hàng:", err);
@@ -794,6 +806,9 @@ const previousStep = () => {
 
 const closePopup = () => {
   emit("close");
+  if (route.path.includes("/appointments/book")) {
+    router.push("/customer/appointments");
+  }
   // Đặt lại sau khi animation kết thúc
   setTimeout(() => {
     currentStep.value = 0;

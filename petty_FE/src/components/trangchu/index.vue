@@ -24,8 +24,8 @@
         </div>
 
         <div class="flex gap-4 items-center">
-          <a
-            href="#"
+          <button
+            @click="showBookingModal = true"
             class="bg-[#5a9690] flex items-center justify-center px-6 py-3 rounded-2xl shadow-[0px_1px_2px_0px_rgba(0,0,0,0.1)] hover:shadow-lg transition-all"
           >
             <span
@@ -33,9 +33,9 @@
             >
               Đặt Lịch Ngay
             </span>
-          </a>
-          <a
-            href="#"
+          </button>
+          <button
+            @click="router.push('/services')"
             class="border-2 border-[#5a9690] flex items-center justify-center px-6 py-3 rounded-2xl hover:bg-[#5a9690] transition-all group"
           >
             <span
@@ -43,7 +43,7 @@
             >
               Xem Dịch Vụ
             </span>
-          </a>
+          </button>
         </div>
 
         <div class="inline-grid relative shrink-0">
@@ -864,15 +864,19 @@
         </div>
       </div>
     </section>
+    <BookingStartModal :is-open="showBookingModal" @close="showBookingModal = false" />
   </div>
 </template>
 
 <script setup>
 // Import các thư viện và component cần thiết
-import { onMounted } from "vue";
+import { ref, onMounted, reactive } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import axios from "axios";
+import BookingStartModal from "./BookingStartModal.vue";
+
+const showBookingModal = ref(false);
 import SunIcon from "@/assets/svg/sun-medium.svg";
 import VaccineIcon from "@/assets/svg/vaccine.svg";
 import BriefcaseIcon from "@/assets/svg/briefcase.svg";
@@ -1016,7 +1020,6 @@ const blogPosts = [
 ];
 
 // Animation Logic
-import { ref, reactive } from "vue";
 
 const statsSection = ref(null);
 const stats = reactive({

@@ -144,6 +144,7 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
+import { useRoute } from "vue-router";
 import axios from "axios";
 import ThemThuCung from "./add-pet/index.vue";
 import ChiTietThuCung from "./pet-detail/index.vue";
@@ -161,6 +162,8 @@ const isDeletePetOpen = ref(false);
 const petToDelete = ref(null);
 const showDetail = ref(false);
 const selectedPet = ref(null);
+
+const route = useRoute();
 
 const pets = ref([]);
 
@@ -334,6 +337,9 @@ const fetchPets = async () => {
 
 onMounted(() => {
   fetchPets();
+  if (route.query.action === 'add-pet') {
+    isAddPetOpen.value = true;
+  }
 });
 
 const openDeletePopup = (pet) => {
