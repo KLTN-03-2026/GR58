@@ -546,7 +546,7 @@
   </div>
 
   <!-- Payment Popup -->
-  <teleport to="body">
+  <Teleport to="body">
     <div
       v-if="showPaymentPopup"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -555,15 +555,15 @@
       <ChiTietHoaDon
         :is-open="showPaymentPopup"
         :payment-status="paymentStatus"
-        :invoice-data="selectedPayment"
+        :invoice-data="selectedPayment || {}"
         @close="closePaymentPopup"
         @payment-success="handlePaymentSuccess"
       />
     </div>
-  </teleport>
+  </Teleport>
 
   <!-- Receipt Popup -->
-  <teleport to="body">
+  <Teleport to="body">
     <div
       v-if="showReceiptPopup"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -571,11 +571,11 @@
     >
       <BienLaiThanhToan
         :is-open="showReceiptPopup"
-        :receipt-data="selectedReceipt"
+        :receipt-data="selectedReceipt || {}"
         @close="closeReceiptPopup"
       />
     </div>
-  </teleport>
+  </Teleport>
 </template>
 
 <script setup>
@@ -616,74 +616,7 @@ const showReceiptPopup = ref(false);
 const selectedReceipt = ref(null);
 
 // Payments data
-const payments = ref([
-  {
-    id: 1,
-    invoiceCode: "HD001234",
-    service: "Khám bệnh + 1 dịch vụ khác",
-    date: "10/11/2025",
-    status: "pending",
-    statusText: "Cần thanh toán: 100.000 ₫",
-    amountText: "(Tổng: 250.000 ₫)",
-    totalAmount: 250000,
-    paidAmount: 0,
-  },
-  {
-    id: 2,
-    invoiceCode: "HD001230",
-    service: "Tắm rửa",
-    date: "15/11/2025",
-    status: "prepaid",
-    statusText: "Đã thanh toán trước",
-    amountText: "(Đã trả: 200.000 ₫)",
-    totalAmount: 200000,
-    paidAmount: 200000,
-  },
-  {
-    id: 3,
-    invoiceCode: "HD001228",
-    service: "Tiêm phòng + 2 dịch vụ khác",
-    date: "25/10/2025",
-    status: "completed",
-    statusText: "Đã hoàn thành",
-    amountText: "(Tổng: 350.000 ₫)",
-    totalAmount: 350000,
-    paidAmount: 350000,
-  },
-  {
-    id: 4,
-    invoiceCode: "HD001227",
-    service: "Khám răng miệng",
-    date: "01/10/2025",
-    status: "refunding",
-    statusText: "Đang hoàn tiền",
-    amountText: "(Dự kiến: 24h)",
-    totalAmount: 150000,
-    paidAmount: 150000,
-  },
-  {
-    id: 5,
-    invoiceCode: "HD001226",
-    service: "Tiêm phòng 6 bệnh",
-    date: "24/09/2025",
-    status: "refunded",
-    statusText: "Đã hoàn tiền",
-    amountText: "(+ 350.000 ₫)",
-    totalAmount: 350000,
-    paidAmount: 350000,
-  },
-  {
-    id: 6,
-    invoiceCode: "HD001225",
-    service: "Khám tổng quát",
-    date: "20/09/2025",
-    status: "completed",
-    statusText: "Đã hoàn thành",
-    amountText: "(Tổng: 150.000 ₫)",
-    totalAmount: 150000,
-    paidAmount: 150000,
-  },
-]);
+const payments = ref([]);
 
 // Pagination
 const currentPage = ref(1);
@@ -923,9 +856,9 @@ const loadPaymentData = async () => {
           invoiceCode: `HD${String(lichHen.id).padStart(6, '0')}`,
           service: lichHen.dich_vu?.ten || lichHen.dich_vu?.ten_dich_vu || 'Dịch vụ',
           date: ngayGio ? new Date(ngayGio).toLocaleDateString('vi-VN') : 'N/A',
-          status: mapTrangThaiToStatus(lichHen.trang_thai),
-          statusText: getStatusText(lichHen.trang_thai, tongTien),
-          amountText: getAmountText(lichHen.trang_thai, tongTien),
+          status: mapTrangThaiToStatus(lichHen.trang_thai, lichHen.da_thanh_toan),
+          statusText: getStatusText(lichHen.trang_thai, tongTien, lichHen.da_thanh_toan),
+          amountText: getAmountText(lichHen.trang_thai, tongTien, lichHen.da_thanh_toan),
           totalAmount: tongTien,
           paidAmount: lichHen.da_thanh_toan ? tongTien : 0,
         };
@@ -952,34 +885,39 @@ const loadPaymentData = async () => {
 };
 
 // Map trạng thái from backend to frontend status
-const mapTrangThaiToStatus = (trangThai) => {
-  const statusMap = {
-    'cho_xac_nhan': 'pending',
-    'da_xac_nhan': 'prepaid',
-    'hoan_thanh': 'completed',
-    'da_huy': 'refunded',
-  };
-  return statusMap[trangThai] || 'pending';
+const mapTrangThaiToStatus = (trangThai, daThanhToan) => {
+  if (trangThai === 'completed') return 'completed';
+  if (trangThai === 'cancelled') return 'refunded';
+  if (daThanhToan) return 'prepaid';
+  return 'pending';
 };
 
 // Get status text based on trạng thái
-const getStatusText = (trangThai, tongTien) => {
+const getStatusText = (trangThai, tongTien, daThanhToan) => {
+  if (daThanhToan && trangThai !== 'completed' && trangThai !== 'cancelled') {
+    return 'Đã thanh toán trước';
+  }
   const statusTextMap = {
-    'cho_xac_nhan': `Cần thanh toán: ${formatCurrency(tongTien)}`,
-    'da_xac_nhan': 'Đã thanh toán trước',
-    'hoan_thanh': 'Đã hoàn thành',
-    'da_huy': 'Đã hoàn tiền',
+    'pending': `Cần thanh toán: ${formatCurrency(tongTien)}`,
+    'confirmed': `Cần thanh toán: ${formatCurrency(tongTien)}`,
+    'in-progress': `Cần thanh toán: ${formatCurrency(tongTien)}`,
+    'completed': 'Đã hoàn thành',
+    'cancelled': 'Đã hoàn tiền',
   };
   return statusTextMap[trangThai] || 'Chưa xác định';
 };
 
 // Get amount text based on trạng thái
-const getAmountText = (trangThai, tongTien) => {
+const getAmountText = (trangThai, tongTien, daThanhToan) => {
+  if (daThanhToan && trangThai !== 'completed' && trangThai !== 'cancelled') {
+    return `(Đã trả: ${formatCurrency(tongTien)})`;
+  }
   const amountTextMap = {
-    'cho_xac_nhan': `(Tổng: ${formatCurrency(tongTien)})`,
-    'da_xac_nhan': `(Đã trả: ${formatCurrency(tongTien)})`,
-    'hoan_thanh': `(Tổng: ${formatCurrency(tongTien)})`,
-    'da_huy': `(+ ${formatCurrency(tongTien)})`,
+    'pending': `(Tổng: ${formatCurrency(tongTien)})`,
+    'confirmed': `(Tổng: ${formatCurrency(tongTien)})`,
+    'in-progress': `(Tổng: ${formatCurrency(tongTien)})`,
+    'completed': `(Tổng: ${formatCurrency(tongTien)})`,
+    'cancelled': `(+ ${formatCurrency(tongTien)})`,
   };
   return amountTextMap[trangThai] || '';
 };

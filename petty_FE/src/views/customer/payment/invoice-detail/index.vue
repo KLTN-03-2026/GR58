@@ -120,6 +120,11 @@
       </div>
     </div>
 
+    <!-- Error Message -->
+    <div v-if="errorMessage" class="bg-red-50 border border-red-200 text-red-600 rounded-[10px] p-3 text-sm font-medium">
+      {{ errorMessage }}
+    </div>
+
     <!-- Payment Methods -->
     <div class="flex flex-col gap-4 w-full">
       <!-- VNPay -->
@@ -167,13 +172,15 @@
         </div>
         <button
           @click="handlePayment('momo')"
-          class="bg-[#5a9690] rounded-lg px-3 py-1 flex items-center gap-2"
+          :disabled="isProcessing"
+          :class="isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#5a9690]'"
+          class="rounded-lg px-3 py-1 flex items-center gap-2"
         >
-          <div class="w-[13.333px] h-[9.333px]">
+          <div v-if="!isProcessing" class="w-[13.333px] h-[9.333px]">
             <img :src="iconPayment" alt="" class="w-full h-full" />
           </div>
           <span class="font-semibold text-base leading-6 text-white">
-            Thanh toán
+            {{ isProcessing ? 'Đang xử lý...' : 'Thanh toán' }}
           </span>
         </button>
       </div>
@@ -623,6 +630,8 @@ const imgTechcombank = "https://www.figma.com/api/mcp/asset/082e895d-1b45-4f48-9
 // State
 const currentStep = ref('invoice'); // 'invoice' or 'payment-method' (only for pending status)
 const displayType = computed(() => props.paymentStatus);
+const errorMessage = ref('');
+const isProcessing = ref(false);
 
 // Watch for popup open/close to reset step
 watch(() => props.isOpen, (newVal) => {
@@ -645,6 +654,7 @@ const formatCurrency = (amount) => {
 
 const closePopup = () => {
   currentStep.value = 'invoice';
+  errorMessage.value = '';
   emit('close');
 };
 
@@ -658,16 +668,24 @@ const goBack = () => {
 
 const handlePayment = async (method) => {
   console.log('Payment method selected:', method);
+  errorMessage.value = '';
 
   if (method === 'momo') {
+    const amount = props.invoiceData.remainingAmount || props.invoiceData.totalAmount;
+    if (!amount || amount <= 0) {
+      errorMessage.value = 'Số tiền thanh toán không hợp lệ';
+      return;
+    }
+
     try {
+      isProcessing.value = true;
       // Import payment service
       const { createMoMoPayment } = await import('@/utils/payment.js');
 
       // Gọi API tạo thanh toán MoMo
       const response = await createMoMoPayment({
         order_id: props.invoiceData.invoiceCode,
-        amount: props.invoiceData.remainingAmount || props.invoiceData.totalAmount
+        amount: amount
       });
 
       console.log('MoMo API Response:', response);
@@ -677,16 +695,18 @@ const handlePayment = async (method) => {
         window.location.href = response.payUrl;
       } else {
         console.error('MoMo response error:', response);
-        alert('Không thể tạo thanh toán MoMo. Vui lòng thử lại.');
+        errorMessage.value = 'Không thể tạo thanh toán MoMo. Vui lòng thử lại.';
       }
     } catch (error) {
       console.error('Error creating MoMo payment:', error);
       console.error('Error response:', error.response?.data);
-      alert(`Có lỗi xảy ra: ${error.response?.data?.message || error.message}`);
+      errorMessage.value = `Có lỗi xảy ra: ${error.response?.data?.message || error.message}`;
+    } finally {
+      isProcessing.value = false;
     }
   } else {
     // Các phương thức thanh toán khác (VNPay, Techcombank)
-    alert(`Phương thức thanh toán ${method} đang được phát triển.`);
+    errorMessage.value = `Phương thức thanh toán ${method} đang được phát triển.`;
   }
 };
 </script>

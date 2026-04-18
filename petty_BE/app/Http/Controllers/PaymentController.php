@@ -92,7 +92,7 @@ class PaymentController extends Controller
             $baseOrderId = explode('_', $orderId)[0];
 
             // Tìm lịch hẹn theo invoice code (HD000019 -> id = 19)
-            $lichHenId = (int) str_replace('HD', '', str_replace('0', '', $baseOrderId));
+            $lichHenId = (int) str_replace('HD', '', $baseOrderId);
             $lichHen = \App\Models\LichHen::find($lichHenId);
 
             if ($lichHen) {

@@ -112,6 +112,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::match(['put', 'patch'], '/lich-hen/{lichHen}/ngay-gio', [LichHenController::class, 'updateNgayGio']); // Khách hàng đổi lịch của mình
     Route::delete('/lich-hen/{lichHen}', [LichHenController::class, 'destroy']); // Khách hàng hủy lịch của mình
 
+    // Thanh toán
+    Route::post('/payment/momo/create', [PaymentController::class, 'createMoMoPayment']);
+    Route::post('/payment/update-status', [PaymentController::class, 'updatePaymentStatus']);
+
     // Lịch hẹn - Staff quản lý (xem tất cả, sửa, xác nhận)
     Route::get('/lich-hen-all', [LichHenController::class, 'indexAll'])->middleware(['staff.only', 'permission:lich_hen_xem']); // Staff xem tất cả lịch hẹn
     Route::match(['put', 'patch'], '/lich-hen/{lichHen}', [LichHenController::class, 'update'])->middleware(['staff.only', 'permission:lich_hen_sua']);
@@ -197,10 +201,8 @@ Route::get('/bai-viet/{baiViet}', [BaiVietController::class, 'show']);
 
 // Admin login route
 Route::post('/admin/dang-nhap', [AdminController::class, 'dangNhap']);
-// route cho momo
-    Route::post('/payment/momo/create', [PaymentController::class, 'createMoMoPayment']);
-    Route::post('/payment/momo/ipn', [PaymentController::class, 'momoIPN']);
-    Route::post('/payment/update-status', [PaymentController::class, 'updatePaymentStatus']);
+// route cho momo webhook
+Route::post('/payment/momo/ipn', [PaymentController::class, 'momoIPN']);
 // Admin authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/dang-xuat', [AdminController::class, 'dangXuat']);
