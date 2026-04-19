@@ -59,12 +59,6 @@ class LichHenController extends Controller
             }
         }
 
-        // Auto-populate tong_tien from dich_vu
-        if (!isset($data['tong_tien']) && !empty($data['dich_vu_id'])) {
-            $dichVu = \App\Models\DichVu::find($data['dich_vu_id']);
-            $data['tong_tien'] = $dichVu ? $dichVu->gia_tien : 0;
-        }
-
         $lichHen = LichHen::create($data);
 
         $payload = new \App\Http\Resources\LichHenResource($lichHen->fresh()->load(['thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'khachHang']));

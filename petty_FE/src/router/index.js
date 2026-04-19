@@ -216,6 +216,12 @@ const routes = [
         props: true,
       },
       {
+        path: "lich-kham/phieu-kham/:id",
+        component: () =>
+          import("../views/doctor/appointment/examination-form/index.vue"),
+        props: true,
+      },
+      {
         path: "medical-records",
         component: () => import("../views/doctor/medical-record/index.vue"),
       },
@@ -234,6 +240,10 @@ const routes = [
       },
       {
         path: "profile",
+        component: () => import("../views/doctor/profile/index.vue"),
+      },
+      {
+        path: "trang-ca-nhan",
         component: () => import("../views/doctor/profile/index.vue"),
       },
       {

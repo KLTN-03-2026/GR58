@@ -19,7 +19,7 @@
             class="h-9 px-3 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-colors"
             @click="handleBack"
           >
-            <ArrowLeftIcon />
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
             <span
               class="font-medium text-sm leading-5 text-gray-900 tracking-[-0.1504px]"
               >Quay lại</span
@@ -481,12 +481,10 @@ import api from "@/utils/api";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
-import PrescriptionModal from "./prescription/index.vue";
-import PrescriptionFormModal from "./prescription-form/index.vue";
-import FollowUpModal from "./follow-up-appointment/index.vue";
+import ChiDinh from "./prescription/index.vue";
+import DonThuoc from "./prescription-form/index.vue";
+import HenTaiKham from "./follow-up-appointment/index.vue";
 import ClinicalResultModal from "./clinical-result/index.vue";
-//Icon SVG
-import ArrowLeftIcon from "@/assets/svg/arrow-left.svg";
 
 const router = useRouter();
 const route = useRoute();
@@ -656,12 +654,18 @@ const loadAppointmentData = async () => {
         age: petData?.ngay_sinh
           ? calculateAge(petData.ngay_sinh)
           : "Chưa rõ tuổi",
-        ownerName:
-          data.khach_hang || data.khachHang?.full_name || "Chưa có tên",
-        ownerPhone:
-          data.khach_hang_info?.so_dien_thoai ||
-          data.khachHang?.so_dien_thoai ||
-          "Chưa có SĐT",
+       ownerName:
+  (typeof data.khach_hang === 'object'
+    ? data.khach_hang?.full_name
+    : data.khach_hang) ||
+  data.khachHang?.full_name || "Chưa có tên",
+        oownerPhone:
+  (typeof data.khach_hang === 'object'
+    ? data.khach_hang?.so_dien_thoai
+    : null) ||
+  data.khach_hang_info?.so_dien_thoai ||
+  data.khachHang?.so_dien_thoai ||
+  "Chưa có SĐT",
         appointmentDate: appointmentDateTime
           ? format(appointmentDateTime, "dd/MM/yyyy", { locale: vi })
           : "",
