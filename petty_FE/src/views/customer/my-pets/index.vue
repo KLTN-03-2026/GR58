@@ -22,7 +22,7 @@
       </div>
 
       <!-- Pet Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div v-if="pets.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <div
           v-for="pet in pets"
           :key="pet.id"
@@ -107,6 +107,25 @@
           </div>
         </div>
       </div>
+
+      <!-- Empty State -->
+      <div v-else class="flex flex-col items-center justify-center py-16">
+        <svg class="w-32 h-32 text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          <circle cx="12" cy="12" r="10" stroke-width="1.5" />
+        </svg>
+        <h3 class="text-2xl font-bold text-gray-700 mb-2">Chưa có thú cưng nào</h3>
+        <p class="text-gray-500 mb-6">Hãy thêm thú cưng đầu tiên của bạn để bắt đầu quản lý sức khỏe cho bé</p>
+        <button
+          @click="isAddPetOpen = true"
+          class="flex items-center gap-2 bg-[#5a9690] text-white rounded-xl px-6 py-3 font-semibold text-lg hover:bg-[#4a807a] transition"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="white" viewBox="0 0 16 16">
+            <path d="M8 3v10M3 8h10" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          Thêm thú cưng đầu tiên
+        </button>
+      </div>
     </div>
 
     <!-- Modal Chi Tiết Thú Cưng -->
@@ -152,7 +171,7 @@ import XoaThuCung from "./delete-pet/index.vue";
 import { showSuccessToast } from "@/utils/toast";
 import Calendar from "@/assets/svg/calendar.svg";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api";
+const API_BASE = "http://localhost:8000/api";
 const BASE_HOST = API_BASE.replace("/api", "");
 const PLACEHOLDER_IMAGE =
   "https://www.figma.com/api/mcp/asset/7dc3f4c9-30fd-4f46-b415-7a1aab552e01";
