@@ -381,8 +381,17 @@ const loadDashboardData = async () => {
   loading.value = true;
   try {
     const today = new Date().toISOString().split('T')[0];
-    const res = await getAllAppointments({ per_page: 100, from_date: today, to_date: today });
-    const data = res.data || [];
+    const res = await getAllAppointments({ 
+  per_page: 100, 
+  from_date: today + ' 00:00:00', 
+  to_date: today + ' 23:59:59' 
+});
+
+    // Backend trả pagination object khi có per_page
+    // res.data = { data: [...], current_page: 1, total: N }
+    const data = Array.isArray(res.data) 
+      ? res.data 
+      : (res.data?.data || []);
     
     let upcoming = 0;
     let waiting = 0;

@@ -216,12 +216,6 @@ const routes = [
         props: true,
       },
       {
-        path: "lich-kham/phieu-kham/:id",
-        component: () =>
-          import("../views/doctor/appointment/examination-form/index.vue"),
-        props: true,
-      },
-      {
         path: "medical-records",
         component: () => import("../views/doctor/medical-record/index.vue"),
       },
@@ -240,10 +234,6 @@ const routes = [
       },
       {
         path: "profile",
-        component: () => import("../views/doctor/profile/index.vue"),
-      },
-      {
-        path: "trang-ca-nhan",
         component: () => import("../views/doctor/profile/index.vue"),
       },
       {
@@ -288,8 +278,32 @@ const routes = [
         component: () => import("../views/nurse/profile/index.vue"),
       },
       {
+        path: "trang-ca-nhan",
+        component: () => import("../views/nurse/profile/index.vue"),
+      },
+      {
         path: "expense-vouchers",
         component: () => import("../views/nurse/expense-voucher/index.vue"),
+      },
+      {
+        path: "phieu-chi",
+        component: () => import("../views/nurse/expense-voucher/index.vue"),
+      },
+      {
+        path: "lich-hen",
+        component: () => import("../views/nurse/appointment/index.vue"),
+      },
+      {
+        path: "hoa-don",
+        component: () => import("../views/nurse/invoice/index.vue"),
+      },
+      {
+        path: "lich-lam-viec",
+        component: () => import("../views/nurse/schedule/index.vue"),
+      },
+      {
+        path: "kho-thuoc",
+        component: () => import("../views/nurse/inventory/index.vue"),
       },
     ],
   },
@@ -308,19 +322,13 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth) {
     let role = "customer";
-    if (to.path.startsWith("/admin"))        role = "admin";
-    else if (to.path.startsWith("/nurse"))        role = "y_ta";
-    else if (to.path.startsWith("/doctor"))       role = "bac_si";
-    else if (to.path.startsWith("/receptionist")) role = "le_tan";
-    else if (to.path.startsWith("/assistant"))    role = "tro_ly";
-    else if (to.path.startsWith("/staff") || to.path.startsWith("/nhan-vien")) role = "staff";
+    if (to.path.startsWith("/admin")) role = "admin";
+    else if (to.path.startsWith("/doctor") || to.path.startsWith("/nurse") || to.path.startsWith("/staff") || to.path.startsWith("/receptionist") || to.path.startsWith("/assistant")) role = "staff";
 
     const token = getToken(role);
     if (!token) {
-      if (role === "admin")
-        return next({ path: "/admin/login", query: { redirect: to.fullPath } });
-      if (["y_ta", "bac_si", "le_tan", "tro_ly", "staff"].includes(role))
-        return next({ path: "/staff/login", query: { redirect: to.fullPath } });
+      if (role === "admin") return next({ path: "/admin/login", query: { redirect: to.fullPath } });
+      if (role === "staff") return next({ path: "/staff/login", query: { redirect: to.fullPath } });
       return next({ path: "/customer/login", query: { redirect: to.fullPath } });
     }
   }

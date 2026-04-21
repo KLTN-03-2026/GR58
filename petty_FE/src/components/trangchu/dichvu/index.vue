@@ -451,8 +451,10 @@ export default {
   },
   methods: {
     bookService(service) {
-      console.log("Đặt lịch cho dịch vụ:", service.name);
-      // TODO: Navigate to booking page or open booking modal
+      this.$router.push({
+        path: "/customer/appointments/book",
+        query: { service_id: service.id },
+      });
     },
   },
   mounted() {
