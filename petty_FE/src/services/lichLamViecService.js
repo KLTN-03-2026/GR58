@@ -132,6 +132,16 @@ export const createSchedule = async (data) => {
   }
 };
 
+export const generateSchedule = async (year, month, force = false) => {
+  const res = await api.post("/lich-lam-viec/generate", { year, month, force });
+  return res.data;
+};
+
+export const getAvailableSlots = async (date) => {
+  const res = await api.get("/lich-hen/available-slots", { params: { date } });
+  return res.data;
+};
+
 export default {
   getMySchedule,
   getMyTodaySchedule,
@@ -140,4 +150,6 @@ export default {
   getScheduleList,
   getScheduleDetail,
   createSchedule,
+  generateSchedule,
+  getAvailableSlots,
 };

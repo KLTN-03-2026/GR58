@@ -54,7 +54,7 @@
           <div class="flex items-center gap-2">
             <!-- <img :src="icons.calendar" alt="" class="w-5 h-5" /> -->
             <span class="text-base font-semibold text-black">
-              Tuần {{ weekNumber }} ({{ weekRange }})
+              {{ weekRange }}
             </span>
           </div>
 
@@ -109,24 +109,19 @@
                 alt=""
                 class="w-4 h-4"
               /> -->
-              <span class="text-sm font-medium"> Lịch Tuần </span>
+              <span class="text-sm font-medium">Lịch Tuần</span>
             </button>
-            <!-- <button
-              @click="viewMode = 'list'"
+            <button
+              @click="viewMode = 'month'"
               :class="[
                 'h-9 px-4 rounded-lg flex items-center gap-2 transition-colors',
-                viewMode === 'list'
+                viewMode === 'month'
                   ? 'bg-[#030213] text-white'
                   : 'bg-white border !border-gray-300 text-black hover:bg-gray-50',
               ]"
             >
-              <img
-                :src="viewMode === 'list' ? icons.listWhite : icons.listBlack"
-                alt=""
-                class="w-4 h-4"
-              />
-              <span class="text-sm font-medium"> Danh sách </span>
-            </button> -->
+              <span class="text-sm font-medium">Lịch Tháng</span>
+            </button>
           </div>
         </div>
       </div>
@@ -140,7 +135,8 @@
           ></div>
         </div>
 
-        <div v-else class="overflow-auto">
+        <!-- Week View -->
+        <div v-if="viewMode === 'week'" class="overflow-auto">
           <table class="w-full border-collapse">
             <thead>
               <tr>
@@ -195,7 +191,7 @@
                       v-if="!Array.isArray(daySchedule)"
                       :class="[
                         'h-full border-2 rounded-lg p-2 flex flex-col justify-center',
-                        getScheduleCellClass(daySchedule.status),
+                        getScheduleCellClass(daySchedule.status, daySchedule.shift),
                         daySchedule.status === 'ongoing' ? 'animate-pulse' : '',
                       ]"
                     >
@@ -212,7 +208,7 @@
                       v-else
                       :class="[
                         'h-full border-2 rounded-lg p-2 flex flex-col justify-between',
-                        getScheduleCellClass(daySchedule[0].status),
+                        getScheduleCellClass(daySchedule[0].status, daySchedule[0].shift),
                         daySchedule[0].status === 'ongoing'
                           ? 'animate-pulse'
                           : '',
@@ -240,373 +236,249 @@
           </table>
         </div>
 
-        <!-- Legend -->
-        <div class="bg-gray-50 rounded-[10px] px-4 py-4">
-          <p
-            class="text-xs font-bold text-[#364153] leading-4 mb-3"
-            style="font-family: 'Inter', sans-serif"
-          >
-            Chú thích:
-          </p>
-          <div class="flex items-center gap-8">
+        <!-- Month View -->
+        <div v-else-if="viewMode === 'month'">
+          <!-- Month navigation -->
+          <div class="flex items-center justify-between mb-4">
+            <button @click="goToPreviousMonth" class="bg-white border !border-gray-300 rounded-lg h-9 px-4 text-sm font-medium hover:bg-gray-50 transition-colors">← Tháng trước</button>
+            <span class="text-base font-semibold text-black">
+              Tháng {{ monthViewDate.getMonth() + 1 }}/{{ monthViewDate.getFullYear() }}
+            </span>
+            <button @click="goToNextMonth" class="bg-white border !border-gray-300 rounded-lg h-9 px-4 text-sm font-medium hover:bg-gray-50 transition-colors">Tháng sau →</button>
+          </div>
+          <!-- Month grid -->
+          <div class="grid grid-cols-7 gap-1">
+            <div v-for="d in ['T2','T3','T4','T5','T6','T7','CN']" :key="d"
+              class="text-center text-xs font-bold text-gray-500 py-2">{{ d }}</div>
+            <!-- Empty cells before first day -->
+            <div v-for="e in monthGridLeadingBlanks" :key="'blank-'+e" />
+            <!-- Day cells -->
             <div
-              v-for="calendarLegend in calendarLegends"
-              :key="calendarLegend.label"
-              class="flex items-center gap-2"
+              v-for="day in monthGridDays"
+              :key="day.date"
+              class="aspect-square flex flex-col items-center justify-center rounded-lg text-sm border transition-colors"
+              :class="day.shifts.length > 0
+                ? (day.shifts.some(s => s === 'ca_sang' || s === 'ca_chieu') ? 'bg-yellow-50 border-yellow-400 font-semibold' : 'bg-purple-50 border-purple-400 font-semibold')
+                : 'bg-white border-gray-100 text-gray-400'"
             >
-              <div
-                :class="['w-5 h-5 border-2 rounded', calendarLegend.class]"
-              />
-              <span
-                class="text-xs font-normal text-[#4a5565]"
-                style="font-family: 'Inter', sans-serif"
-              >
-                {{ calendarLegend.label }}
-              </span>
+              <span>{{ day.dayNum }}</span>
+              <div class="flex gap-0.5 mt-0.5">
+                <span v-if="day.shifts.includes('ca_sang') || day.shifts.includes('ca_chieu')" class="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+                <span v-if="day.shifts.includes('ca_toi')" class="w-1.5 h-1.5 rounded-full bg-purple-500" />
+              </div>
             </div>
+          </div>
+          <!-- Legend -->
+          <div class="flex items-center gap-6 mt-4 text-xs text-gray-500">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-yellow-200 border border-yellow-400 inline-block"></span> Ca Sáng</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-purple-200 border border-purple-400 inline-block"></span> Ca Tối</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Important Notes Card -->
-    <div
-      v-if="activeTab === 'my-schedule'"
-      class="bg-teal-50 border !border-[#b9f8cf] rounded-[14px] px-6 py-4 mt-4"
-    >
-      <div class="flex gap-3">
-        <!-- <div
-          class="bg-green-100 rounded-[10px] w-8 h-8 flex items-center justify-center shrink-0 mt-0.5"
-        >
-           <img :src="icons.lightbulb" alt="" class="w-4 h-4" /> 
-        </div> -->
+
+
+    <!-- Leave Request Tab Content -->
+    <div v-else-if="activeTab === 'register-shift'" class="space-y-5">
+
+      <!-- Alert: Lưu ý xin nghỉ trước -->
+      <div class="flex gap-3 items-start bg-amber-50 border !border-amber-200 rounded-xl px-5 py-4">
+        <div class="shrink-0 w-5 h-5 mt-0.5">
+          <svg viewBox="0 0 20 20" fill="none" class="w-5 h-5 text-amber-500">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" fill="currentColor"/>
+          </svg>
+        </div>
         <div>
-          <p
-            class="text-sm font-bold text-[#364153] leading-5 tracking-[-0.3125px] mb-1.5"
-            style="font-family: 'Inter', sans-serif"
-          >
-            Hướng dẫn sử dụng:
-          </p>
-          <ul class="flex flex-col gap-0.5 pl-2">
-            <li
-              class="text-xs font-normal text-[#364153] leading-4 tracking-[-0.1504px]"
-              style="font-family: 'Inter', sans-serif"
-            >
-              <span class="font-bold">Lịch chính thức</span> đã được Admin
-              duyệt.
-            </li>
-            <li
-              class="text-xs font-normal text-[#364153] leading-4 tracking-[-0.1504px]"
-              style="font-family: 'Inter', sans-serif"
-            >
-              Ca <span class="font-bold text-[#ca3500]">Đang diễn ra</span> sẽ
-              nhấp nháy.
-            </li>
-            <li
-              class="text-xs font-normal text-[#364153] leading-4 tracking-[-0.1504px]"
-              style="font-family: 'Inter', sans-serif"
-            >
-              Nếu cần, vào tab <span class="font-bold">"Đăng ký ca"</span> để
-              đăng ký thêm.
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <!-- Registration Tab Content -->
-    <div v-else-if="activeTab === 'register-shift'" class="space-y-6">
-      <!-- Registration Guide Card -->
-      <div
-        class="border !border-[#96f7e4] rounded-[14px] px-6 py-6 bg-gradient-to-r from-cyan-50 to-teal-50"
-      >
-        <div class="flex gap-4">
-          <!-- <div
-            class="bg-[#cbfbf1] rounded-[10px] w-10 h-10 flex items-center justify-center shrink-0"
-          >
-            <img :src="icons.infoCircle" alt="" class="w-5 h-5" />
-          </div> -->
-          <div>
-            <p
-              class="text-base font-bold text-[#364153] leading-6 tracking-[-0.3125px] mb-3"
-              style="font-family: 'Inter', sans-serif"
-            >
-              Hướng dẫn đăng ký ca làm việc:
-            </p>
-            <ul class="flex flex-col gap-2 pl-2">
-              <li
-                class="text-sm font-normal text-[#364153] leading-5 tracking-[-0.1504px]"
-                style="font-family: 'Inter', sans-serif"
-              >
-                Chọn ca làm việc từ danh sách có sẵn
-              </li>
-              <li
-                class="text-sm font-normal text-[#364153] leading-5 tracking-[-0.1504px]"
-                style="font-family: 'Inter', sans-serif"
-              >
-                Hạn đăng ký: <span class="font-bold">Thứ 6, 17:00</span>
-              </li>
-              <li
-                class="text-sm font-normal text-[#364153] leading-5 tracking-[-0.1504px]"
-                style="font-family: 'Inter', sans-serif"
-              >
-                Admin sẽ phê duyệt trong
-                <span class="font-bold">24 giờ</span>
-              </li>
-              <li
-                class="text-sm font-normal text-[#364153] leading-5 tracking-[-0.1504px]"
-                style="font-family: 'Inter', sans-serif"
-              >
-                Một khi phê duyệt, không thể thay đổi
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- Available Shifts Quick Preview -->
-      <div
-        class="bg-white border !border-gray-300 shadow-sm rounded-[14px] px-6 py-6"
-      >
-        <div class="flex items-center justify-between mb-4">
-          <h3
-            class="text-lg font-bold text-[#101828]"
-            style="font-family: 'Inter', sans-serif"
-          >
-            Ca trống sắp tới
-          </h3>
-          <button
-            type="button"
-            @click="openRegistrationModal"
-            class="z-10 cursor-pointer px-4 py-2 bg-[#5a9690] hover:bg-[#5a9690]/80 text-white rounded-lg text-sm font-bold hover:shadow-lg transition"
-          >
-            + Đăng ký ngay
-          </button>
-        </div>
-        <p
-          class="text-sm text-[#6a7282] mb-4"
-          style="font-family: 'Inter', sans-serif"
-        >
-          Nhấn nút bên trên để mở giao diện đăng ký chi tiết
-        </p>
-      </div>
-
-      <!-- Tips Card -->
-      <div
-        class="border !border-[#fef3c7] rounded-[14px] px-6 py-6 bg-amber-50"
-      >
-        <div class="flex gap-4">
-          <div>
-            <p
-              class="text-base font-bold text-[#92400e] leading-6 tracking-[-0.3125px] mb-2"
-              style="font-family: 'Inter', sans-serif"
-            >
-              Mẹo để có lịch tốt:
-            </p>
-            <ul class="flex flex-col gap-1.5 pl-2">
-              <li
-                class="text-sm font-normal text-[#92400e] leading-5 tracking-[-0.1504px]"
-                style="font-family: 'Inter', sans-serif"
-              >
-                Đăng ký sớm vào Thứ 2 để có lựa chọn nhiều
-              </li>
-              <li
-                class="text-sm font-normal text-[#92400e] leading-5 tracking-[-0.1504px]"
-                style="font-family: 'Inter', sans-serif"
-              >
-                Kiểm tra thường xuyên những ca mới
-              </li>
-              <li
-                class="text-sm font-normal text-[#92400e] leading-5 tracking-[-0.1504px]"
-                style="font-family: 'Inter', sans-serif"
-              >
-                Liên hệ Admin nếu có vấn đề
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- Registered Shifts Table (Ca đã đăng ký) -->
-      <div
-        class="bg-white border !border-gray-300 shadow-sm rounded-[14px] overflow-hidden"
-      >
-        <div class="px-6 py-6 border-b !border-gray-300">
-          <h3
-            class="text-lg font-bold text-[#101828]"
-            style="font-family: 'Inter', sans-serif"
-          >
-            Ca đã đăng ký
-          </h3>
-          <p
-            class="text-sm text-[#6a7282] mt-1"
-            style="font-family: 'Inter', sans-serif"
-          >
-            Danh sách tất cả các ca mà bạn đã đăng ký (chờ duyệt, đã duyệt, từ
-            chối)
+          <p class="text-sm font-semibold text-amber-800">Lưu ý khi xin nghỉ</p>
+          <p class="text-sm text-amber-700 mt-0.5">
+            Nên gửi đơn xin nghỉ trước <strong>3–7 ngày</strong> để Admin kịp sắp xếp nhân sự. Đơn đã duyệt không thể hủy.
           </p>
         </div>
+      </div>
 
-        <!-- Table Content -->
-        <div v-if="registeredShifts.length > 0">
-          <div class="overflow-x-auto">
-            <table class="w-full">
-              <thead>
-                <tr class="border-b border-[#e5e7eb] bg-[#f9fafb]">
-                  <th
-                    class="px-6 py-4 text-left text-sm font-bold text-[#101828]"
-                    style="font-family: 'Inter', sans-serif"
-                  >
-                    📅 Ngày giờ
-                  </th>
-                  <th
-                    class="px-6 py-4 text-left text-sm font-bold text-[#101828]"
-                    style="font-family: 'Inter', sans-serif"
-                  >
-                    📝 Ghi chú
-                  </th>
-                  <th
-                    class="px-6 py-4 text-left text-sm font-bold text-[#101828]"
-                    style="font-family: 'Inter', sans-serif"
-                  >
-                    👤 Nhân viên
-                  </th>
-                  <th
-                    class="px-6 py-4 text-left text-sm font-bold text-[#101828]"
-                    style="font-family: 'Inter', sans-serif"
-                  >
-                    ⏳ Trạng thái
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="shift in registeredShifts"
-                  :key="shift.id"
-                  class="border-b border-[#e5e7eb] hover:bg-[#f0f9ff] transition"
-                >
-                  <td
-                    class="px-6 py-4 text-base text-[#364153]"
-                    style="font-family: 'Inter', sans-serif"
-                  >
-                    <span class="font-semibold">{{
-                      formatDateTime(shift.ngay_gio)
-                    }}</span>
-                  </td>
-                  <td
-                    class="px-6 py-4 text-sm font-semibold text-[#364153] max-w-xs"
-                    style="font-family: 'Inter', sans-serif"
-                  >
-                    <div class="break-words line-clamp-2">
-                      {{ shift.ghi_chu || "—" }}
-                    </div>
-                  </td>
-                  <td
-                    class="px-6 py-4 text-base text-[#364153]"
-                    style="font-family: 'Inter', sans-serif"
-                  >
-                    <span class="font-semibold">{{
-                      shift.full_name ||
-                      shift.ten_nhan_vien ||
-                      shift.nhan_vien?.full_name ||
-                      shift.nhan_vien?.ho_ten ||
-                      "N/A"
-                    }}</span>
-                  </td>
-                  <td
-                    class="px-6 py-4 text-sm"
-                    style="font-family: 'Inter', sans-serif"
-                  >
-                    <span
-                      :class="[
-                        'px-3 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap',
-                        shift.trang_thai === 'pending' ||
-                        shift.trang_thai === 'chưa_xác_nhận' ||
-                        shift.trang_thai === 'chua_xac_nhan'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : shift.trang_thai === 'approved' ||
-                            shift.trang_thai === 'confirmed' ||
-                            shift.trang_thai === 'da_xac_nhan' ||
-                            shift.trang_thai === 'đã_xác_nhận'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800',
-                      ]"
-                    >
-                      {{
-                        shift.trang_thai === "pending" ||
-                        shift.trang_thai === "chưa_xác_nhận" ||
-                        shift.trang_thai === "chua_xac_nhan"
-                          ? "⏳ Chờ duyệt"
-                          : shift.trang_thai === "approved" ||
-                            shift.trang_thai === "confirmed" ||
-                            shift.trang_thai === "da_xac_nhan" ||
-                            shift.trang_thai === "đã_xác_nhận"
-                          ? "✅ Đã duyệt"
-                          : shift.trang_thai === "rejected" ||
-                            shift.trang_thai === "tu_choi" ||
-                            shift.trang_thai === "từ_chối"
-                          ? "❌ Từ chối"
-                          : shift.trang_thai
-                      }}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <!-- Quota Card + Form -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-        <!-- Empty State -->
-        <div v-else class="px-6 py-12 text-center">
-          <div class="flex justify-center mb-4">
-            <div
-              class="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center"
-            >
-              <svg
-                class="w-8 h-8 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+        <!-- Quota Card -->
+        <div class="bg-white border !border-gray-200 rounded-xl p-5 shadow-sm flex flex-col gap-4">
+          <div>
+            <p class="text-sm font-semibold text-gray-500">Ngày phép tháng {{ leaveQuota.thang }}/{{ leaveQuota.nam }}</p>
+            <div class="flex items-end gap-2 mt-1">
+              <span class="text-4xl font-bold text-gray-900">{{ leaveQuota.con_lai }}</span>
+              <span class="text-base text-gray-400 pb-1">/ {{ leaveQuota.tong_quota }} ngày</span>
             </div>
           </div>
-          <p
-            class="text-gray-600 font-semibold mb-2"
-            style="font-family: 'Inter', sans-serif"
-          >
-            Chưa đăng ký ca nào
-          </p>
-          <p
-            class="text-gray-500 text-sm"
-            style="font-family: 'Inter', sans-serif"
-          >
-            Nhấn nút "Đăng ký ngay" ở trên để bắt đầu
-          </p>
+
+          <!-- Progress bar -->
+          <div class="w-full bg-gray-100 rounded-full h-2">
+            <div
+              class="h-2 rounded-full transition-all duration-500"
+              :class="leaveQuota.da_su_dung >= 4 ? 'bg-red-400' : leaveQuota.da_su_dung >= 3 ? 'bg-amber-400' : 'bg-teal-400'"
+              :style="{ width: Math.min((leaveQuota.da_su_dung / leaveQuota.tong_quota) * 100, 100) + '%' }"
+            />
+          </div>
+
+          <div class="flex justify-between text-xs text-gray-500">
+            <span>Đã dùng: <strong class="text-gray-700">{{ leaveQuota.da_su_dung }}</strong></span>
+            <span>Tổng: <strong class="text-gray-700">{{ leaveQuota.tong_quota }}</strong></span>
+          </div>
+
+          <!-- Over quota warning -->
+          <div v-if="leaveQuota.da_su_dung >= 4" class="bg-red-50 border !border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
+            Bạn đã dùng hết ngày phép. Đơn tiếp theo sẽ được tính là <strong>nghỉ không lương</strong>.
+          </div>
+        </div>
+
+        <!-- Submit Form -->
+        <div class="lg:col-span-2 bg-white border !border-gray-200 rounded-xl p-5 shadow-sm">
+          <h3 class="text-base font-semibold text-gray-800 mb-4">Gửi đơn xin nghỉ</h3>
+
+          <form @submit.prevent="submitLeaveRequest" class="flex flex-col gap-4">
+            <!-- Date range picker -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Từ ngày <span class="text-red-500">*</span></label>
+                <input
+                  type="date"
+                  v-model="leaveForm.start_date"
+                  :min="minLeaveDate"
+                  class="w-full border !border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                  required
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Đến ngày <span class="text-red-500">*</span></label>
+                <input
+                  type="date"
+                  v-model="leaveForm.end_date"
+                  :min="leaveForm.start_date || minLeaveDate"
+                  class="w-full border !border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                  required
+                />
+              </div>
+            </div>
+            <p v-if="leaveFormErrors.date" class="text-xs text-red-600 mt-1">{{ leaveFormErrors.date }}</p>
+
+            <!-- Reason -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Lý do xin nghỉ</label>
+              <textarea
+                v-model="leaveForm.ly_do"
+                rows="3"
+                placeholder="Mô tả lý do (không bắt buộc)..."
+                class="w-full border !border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none"
+              />
+            </div>
+
+            <!-- Paid/unpaid preview -->
+            <div class="text-xs text-gray-500 flex items-center gap-1.5">
+              <span
+                class="inline-block w-2 h-2 rounded-full"
+                :class="leaveQuota.da_su_dung < 4 ? 'bg-teal-400' : 'bg-red-400'"
+              />
+              <span v-if="leaveQuota.da_su_dung < 4">Đơn này sẽ tính là <strong class="text-teal-700">nghỉ có lương</strong> (còn {{ leaveQuota.con_lai }} ngày phép)</span>
+              <span v-else>Đơn này sẽ tính là <strong class="text-red-600">nghỉ không lương</strong> (đã hết quota)</span>
+            </div>
+
+            <div class="flex justify-end">
+              <button
+                type="submit"
+                :disabled="leaveSubmitting"
+                class="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                {{ leaveSubmitting ? 'Đang gửi...' : 'Gửi đơn xin nghỉ' }}
+              </button>
+            </div>
+
+            <!-- Success / Error message -->
+            <div v-if="leaveSubmitMessage" :class="['text-sm font-medium px-3 py-2 rounded-lg', leaveSubmitSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700']">
+              {{ leaveSubmitMessage }}
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Leave History -->
+      <div class="bg-white border !border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b !border-gray-200 flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-semibold text-gray-800">Lịch sử đơn xin nghỉ</h3>
+            <p class="text-xs text-gray-500 mt-0.5">Tất cả đơn bạn đã gửi</p>
+          </div>
+          <button @click="fetchLeaveRequests" class="text-xs text-teal-600 hover:underline font-medium">Làm mới</button>
+        </div>
+
+        <!-- Loading -->
+        <div v-if="leaveLoading" class="py-10 text-center text-sm text-gray-400">Đang tải...</div>
+
+        <!-- Empty -->
+        <div v-else-if="leaveRequests.length === 0" class="py-10 text-center text-sm text-gray-400">
+          Chưa có đơn xin nghỉ nào.
+        </div>
+
+        <!-- Table -->
+        <div v-else class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-gray-50 border-b !border-gray-200">
+                <th class="px-5 py-3 text-left font-semibold text-gray-600">Ngày nghỉ</th>
+                <th class="px-5 py-3 text-left font-semibold text-gray-600">Lý do</th>
+                <th class="px-5 py-3 text-left font-semibold text-gray-600">Loại</th>
+                <th class="px-5 py-3 text-left font-semibold text-gray-600">Trạng thái</th>
+                <th class="px-5 py-3 text-left font-semibold text-gray-600">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="req in leaveRequests"
+                :key="req.id"
+                class="border-b !border-gray-100 hover:bg-gray-50 transition-colors"
+              >
+                <td class="px-5 py-3 font-medium text-gray-800">{{ formatDateDisplay2(req.ngay_nghi) }}</td>
+                <td class="px-5 py-3 text-gray-600 max-w-xs">
+                  <span class="line-clamp-2">{{ req.ly_do || '—' }}</span>
+                  <span v-if="req.ly_do_tu_choi" class="block text-xs text-red-500 mt-0.5">Lý do từ chối: {{ req.ly_do_tu_choi }}</span>
+                </td>
+                <td class="px-5 py-3">
+                  <span
+                    class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold"
+                    :class="req.loai_nghi === 'co_luong' ? 'bg-teal-100 text-teal-700' : 'bg-orange-100 text-orange-700'"
+                  >
+                    {{ req.loai_nghi === 'co_luong' ? 'Có lương' : 'Không lương' }}
+                  </span>
+                </td>
+                <td class="px-5 py-3">
+                  <span
+                    class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold"
+                    :class="{
+                      'bg-yellow-100 text-yellow-700': req.trang_thai === 'cho_duyet',
+                      'bg-green-100 text-green-700': req.trang_thai === 'da_duyet',
+                      'bg-red-100 text-red-700': req.trang_thai === 'tu_choi',
+                    }"
+                  >
+                    {{ req.trang_thai === 'cho_duyet' ? 'Chờ duyệt' : req.trang_thai === 'da_duyet' ? 'Đã duyệt' : 'Từ chối' }}
+                  </span>
+                </td>
+                <td class="px-5 py-3">
+                  <button
+                    v-if="req.trang_thai === 'cho_duyet'"
+                    @click="cancelLeaveRequest(req.id)"
+                    class="text-xs text-red-500 hover:text-red-700 font-medium hover:underline"
+                  >
+                    Hủy đơn
+                  </button>
+                  <span v-else class="text-xs text-gray-400">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Registration Modal -->
-  <ShiftRegistration
-    :is-open="showRegisterModal"
-    @close="showRegisterModal = false"
-    @success="
-      () => {
-        showRegisterModal = false;
-        fetchScheduleData();
-        fetchRegisteredShifts();
-        showSuccessToast('Thành công', 'Đăng ký ca làm việc thành công');
-      }
-    "
-  />
+
 </template>
 
 <script setup>
@@ -619,17 +491,13 @@ import {
 } from "@/services/lichLamViecService";
 import {
   getDanhSachLichDangKy,
-  getCaDaXacNhanCuaToi,
 } from "@/services/lichDangKyService";
 import api from "@/utils/api";
-import ShiftRegistration from "./shift-registration/index.vue";
 
 const activeTab = ref("my-schedule");
 const loading = ref(false);
 const currentUser = ref(null);
 
-// Modal state
-const showRegisterModal = ref(false);
 
 const tabs = [
   {
@@ -640,7 +508,7 @@ const tabs = [
   },
   {
     id: "register-shift",
-    label: "Đăng ký ca",
+    label: "Xin nghỉ",
     icon: "clipboardCheck",
     left: "140px",
   },
@@ -866,43 +734,8 @@ const fetchScheduleData = async () => {
             ? `Ca đăng ký ${time} - ${item.ghi_chu}`
             : `Ca đăng ký ${time}`;
 
-          console.log(
-            `✅ Adding approved shift to day ${itemDateStr} (${dayIndex}):`,
-            roomName
-          );
-
-          // ✅ Make sure we have 4 time slots
-          if (!timeSlots.value[3]) {
-            timeSlots.value[3] = {
-              name: "Ca đăng ký",
-              time: "Đã duyệt",
-              schedule: [null, null, null, null, null, null, null],
-            };
-          }
-
-          const shiftData = {
-            id: item.id,
-            room: roomName,
-            patients: 0, // Ca đăng ký không có lịch hẹn
-            status: getShiftStatus(itemDateStr, "ca_dang_ky"),
-            appointments: [],
-            date: itemDate,
-            shift: "ca_dang_ky",
-            ghi_chu: item.ghi_chu,
-            isRegistered: true, // Đánh dấu đây là ca đăng ký
-          };
-
-          // Handle multiple shifts in same day
-          if (timeSlots.value[3].schedule[dayIndex]) {
-            const existing = timeSlots.value[3].schedule[dayIndex];
-            if (Array.isArray(existing)) {
-              existing.push(shiftData);
-            } else {
-              timeSlots.value[3].schedule[dayIndex] = [existing, shiftData];
-            }
-          } else {
-            timeSlots.value[3].schedule[dayIndex] = shiftData;
-          }
+          // Log and skip — registered shifts no longer displayed as separate slot
+          console.log(`ℹ️ Registered shift ignored (slot removed): ${roomName}`);
         } else {
           console.log(`⚠️ Skip shift ${item.id} - outside current week`);
         }
@@ -1234,10 +1067,9 @@ const updateCalendarData = (data) => {
     let totalHoursCalc = 0;
     data.schedule.forEach((daySchedule) => {
       daySchedule.lich_lam_viec.forEach((shift) => {
-        // ca_sang: 4h (8-12), ca_chieu: 4h (13-17), ca_toi: 3h (18-21)
-        if (shift.thoi_gian_truc === "ca_sang") totalHoursCalc += 4;
-        else if (shift.thoi_gian_truc === "ca_chieu") totalHoursCalc += 4;
-        else if (shift.thoi_gian_truc === "ca_toi") totalHoursCalc += 3;
+        if (shift.thoi_gian_truc === 'ca_sang') totalHoursCalc += 9;
+        else if (shift.thoi_gian_truc === 'ca_chieu') totalHoursCalc += 9;
+        else if (shift.thoi_gian_truc === 'ca_toi') totalHoursCalc += 15;
       });
     });
     totalHours.value = totalHoursCalc;
@@ -1277,12 +1109,9 @@ const updateStatisticsWithApprovedShifts = (
 
 // Helper function to get time slot index
 const getTimeSlotIndex = (thoi_gian_truc) => {
-  const mapping = {
-    ca_sang: 0,
-    ca_chieu: 1,
-    ca_toi: 2,
-  };
-  return mapping[thoi_gian_truc] !== undefined ? mapping[thoi_gian_truc] : -1;
+  if (thoi_gian_truc === 'ca_sang' || thoi_gian_truc === 'ca_chieu') return 0; // Ca Sáng
+  if (thoi_gian_truc === 'ca_toi') return 1; // Ca Tối
+  return -1;
 };
 
 // Helper function to get shift name
@@ -1314,9 +1143,8 @@ const getShiftStatus = (date, shift) => {
   // Check if it's today and within shift time
   if (shiftDate.toDateString() === now.toDateString()) {
     const hour = now.getHours();
-    if (shift === "ca_sang" && hour >= 8 && hour < 12) return "ongoing";
-    if (shift === "ca_chieu" && hour >= 13 && hour < 17) return "ongoing";
-    if (shift === "ca_toi" && hour >= 18 && hour < 21) return "ongoing";
+    if (shift === 'ca_sang' && hour >= 8 && hour < 17) return 'ongoing';
+    if (shift === 'ca_toi' && (hour >= 17 || hour < 8)) return 'ongoing';
   }
 
   return "upcoming";
@@ -1355,56 +1183,100 @@ onMounted(() => {
 
 // Watch for tab changes
 watch(activeTab, (newTab) => {
-  if (newTab === "my-schedule") {
+  if (newTab === 'my-schedule') {
     fetchScheduleData();
-  } else if (newTab === "register-shift") {
-    fetchRegisteredShifts();
+  } else if (newTab === 'register-shift') {
+    fetchLeaveRequests();
+    fetchLeaveQuota();
   }
-  // Không tự động mở modal, cho user bấm nút "Đăng ký ngay"
+});
+
+// Watch viewMode to load month data
+watch(viewMode, (newMode) => {
+  if (newMode === 'month') {
+    monthViewDate.value = new Date(currentDate.value);
+    fetchMonthData();
+  }
 });
 
 const timeSlots = ref([
   {
-    name: "Sáng",
-    time: "8h-12h",
+    name: 'Ca Sáng',
+    time: '08:00 – 17:00',
     schedule: [null, null, null, null, null, null, null],
   },
   {
-    name: "Chiều",
-    time: "13h-17h",
-    schedule: [null, null, null, null, null, null, null],
-  },
-  {
-    name: "Tối",
-    time: "18h-21h",
-    schedule: [null, null, null, null, null, null, null],
-  },
-  {
-    name: "Ca đăng ký",
-    time: "Đã duyệt",
+    name: 'Ca Tối',
+    time: '17:00 – 08:00',
     schedule: [null, null, null, null, null, null, null],
   },
 ]);
 
-const calendarLegends = [
-  {
-    label: "Sắp tới",
-    class: "border-[#05df72] bg-green-50",
-    status: "upcoming",
-  },
-  {
-    label: "Đang diễn ra",
-    class: "border-[#ff8904] bg-orange-50",
-    status: "ongoing",
-  },
-  { label: "Đã qua", class: "border-gray-300 bg-gray-50", status: "past" },
-];
-
-// Helper function to get schedule cell class based on status
-const getScheduleCellClass = (status) => {
-  const legend = calendarLegends.find((l) => l.status === status);
-  return legend ? legend.class : "";
+// Cell class: match admin's yellow (Ca Sáng) / purple (Ca Tối) palette
+const getScheduleCellClass = (status, shift) => {
+  if (shift === 'ca_sang' || shift === 'ca_chieu') return 'border-yellow-400 bg-yellow-50';
+  if (shift === 'ca_toi') return 'border-purple-400 bg-purple-50';
+  if (status === 'upcoming') return 'border-[#05df72] bg-green-50';
+  if (status === 'ongoing')  return 'border-[#ff8904] bg-orange-50';
+  return 'border-gray-300 bg-gray-50';
 };
+
+// Month view state
+const monthViewDate = ref(new Date());
+const allMonthShifts = ref([]);
+
+const fetchMonthData = async () => {
+  const year  = monthViewDate.value.getFullYear();
+  const month = monthViewDate.value.getMonth();
+  const first = new Date(year, month, 1);
+  const last  = new Date(year, month + 1, 0);
+  try {
+    const data = await getMySchedule(formatDate(first), formatDate(last));
+    if (data?.status && data.data?.schedule) {
+      const shifts = [];
+      data.data.schedule.forEach((day) => {
+        (day.lich_lam_viec || []).forEach((s) => {
+          shifts.push({ date: day.date, thoi_gian_truc: s.thoi_gian_truc });
+        });
+      });
+      allMonthShifts.value = shifts;
+    } else { allMonthShifts.value = []; }
+  } catch { allMonthShifts.value = []; }
+};
+
+const goToPreviousMonth = () => {
+  const d = new Date(monthViewDate.value);
+  d.setMonth(d.getMonth() - 1);
+  monthViewDate.value = d;
+  fetchMonthData();
+};
+const goToNextMonth = () => {
+  const d = new Date(monthViewDate.value);
+  d.setMonth(d.getMonth() + 1);
+  monthViewDate.value = d;
+  fetchMonthData();
+};
+
+const monthGridLeadingBlanks = computed(() => {
+  const first = new Date(monthViewDate.value.getFullYear(), monthViewDate.value.getMonth(), 1);
+  const dow = first.getDay(); // 0=Sun
+  return dow === 0 ? 6 : dow - 1; // Mon-based grid
+});
+
+const monthGridDays = computed(() => {
+  const year  = monthViewDate.value.getFullYear();
+  const month = monthViewDate.value.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const days = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const shifts = allMonthShifts.value
+      .filter(s => s.date === dateStr)
+      .map(s => s.thoi_gian_truc);
+    days.push({ date: dateStr, dayNum: d, shifts });
+  }
+  return days;
+});
 
 const icons = {
   clipboardCheck:
@@ -1450,6 +1322,126 @@ const icons = {
   infoCircle:
     "https://www.figma.com/api/mcp/asset/74328a54-dc6a-450b-9316-ee606f99aace",
 };
+
+// ─── Leave Request Module ─────────────────────────────────────────────────
+const leaveRequests   = ref([]);
+const leaveLoading    = ref(false);
+const leaveSubmitting = ref(false);
+const leaveSubmitMessage = ref('');
+const leaveSubmitSuccess = ref(false);
+const leaveForm = ref({ start_date: '', end_date: '', ly_do: '' });
+const leaveFormErrors = ref({});
+const leaveQuota = ref({
+  thang: new Date().getMonth() + 1,
+  nam: new Date().getFullYear(),
+  tong_quota: 4,
+  da_su_dung: 0,
+  con_lai: 4,
+});
+
+const minLeaveDate = computed(() => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().split('T')[0];
+});
+
+const fetchLeaveRequests = async () => {
+  leaveLoading.value = true;
+  try {
+    const res = await api.get('/lich-nghi');
+    leaveRequests.value = res.data?.data || [];
+  } catch {
+    leaveRequests.value = [];
+  } finally {
+    leaveLoading.value = false;
+  }
+};
+
+const fetchLeaveQuota = async (thang, nam) => {
+  const m = thang ?? (new Date().getMonth() + 1);
+  const y = nam   ?? new Date().getFullYear();
+  try {
+    const res = await api.get('/lich-nghi/quota', { params: { thang: m, nam: y } });
+    if (res.data?.status) leaveQuota.value = res.data.data;
+  } catch { /* ignore */ }
+};
+
+const submitLeaveRequest = async () => {
+  leaveFormErrors.value = {};
+  leaveSubmitMessage.value = '';
+  
+  if (!leaveForm.value.start_date || !leaveForm.value.end_date) {
+    leaveFormErrors.value.date = 'Vui lòng chọn khoảng thời gian xin nghỉ';
+    return;
+  }
+  
+  const start = new Date(leaveForm.value.start_date);
+  const end = new Date(leaveForm.value.end_date);
+  
+  if (end < start) {
+    leaveFormErrors.value.date = 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu';
+    return;
+  }
+
+  leaveSubmitting.value = true;
+  let successCount = 0;
+  let errorMessages = [];
+
+  // Loop through all dates in range and send requests
+  let currentDate = new Date(start);
+  while (currentDate <= end) {
+    const dateString = currentDate.toISOString().split('T')[0];
+    
+    try {
+      await api.post('/lich-nghi', {
+        ngay_nghi: dateString,
+        ly_do: leaveForm.value.ly_do,
+      });
+      successCount++;
+    } catch (err) {
+      const msg = err.response?.data?.errors?.ngay_nghi?.[0] || err.response?.data?.message || 'Lỗi';
+      errorMessages.push(`${dateString}: ${msg}`);
+    }
+    
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  if (successCount > 0) {
+    leaveSubmitSuccess.value = true;
+    leaveSubmitMessage.value = `Đã gửi thành công ${successCount} đơn xin nghỉ.`;
+    if (errorMessages.length > 0) {
+      leaveSubmitMessage.value += ` Lỗi: ${errorMessages.join(' | ')}`;
+    }
+    leaveForm.value = { start_date: '', end_date: '', ly_do: '' };
+    await fetchLeaveQuota(start.getMonth() + 1, start.getFullYear());
+    await fetchLeaveRequests();
+  } else {
+    leaveSubmitSuccess.value = false;
+    leaveSubmitMessage.value = `Không thể gửi đơn xin nghỉ. Lỗi: ${errorMessages.join(' | ')}`;
+  }
+  
+  leaveSubmitting.value = false;
+  setTimeout(() => { leaveSubmitMessage.value = ''; }, 5000);
+};
+
+const cancelLeaveRequest = async (id) => {
+  if (!confirm('Hủy đơn xin nghỉ này?')) return;
+  try {
+    await api.delete('/lich-nghi/' + id);
+    showSuccessToast('Thành công', 'Đã hủy đơn xin nghỉ');
+    await fetchLeaveRequests();
+    await fetchLeaveQuota();
+  } catch {
+    showErrorToast('Lỗi', 'Không thể hủy đơn này');
+  }
+};
+
+const formatDateDisplay2 = (dateStr) => {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+// ─── End Leave Request Module ─────────────────────────────────────────────
 </script>
 
 <style scoped>

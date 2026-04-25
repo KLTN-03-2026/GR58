@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schedule;
 use App\Models\Admin;
 
 
@@ -36,3 +37,9 @@ Artisan::command('admin:create {email} {mat_khau} {ho_ten?} {anh_dai_dien?} {so_
     $this->info("Admin {$email} created with id {$admin->id}.");
     return 0;
 })->purpose('Create an admin with provided fields');
+
+// Tự động sinh lịch làm việc tháng sau vào ngày 25 hàng tháng lúc 23:00
+Schedule::command('lich-lam-viec:generate', [
+    now()->addMonth()->year,
+    now()->addMonth()->month,
+])->monthlyOn(25, '23:00');

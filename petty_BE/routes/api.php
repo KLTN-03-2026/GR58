@@ -30,6 +30,7 @@ use App\Http\Controllers\PhieuKhamController;
 use App\Http\Controllers\HoSoBenhAnController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\LichNghiController;
 
 Route::post('/khach-hang/dang-ki', [KhachHangController::class, 'dangKi']);
 Route::post('/khach-hang/dang-nhap', [KhachHangController::class, 'dangNhap']);
@@ -108,6 +109,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/thu-cung/{thuCung}', [ThuCungController::class, 'update']);
     Route::delete('/thu-cung/{thuCung}', [ThuCungController::class, 'destroy']);
 
+    // Slot còn trống (public, auth required)
+    Route::get('/lich-hen/available-slots', [LichHenController::class, 'availableSlots']);
+
     // Lịch hẹn - Khách hàng có thể tạo và xem lịch của mình
     Route::post('/lich-hen', [LichHenController::class, 'store']); // Khách hàng đặt lịch
     Route::get('/lich-hen', [LichHenController::class, 'index']); // Khách hàng xem lịch của mình
@@ -147,9 +151,25 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/lich-lam-viec/bac-si/{nhanVienId}', [LichLamViecController::class, 'getScheduleByDoctor'])->middleware(['staff.only', 'permission:lich_lam_viec_xem']);
     Route::get('/lich-lam-viec/hom-nay', [LichLamViecController::class, 'getTodaySchedule'])->middleware(['staff.only', 'permission:lich_lam_viec_xem']);
 
+    // Lịch làm việc: sinh lịch tự động (phải đặt TRƯỚC route có {lichLamViec})
+    Route::post('/lich-lam-viec/generate', [LichLamViecController::class, 'generate'])->middleware(['staff.only', 'permission:lich_lam_viec_tao']);
+
     // Lịch làm việc: list & view (phải đặt SAU các route cụ thể) - Staff only
     Route::get('/lich-lam-viec', [LichLamViecController::class, 'index'])->middleware(['staff.only', 'permission:lich_lam_viec_xem']);
     Route::get('/lich-lam-viec/{lichLamViec}', [LichLamViecController::class, 'show'])->middleware(['staff.only', 'permission:lich_lam_viec_xem']);
+
+    // Lịch nghỉ - Nhân viên (bác sĩ/y tá)
+    Route::get('/lich-nghi/quota', [LichNghiController::class, 'quota'])->middleware('staff.only');
+    Route::get('/lich-nghi', [LichNghiController::class, 'index'])->middleware('staff.only');
+    Route::post('/lich-nghi', [LichNghiController::class, 'store'])->middleware('staff.only');
+    Route::delete('/lich-nghi/{lichNghi}', [LichNghiController::class, 'destroy'])->middleware('staff.only');
+
+    // Lịch nghỉ - Admin
+    Route::get('/admin/lich-nghi', [LichNghiController::class, 'indexAll'])->middleware(['staff.only', 'permission:lich_lam_viec_xem']);
+    Route::post('/admin/lich-nghi', [LichNghiController::class, 'storeAdmin'])->middleware(['staff.only', 'permission:lich_lam_viec_tao']);
+    Route::patch('/admin/lich-nghi/{lichNghi}/duyet', [LichNghiController::class, 'duyet'])->middleware(['staff.only', 'permission:lich_lam_viec_tao']);
+    Route::patch('/admin/lich-nghi/{lichNghi}/tu-choi', [LichNghiController::class, 'tuChoi'])->middleware(['staff.only', 'permission:lich_lam_viec_tao']);
+    Route::get('/admin/lich-nghi/{lichNghi}/suggest', [LichNghiController::class, 'suggestThayThe'])->middleware(['staff.only', 'permission:lich_lam_viec_xem']);
 
     // Lịch đăng ký - CRUD
     Route::get('/lich-dang-ky', [LichDangKyController::class, 'index']); // Khách hàng và Staff xem lịch đăng ký

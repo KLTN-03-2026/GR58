@@ -257,34 +257,43 @@
 
           <!-- Time Picker -->
           <div class="flex flex-col gap-2">
-            <label class="text-sm font-semibold text-black">
-              Chọn giờ khám
-            </label>
-            <div class="grid grid-cols-4 gap-2">
-              <button
-                v-for="time in timeSlots"
-                :key="time.value"
-                @click="selectTime(time)"
-                :disabled="time.isBooked"
-                :class="[
-                  'h-9 border rounded-lg text-sm font-semibold transition-colors',
-                  selectedTime === time.value
-                    ? 'bg-[#487874] text-white border-[#5A9690]/80'
-                    : '',
-                  time.isBooked
-                    ? 'opacity-50 cursor-not-allowed border-gray-300 bg-white text-black'
-                    : '',
-                  !time.isBooked && selectedTime !== time.value
-                    ? '!border-gray-300 bg-white text-black hover:border-gray-400'
-                    : '',
-                ]"
-              >
-                {{ time.label }}
-              </button>
+            <label class="text-sm font-semibold text-black">Chọn giờ khám</label>
+
+            <div v-if="!selectedDate" class="text-sm text-gray-500 py-2">
+              Vui lòng chọn ngày để xem các khung giờ khả dụng.
             </div>
-            <p class="text-sm font-medium text-gray-500 mt-1">
-              * Các khung giờ bị mờ đã kín lịch
-            </p>
+
+            <div v-else-if="loadingSlots" class="text-sm text-gray-400 py-2">Đang tải lịch...</div>
+
+            <div v-else-if="slotsMessage" class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              {{ slotsMessage }}
+            </div>
+
+            <template v-else>
+              <div class="grid grid-cols-4 gap-2">
+                <button
+                  v-for="time in timeSlots"
+                  :key="time.value"
+                  @click="selectTime(time)"
+                  :disabled="time.isBooked"
+                  :class="[
+                    'h-9 border rounded-lg text-sm font-semibold transition-colors',
+                    selectedTime === time.value
+                      ? 'bg-[#487874] text-white border-[#5A9690]/80'
+                      : '',
+                    time.isBooked
+                      ? 'opacity-50 cursor-not-allowed border-gray-300 bg-white text-black'
+                      : '',
+                    !time.isBooked && selectedTime !== time.value
+                      ? '!border-gray-300 bg-white text-black hover:border-gray-400'
+                      : '',
+                  ]"
+                >
+                  {{ time.label }}
+                </button>
+              </div>
+              <p class="text-sm font-medium text-gray-500 mt-1">* Các khung giờ bị mờ đã kín lịch</p>
+            </template>
           </div>
         </div>
 
@@ -567,25 +576,9 @@ const fetchServices = async () => {
 
 const weekDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
-const timeSlots = ref([
-  { value: "08:00", label: "08:00", isBooked: false },
-  { value: "08:30", label: "08:30", isBooked: false },
-  { value: "09:00", label: "09:00", isBooked: true },
-  { value: "09:30", label: "09:30", isBooked: false },
-  { value: "10:00", label: "10:00", isBooked: false },
-  { value: "10:30", label: "10:30", isBooked: true },
-  { value: "11:00", label: "11:00", isBooked: false },
-  { value: "11:30", label: "11:30", isBooked: false },
-  { value: "13:00", label: "13:00", isBooked: false },
-  { value: "13:30", label: "13:30", isBooked: false },
-  { value: "14:00", label: "14:00", isBooked: true },
-  { value: "14:30", label: "14:30", isBooked: false },
-  { value: "15:00", label: "15:00", isBooked: false },
-  { value: "15:30", label: "15:30", isBooked: false },
-  { value: "16:00", label: "16:00", isBooked: false },
-  { value: "16:30", label: "16:30", isBooked: false },
-  { value: "17:00", label: "17:00", isBooked: false },
-]);
+const timeSlots    = ref([]);
+const loadingSlots = ref(false);
+const slotsMessage = ref('');
 
 // Trạng thái lựa chọn
 const selectedPet = ref(null);
@@ -758,9 +751,40 @@ const selectService = (service) => {
   selectedService.value = service;
 };
 
+const fetchAvailableSlots = async (date) => {
+  if (!date) return;
+  const pad = (n) => String(n).padStart(2, '0');
+  const dateStr = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+  loadingSlots.value = true;
+  slotsMessage.value = '';
+  timeSlots.value    = [];
+  selectedTime.value = null;
+
+  try {
+    const res   = await axios.get(`${API_BASE}/lich-hen/available-slots`, { params: { date: dateStr } });
+    const slots = res.data?.slots || [];
+
+    if (slots.length === 0) {
+      slotsMessage.value = res.data?.message || 'Phòng khám không có lịch làm việc cho ngày này, vui lòng chọn ngày khác';
+    } else {
+      timeSlots.value = slots.map((s) => ({
+        value:    s.time,
+        label:    s.time,
+        isBooked: !s.available,
+      }));
+    }
+  } catch (err) {
+    slotsMessage.value = err.response?.data?.message || 'Không thể tải lịch khám cho ngày này';
+  } finally {
+    loadingSlots.value = false;
+  }
+};
+
 const selectDate = (date) => {
   if (!date.isCurrentMonth || date.isPast) return;
   selectedDate.value = date.date;
+  fetchAvailableSlots(date.date);
 };
 
 const selectTime = (time) => {
@@ -871,19 +895,25 @@ const confirmBooking = async () => {
     // phát sự kiện kèm phản hồi server khi có
     emit("confirm", data || payload);
   } catch (err) {
-    // xử lý lỗi xác thực (422) hoặc lỗi khác
     let message = "Không thể tạo lịch hẹn. Vui lòng thử lại.";
-    if (
-      err.response &&
-      err.response.status === 422 &&
-      err.response.data &&
-      err.response.data.errors
-    ) {
-      const errors = err.response.data.errors;
-      const firstKey = Object.keys(errors)[0];
-      if (firstKey) message = errors[firstKey][0];
-    } else if (err.response && err.response.data && err.response.data.message) {
-      message = err.response.data.message;
+    const errData = err.response?.data;
+
+    if (err.response?.status === 422) {
+      const errMsg = errData?.message || '';
+      if (errMsg.includes('đã đầy')) {
+        message = errMsg;
+        // Refresh slots và đưa về bước chọn giờ
+        await fetchAvailableSlots(selectedDate.value);
+        selectedTime.value = null;
+        currentStep.value  = 2;
+      } else if (errData?.errors) {
+        const firstKey = Object.keys(errData.errors)[0];
+        if (firstKey) message = errData.errors[firstKey][0];
+      } else {
+        message = errMsg || message;
+      }
+    } else if (errData?.message) {
+      message = errData.message;
     }
 
     showErrorToast("Lỗi khi đặt lịch", message);

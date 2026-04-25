@@ -1,6 +1,6 @@
 <template>
   <div
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1050]"
   >
     <div
       class="bg-white border !border-gray-300 rounded-[10px] shadow-lg w-[510px] relative"
@@ -92,58 +92,29 @@
             </div>
           </div>
 
-          <!-- Date and Room -->
-          <div class="grid grid-cols-2 gap-4">
-            <!-- Select Date -->
-            <div class="flex flex-col gap-2">
-              <label
-                class="font-nunito font-medium text-sm leading-[14px] text-neutral-950 tracking-tight"
-              >
-                Chọn Ngày <span class="text-red-500">*</span>
-              </label>
-              <input
-                v-model="selectedDate"
-                type="date"
-                :class="[
-                  'bg-[#f3f3f5] rounded-lg h-9 px-3 font-nunito text-sm text-neutral-950 focus:outline-none focus:ring-2 focus:ring-[#009689]',
-                  props.serverErrors && props.serverErrors.ngay_lam
-                    ? 'border-red-500'
-                    : 'border-transparent',
-                ]"
-              />
-              <p
-                v-if="props.serverErrors && props.serverErrors.ngay_lam"
-                class="text-xs text-red-600 mt-1"
-              >
-                {{ props.serverErrors.ngay_lam[0] }}
-              </p>
-            </div>
-
-            <!-- Room -->
-            <div class="flex flex-col gap-2">
-              <label
-                class="font-nunito font-medium text-sm leading-[14px] text-neutral-950 tracking-tight"
-              >
-                Phòng trực
-              </label>
-              <input
-                v-model="room"
-                type="text"
-                placeholder="VD: P. Khám 01"
-                :class="[
-                  'bg-[#f3f3f5] rounded-lg h-9 px-3 font-nunito text-sm text-neutral-950 placeholder:text-[#717182] focus:outline-none focus:ring-2 focus:ring-[#009689]',
-                  props.serverErrors && props.serverErrors.phong_truc
-                    ? 'border-red-500'
-                    : 'border-transparent',
-                ]"
-              />
-              <p
-                v-if="props.serverErrors && props.serverErrors.phong_truc"
-                class="text-xs text-red-600 mt-1"
-              >
-                {{ props.serverErrors.phong_truc[0] }}
-              </p>
-            </div>
+          <!-- Select Date -->
+          <div class="flex flex-col gap-2">
+            <label
+              class="font-nunito font-medium text-sm leading-[14px] text-neutral-950 tracking-tight"
+            >
+              Chọn Ngày <span class="text-red-500">*</span>
+            </label>
+            <input
+              v-model="selectedDate"
+              type="date"
+              :class="[
+                'bg-[#f3f3f5] rounded-lg h-9 px-3 font-nunito text-sm text-neutral-950 focus:outline-none focus:ring-2 focus:ring-[#009689]',
+                props.serverErrors && props.serverErrors.ngay_lam
+                  ? 'border-red-500'
+                  : 'border-transparent',
+              ]"
+            />
+            <p
+              v-if="props.serverErrors && props.serverErrors.ngay_lam"
+              class="text-xs text-red-600 mt-1"
+            >
+              {{ props.serverErrors.ngay_lam[0] }}
+            </p>
           </div>
 
           <!-- Shift Time Selection -->
@@ -155,21 +126,19 @@
             </label>
             <div class="flex flex-col gap-3">
               <!-- Morning Shift -->
-              <div class="flex items-center gap-2">
-                <button
-                  @click="selectedShift = 'morning'"
-                  :class="[
-                    'w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0',
-                    selectedShift === 'morning'
-                      ? 'border-[#030213]'
-                      : 'border-gray-300',
-                  ]"
-                >
+              <label class="flex items-center gap-2 cursor-pointer">
+                <div class="relative flex items-center justify-center w-4 h-4 flex-shrink-0">
+                  <input
+                    type="radio"
+                    value="morning"
+                    v-model="selectedShift"
+                    class="appearance-none w-4 h-4 rounded-full border border-gray-300 checked:border-[#030213] transition-colors cursor-pointer m-0"
+                  />
                   <div
                     v-if="selectedShift === 'morning'"
-                    class="w-2 h-2 rounded-full bg-[#030213]"
+                    class="absolute w-2 h-2 rounded-full bg-[#030213] pointer-events-none"
                   ></div>
-                </button>
+                </div>
                 <div class="flex items-center gap-2">
                   <SunIcon />
                   <span
@@ -180,72 +149,39 @@
                   <span
                     class="font-nunito text-sm leading-5 text-[#6a7282] tracking-tight"
                   >
-                    (08:00 - 16:00)
+                    (08:00 - 17:00)
                   </span>
                 </div>
-              </div>
-
-              <!-- Afternoon Shift -->
-              <div class="flex items-center gap-2">
-                <button
-                  @click="selectedShift = 'afternoon'"
-                  :class="[
-                    'w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0',
-                    selectedShift === 'afternoon'
-                      ? 'border-[#030213]'
-                      : 'border-gray-300',
-                  ]"
-                >
-                  <div
-                    v-if="selectedShift === 'afternoon'"
-                    class="w-2 h-2 rounded-full bg-[#030213]"
-                  ></div>
-                </button>
-                <div class="flex items-center gap-2">
-                  <SunsetIcon />
-                  <span
-                    class="font-nunito text-base leading-6 text-neutral-950 tracking-tight"
-                  >
-                    Ca Chiều
-                  </span>
-                  <span
-                    class="font-nunito text-sm leading-5 text-[#6a7282] tracking-tight"
-                  >
-                    (13:00 - 21:00)
-                  </span>
-                </div>
-              </div>
+              </label>
 
               <!-- Night Shift -->
-              <div class="flex items-center gap-2">
-                <button
-                  @click="selectedShift = 'night'"
-                  :class="[
-                    'w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0',
-                    selectedShift === 'night'
-                      ? 'border-[#030213]'
-                      : 'border-gray-300',
-                  ]"
-                >
+              <label class="flex items-center gap-2 cursor-pointer">
+                <div class="relative flex items-center justify-center w-4 h-4 flex-shrink-0">
+                  <input
+                    type="radio"
+                    value="night"
+                    v-model="selectedShift"
+                    class="appearance-none w-4 h-4 rounded-full border border-gray-300 checked:border-[#030213] transition-colors cursor-pointer m-0"
+                  />
                   <div
                     v-if="selectedShift === 'night'"
-                    class="w-2 h-2 rounded-full bg-[#030213]"
+                    class="absolute w-2 h-2 rounded-full bg-[#030213] pointer-events-none"
                   ></div>
-                </button>
+                </div>
                 <div class="flex items-center gap-2">
                   <HalfMoonIcon />
                   <span
                     class="font-nunito text-base leading-6 text-neutral-950 tracking-tight"
                   >
-                    Ca Tối / Trực đêm
+                    Ca Tối
                   </span>
                   <span
                     class="font-nunito text-sm leading-5 text-[#6a7282] tracking-tight"
                   >
-                    (21:00 - 08:00)
+                    (17:00 - 08:00)
                   </span>
                 </div>
-              </div>
+              </label>
 
               <!-- Custom Shift -->
               <div class="flex items-center gap-2">
@@ -366,6 +302,10 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  preselectedShift: {
+    type: String,
+    default: "morning",
+  },
   // server-side validation errors passed from parent
   serverErrors: {
     type: Object,
@@ -406,8 +346,7 @@ const selectedStaff = ref(props.preselectedStaff);
 const staffList = ref([]);
 const showStaffDropdown = ref(false);
 const selectedDate = ref(props.preselectedDate);
-const room = ref("");
-const selectedShift = ref("morning");
+const selectedShift = ref(props.preselectedShift);
 const repeatWeekly = ref(false);
 
 // Computed: Form validation
@@ -420,16 +359,13 @@ const handleSave = () => {
   if (!isFormValid.value) return;
 
   const shiftTimes = {
-    morning: { start: "08:00", end: "16:00", label: "Ca Sáng" },
-    afternoon: { start: "13:00", end: "21:00", label: "Ca Chiều" },
-    night: { start: "21:00", end: "08:00", label: "Ca Tối / Trực đêm" },
-    custom: { start: "", end: "", label: "Tùy chỉnh" },
+    morning: { start: "08:00", end: "17:00", label: "Ca Sáng" },
+    night:   { start: "17:00", end: "08:00", label: "Ca Tối" },
   };
 
   const shiftData = {
     staff: selectedStaff.value,
     date: selectedDate.value,
-    room: room.value,
     shift: selectedShift.value,
     shiftTime: shiftTimes[selectedShift.value],
     repeatWeekly: repeatWeekly.value,

@@ -8,6 +8,7 @@ use App\Models\Admin;
 use App\Notifications\LichLamViecCreatedNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 
 class LichLamViecController extends Controller
 {
@@ -380,6 +381,51 @@ class LichLamViecController extends Controller
      * Lấy lịch hôm nay của bác sĩ đang đăng nhập
      * Endpoint đơn giản cho bác sĩ xem lịch hôm nay
      */
+    public function generate(Request $request): JsonResponse
+    {
+        $request->validate([
+            'year'  => ['required', 'integer', 'min:2020', 'max:2100'],
+            'month' => ['required', 'integer', 'min:1', 'max:12'],
+            'force' => ['nullable', 'boolean'],
+        ]);
+
+        $year  = (int) $request->year;
+        $month = (int) $request->month;
+        $force = (bool) ($request->force ?? false);
+
+        $existing = LichLamViec::whereYear('ngay_lam', $year)
+            ->whereMonth('ngay_lam', $month)
+            ->exists();
+
+        if ($existing && ! $force) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Lịch tháng này đã tồn tại. Dùng force: true để tạo lại.',
+            ], 422);
+        }
+
+        $params = [$year, $month];
+        if ($force) {
+            $params[] = '--force';
+        }
+
+        Artisan::call('lich-lam-viec:generate', array_filter([
+            'year'    => $year,
+            'month'   => $month,
+            '--force' => $force ?: null,
+        ]));
+
+        $count = LichLamViec::whereYear('ngay_lam', $year)
+            ->whereMonth('ngay_lam', $month)
+            ->count();
+
+        return response()->json([
+            'status'  => true,
+            'message' => "Đã sinh lịch tháng {$month}/{$year} thành công",
+            'data'    => ['so_ban_ghi' => $count],
+        ]);
+    }
+
     public function getMyTodaySchedule(Request $request): JsonResponse
     {
         // Lấy thông tin user đang đăng nhập

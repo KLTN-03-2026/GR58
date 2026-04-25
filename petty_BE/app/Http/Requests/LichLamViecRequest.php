@@ -15,10 +15,11 @@ class LichLamViecRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'ngay_lam' => 'required|date',
-            'phong_truc' => 'required|string|max:255',
+            'ngay_lam'       => 'required|date',
             'thoi_gian_truc' => 'required|in:ca_sang,ca_chieu,ca_toi',
-            'nhan_vien_id' => 'required|exists:nhan_viens,id',
+            'nhan_vien_id'   => 'required|exists:nhan_viens,id',
+            'phong_truc'     => 'nullable|string|max:255',
+            'ghi_chu'        => 'nullable|string',
         ];
     }
 }

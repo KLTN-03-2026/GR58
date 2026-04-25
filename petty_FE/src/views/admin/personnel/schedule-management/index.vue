@@ -65,6 +65,17 @@
             <AddIcon />
             Thêm ca
           </button>
+
+          <button
+            @click="isGenerateModalOpen = true"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg flex items-center gap-2 font-medium text-sm transition shadow-sm hover:shadow-md"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Phân lịch tự động
+          </button>
         </div>
       </div>
     </div>
@@ -120,59 +131,13 @@
               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          Xác nhận đăng ký
+          Xác nhận đơn nghỉ
         </span>
       </button>
     </div>
 
     <!-- Schedule Tab Content -->
     <div v-if="activeTab === 'schedule'">
-      <!-- Summary Section -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <!-- Overall Total -->
-        <div
-          class="bg-white border !border-gray-300 rounded-lg p-5 shadow-sm hover:shadow-md transition"
-        >
-          <p class="text-gray-600 text-sm font-medium mb-2">Tổng giờ tuần</p>
-          <p class="text-3xl font-bold text-teal-600">
-            {{ overallTotal }}<span class="text-lg text-gray-400">h</span>
-          </p>
-        </div>
-
-        <!-- Day Totals -->
-        <template v-for="day in weekDays" :key="day.dateStr">
-          <div
-            :class="[
-              'bg-white border !border-gray-300 rounded-lg p-4 shadow-sm hover:shadow-md transition text-center',
-              day.isToday
-                ? 'border-teal-300 bg-gradient-to-br from-teal-50 to-cyan-50'
-                : 'border-gray-200',
-            ]"
-          >
-            <p
-              :class="[
-                'text-xs font-bold mb-1',
-                day.isToday ? 'text-teal-700' : 'text-gray-600',
-              ]"
-            >
-              {{ day.dayName }}
-            </p>
-            <p
-              :class="[
-                'text-lg font-bold mb-2',
-                day.isToday ? 'text-teal-600' : 'text-gray-900',
-              ]"
-            >
-              {{ day.date }}
-            </p>
-            <p class="text-sm font-semibold text-gray-600">
-              {{ totalsPerDay[day.dateStr] || 0
-              }}<span class="text-xs text-gray-400">h</span>
-            </p>
-          </div>
-        </template>
-      </div>
-
       <!-- Empty State -->
       <div v-if="!isLoading && !hasAnyShift" class="mb-6">
         <div
@@ -281,12 +246,8 @@
                   <div class="min-h-32">
                     <div
                       @click="addShiftForStaff(staff, day)"
-                      class="h-full space-y-2 rounded-lg border-2 border-dashed border-gray-200 hover:border-teal-300 hover:bg-teal-50/30 transition-all cursor-pointer p-2"
-                      :class="{
-                        'border-teal-300 bg-teal-50':
-                          hasShift(staff, day.dateStr) ||
-                          getAppointmentsForCell(staff, day.dateStr).length > 0,
-                      }"
+                      class="h-full space-y-2 rounded-lg border-2 border-dashed transition-all cursor-pointer p-2"
+                      :class="getCellStyle(staff, day.dateStr)"
                     >
                       <!-- Shifts -->
                       <template
@@ -299,18 +260,18 @@
                           :class="shiftBorderClass(shift)"
                         >
                           <div class="font-semibold text-gray-800 truncate">
-                            {{ shift.phong_truc || "Phòng" }}
+                            Ca trực
                           </div>
                           <span
                             :class="[
                               'inline-block mt-1 px-2 py-0.5 rounded text-white text-xs font-bold',
                               shift.thoi_gian_truc === 'ca_sang'
-                                ? 'bg-emerald-500'
+                                ? 'bg-yellow-500'
                                 : shift.thoi_gian_truc === 'ca_chieu'
                                 ? 'bg-amber-500'
                                 : shift.thoi_gian_truc === 'ca_dang_ky'
                                 ? 'bg-blue-500'
-                                : 'bg-slate-600',
+                                : 'bg-purple-500',
                             ]"
                           >
                             {{
@@ -387,9 +348,9 @@
               class="w-full px-4 py-2 border !border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               <option value="">Tất cả</option>
-              <option value="pending">Chờ xác nhận</option>
-              <option value="confirmed">Đã xác nhận</option>
-              <option value="rejected">Từ chối</option>
+              <option value="cho_duyet">Chờ duyệt</option>
+              <option value="da_duyet">Đã duyệt</option>
+              <option value="tu_choi">Từ chối</option>
             </select>
           </div>
           <div class="flex-1">
@@ -424,7 +385,7 @@
             d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        <p class="text-gray-500 font-medium">Không có yêu cầu xác nhận nào</p>
+        <p class="text-gray-500 font-medium">Không có đơn xin nghỉ nào</p>
       </div>
 
       <!-- Table View -->
@@ -440,10 +401,13 @@
                   Nhân viên
                 </th>
                 <th class="px-6 py-4 text-left text-sm font-bold text-gray-900">
-                  Ngày giờ
+                  Ngày nghỉ
                 </th>
                 <th class="px-6 py-4 text-left text-sm font-bold text-gray-900">
-                  Ghi chú
+                  Loại nghỉ
+                </th>
+                <th class="px-6 py-4 text-left text-sm font-bold text-gray-900">
+                  Lý do
                 </th>
                 <th class="px-6 py-4 text-left text-sm font-bold text-gray-900">
                   Trạng thái
@@ -475,67 +439,50 @@
                   </div>
                 </td>
 
-                <!-- Ngày giờ -->
+                <!-- Ngày nghỉ -->
                 <td class="px-6 py-4">
                   <p class="text-sm font-semibold text-gray-900">
-                    {{ confirmation.dateTime }}
+                    {{ confirmation.date }}
+                  </p>
+                  <p class="text-xs text-gray-500 mt-1">
+                    Gửi lúc: {{ confirmation.submittedDateTime }}
                   </p>
                 </td>
 
-                <!-- Ghi chú -->
+                <!-- Loại nghỉ -->
                 <td class="px-6 py-4">
-                  <p class="text-sm text-gray-600">
+                  <span :class="['px-2 py-1 text-xs font-semibold rounded-full', confirmation.loaiNghi === 'co_luong' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800']">
+                    {{ confirmation.loaiNghi === 'co_luong' ? 'Có lương' : 'Không lương' }}
+                  </span>
+                </td>
+
+                <!-- Ghi chú/Lý do -->
+                <td class="px-6 py-4">
+                  <p class="text-sm text-gray-600 line-clamp-2" :title="confirmation.note">
                     {{ confirmation.note || "—" }}
+                  </p>
+                  <p v-if="confirmation.status === 'tu_choi' && confirmation.rejectReason" class="text-xs text-red-600 mt-1">
+                    Lý do từ chối: {{ confirmation.rejectReason }}
                   </p>
                 </td>
 
                 <!-- Trạng thái -->
                 <td class="px-6 py-4">
-                  <div
-                    v-if="editingStatusId === confirmation.id"
-                    class="relative w-48"
-                  >
-                    <select
-                      :value="
-                        confirmation.status === 'pending'
-                          ? 'chua_xac_nhan'
-                          : confirmation.status === 'confirmed'
-                          ? 'da_xac_nhan'
-                          : 'tu_choi'
-                      "
-                      @change="
-                        (e) =>
-                          updateStatusForConfirmation(
-                            confirmation.id,
-                            e.target.value
-                          )
-                      "
-                      :disabled="updatingStatusId === confirmation.id"
-                      class="w-full px-3 py-2 border !border-gray-300 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <option value="chua_xac_nhan">Chờ duyệt</option>
-                      <option value="da_xac_nhan">Đã duyệt</option>
-                      <option value="tu_choi">Từ chối</option>
-                    </select>
-                  </div>
                   <button
-                    v-else
-                    @click="editingStatusId = confirmation.id"
+                    @click="openConfirmationDetail(confirmation)"
                     :class="[
                       'inline-flex items-center px-3 py-1 rounded-full text-xs font-bold cursor-pointer transition-all hover:opacity-80',
-                      confirmation.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : confirmation.status === 'confirmed' ||
-                          confirmation.status === 'đã_xác_nhận'
-                        ? 'bg-green-100 text-green-800'
+                      confirmation.status === 'cho_duyet'
+                        ? 'bg-amber-100 text-amber-800'
+                        : confirmation.status === 'da_duyet'
+                        ? 'bg-emerald-100 text-emerald-800'
                         : 'bg-red-100 text-red-800',
                     ]"
                   >
                     {{
-                      confirmation.status === "pending"
+                      confirmation.status === "cho_duyet"
                         ? "Chờ duyệt"
-                        : confirmation.status === "confirmed" ||
-                          confirmation.status === "đã_xác_nhận"
+                        : confirmation.status === "da_duyet"
                         ? "Đã duyệt"
                         : "Từ chối"
                     }}
@@ -548,11 +495,73 @@
       </div>
     </div>
 
+    <!-- Modal Phân Lịch Tự Động -->
+    <div
+      v-if="isGenerateModalOpen"
+      class="fixed inset-0 bg-black/40 flex items-center justify-center z-[1050]"
+      @click.self="isGenerateModalOpen = false"
+    >
+      <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 space-y-5">
+        <div>
+          <h3 class="text-lg font-semibold text-black">Phân lịch tự động</h3>
+          <p class="text-sm text-gray-500 mt-1">
+            Hệ thống sẽ tự sinh lịch theo vòng xoay 4-slot (ca sáng / ca tối / nghỉ bù) cho từng nhóm bác sĩ và y tá, thứ 2–thứ 7.
+          </p>
+        </div>
+
+        <div class="flex gap-3">
+          <div class="flex flex-col gap-1 flex-1">
+            <label class="text-xs font-medium text-gray-600">Tháng</label>
+            <select
+              v-model="generateForm.month"
+              class="h-9 border border-gray-300 rounded-lg px-2 text-sm focus:outline-none focus:border-teal-500"
+            >
+              <option v-for="m in 12" :key="m" :value="m">Tháng {{ m }}</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1 flex-1">
+            <label class="text-xs font-medium text-gray-600">Năm</label>
+            <input
+              v-model.number="generateForm.year"
+              type="number"
+              class="h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:border-teal-500"
+            />
+          </div>
+        </div>
+
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input v-model="generateForm.force" type="checkbox" class="rounded" />
+          <span class="text-sm text-gray-600">Tạo lại nếu đã tồn tại (xóa lịch cũ)</span>
+        </label>
+
+        <p v-if="generateMessage" class="text-sm" :class="generateError ? 'text-red-600' : 'text-green-600'">
+          {{ generateMessage }}
+        </p>
+
+        <div class="flex gap-2 justify-end pt-1">
+          <button
+            @click="isGenerateModalOpen = false"
+            class="h-9 px-4 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50"
+          >
+            Đóng
+          </button>
+          <button
+            @click="runGenerateSchedule"
+            :disabled="generating"
+            class="h-9 px-5 bg-teal-700 hover:bg-teal-800 text-white text-sm font-semibold rounded-lg disabled:opacity-50 transition-colors"
+          >
+            {{ generating ? 'Đang sinh lịch...' : 'Xác nhận sinh lịch' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal -->
     <PhanCaTruc
       v-if="isAddShiftModalOpen"
       :preselected-staff="selectedStaffForShift"
       :preselected-date="selectedDateForShift"
+      :preselected-shift="selectedShiftForModal"
       :serverErrors="serverErrors"
       :saving="isSavingShift"
       @close="isAddShiftModalOpen = false"
@@ -577,6 +586,7 @@ import PhanCaTruc from "./shift-assignment/index.vue";
 import XacNhanDangKy from "./registration-confirmation/index.vue";
 import api from "@/utils/api";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
+import { generateSchedule } from "@/services/lichLamViecService";
 //Icon SVG
 import ChevronLeftIcon from "@/assets/svg/chevron-left.svg";
 import ChevronRightIcon from "@/assets/svg/chevron-right.svg";
@@ -610,15 +620,51 @@ const updatingStatusId = ref(null);
 
 // Status options
 const statusOptions = [
-  { value: "chua_xac_nhan", label: "Chờ duyệt" },
-  { value: "da_xac_nhan", label: "Đã duyệt" },
+  { value: "cho_duyet", label: "Chờ duyệt" },
+  { value: "da_duyet", label: "Đã duyệt" },
   { value: "tu_choi", label: "Từ chối" },
 ];
+
+// Generate schedule modal
+const isGenerateModalOpen = ref(false);
+const generating = ref(false);
+const generateMessage = ref("");
+const generateError = ref(false);
+const _now = new Date();
+const generateForm = ref({
+  month: _now.getMonth() === 11 ? 1 : _now.getMonth() + 2,
+  year: _now.getMonth() === 11 ? _now.getFullYear() + 1 : _now.getFullYear(),
+  force: false,
+});
+
+const runGenerateSchedule = async () => {
+  generating.value = true;
+  generateMessage.value = "";
+  generateError.value = false;
+  try {
+    const res = await generateSchedule(
+      generateForm.value.year,
+      generateForm.value.month,
+      generateForm.value.force
+    );
+    generateMessage.value = res?.message || "Đã sinh lịch thành công!";
+    showSuccessToast("Thành công", generateMessage.value);
+    await fetchShiftsForWeek();
+  } catch (err) {
+    generateError.value = true;
+    generateMessage.value =
+      err?.response?.data?.message || "Lỗi khi sinh lịch";
+    showErrorToast("Lỗi", generateMessage.value);
+  } finally {
+    generating.value = false;
+  }
+};
 
 // Modal
 const isAddShiftModalOpen = ref(false);
 const selectedStaffForShift = ref(null);
 const selectedDateForShift = ref("");
+const selectedShiftForModal = ref("morning");
 const isSavingShift = ref(false);
 const serverErrors = ref({});
 
@@ -714,11 +760,42 @@ const getShiftsForCell = (staff, dateStr) =>
 const getAppointmentsForCell = (staff, dateStr) =>
   (appointments.value[staff.id] || {})[dateStr] || [];
 
+const getCellStyle = (staff, dateStr) => {
+  const shifts = getShiftsForCell(staff, dateStr);
+  const appointments = getAppointmentsForCell(staff, dateStr);
+
+  if (shifts.length > 0) {
+    const s = shifts[0];
+    if (s.thoi_gian_truc === 'ca_sang') {
+      return 'border-yellow-300 bg-yellow-50 hover:border-yellow-400 hover:bg-yellow-100/60';
+    } else if (s.thoi_gian_truc === 'ca_chieu') {
+      return 'border-amber-300 bg-amber-50 hover:border-amber-400 hover:bg-amber-100/60';
+    } else if (s.thoi_gian_truc === 'ca_dang_ky') {
+      return 'border-blue-300 bg-blue-50 hover:border-blue-400 hover:bg-blue-100/60';
+    } else {
+      return 'border-purple-300 bg-purple-50 hover:border-purple-400 hover:bg-purple-100/60';
+    }
+  } else if (appointments.length > 0) {
+    return 'border-teal-300 bg-teal-50 hover:border-teal-400 hover:bg-teal-100/60';
+  } else {
+    return 'border-gray-200 hover:border-teal-300 hover:bg-teal-50/30';
+  }
+};
+
 const shiftBorderClass = (shift) => {
-  if (shift.thoi_gian_truc === "ca_sang") return "border-emerald-400";
+  if (shift.thoi_gian_truc === "ca_sang") return "border-yellow-400";
   if (shift.thoi_gian_truc === "ca_chieu") return "border-amber-400";
   if (shift.thoi_gian_truc === "ca_dang_ky") return "border-blue-400";
-  return "border-slate-700";
+  return "border-purple-400";
+};
+
+const formatRole = (role) => {
+  if (!role) return "Nhân viên";
+  const str = role.toLowerCase();
+  if (str === "bac_si" || str === "bac si" || str === "bác sĩ") return "Bác Sĩ";
+  if (str === "y_ta" || str === "y ta" || str === "y tá") return "Y Tá";
+  if (str === "le_tan" || str === "le tan" || str === "lễ tân") return "Lễ Tân";
+  return role;
 };
 
 // Fetch & Calculate
@@ -729,7 +806,7 @@ const fetchStaff = async () => {
     staffList.value = data.map((s) => ({
       id: s.id,
       name: s.ho_ten || s.full_name || "Không tên",
-      role: s.chuc_vu || s.vai_tro || "Nhân viên",
+      role: formatRole(s.chuc_vu || s.vai_tro),
       avatar:
         s.avatar ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(
@@ -945,6 +1022,16 @@ const goToToday = () => {
 const addShiftForStaff = (staff, day) => {
   selectedStaffForShift.value = staff;
   selectedDateForShift.value = day.dateStr;
+
+  // Detect existing shift to pre-select the correct shift type
+  const existingShifts = getShiftsForCell(staff, day.dateStr);
+  if (existingShifts.length > 0) {
+    const t = existingShifts[0].thoi_gian_truc;
+    selectedShiftForModal.value = t === 'ca_toi' ? 'night' : 'morning';
+  } else {
+    selectedShiftForModal.value = 'morning';
+  }
+
   isAddShiftModalOpen.value = true;
 };
 
@@ -963,10 +1050,9 @@ const handleSaveShift = async (data) => {
       thoi_gian_truc:
         data.shift === "morning"
           ? "ca_sang"
-          : data.shift === "afternoon"
-          ? "ca_chieu"
-          : "ca_toi",
-      phong_truc: data.room,
+          : data.shift === "night"
+          ? "ca_toi"
+          : "ca_chieu",
     });
     showSuccessToast("Thành công", "Đã thêm ca làm việc");
     isAddShiftModalOpen.value = false;
@@ -984,94 +1070,48 @@ const handleSaveShift = async (data) => {
 // Fetch confirmations
 const fetchConfirmations = async () => {
   try {
-    const res = await api.get("/lich-dang-ky/chua-xac-nhan", {
+    const res = await api.get("/admin/lich-nghi", {
       params: { per_page: 500 },
     });
     const items = res.data?.data?.data || res.data?.data || [];
 
     confirmations.value = items.map((item) => {
-      // Normalize status from BE
-      let status = item.trang_thai || "pending";
-      if (status === "chưa_xác_nhận" || status === "chua_xac_nhan") {
-        status = "pending";
-      } else if (status === "đã_xác_nhận" || status === "da_xac_nhan") {
-        status = "confirmed";
-      } else if (status === "từ_chối" || status === "tu_choi") {
-        status = "rejected";
-      }
-
       return {
         id: item.id,
-        staffName: item.full_name || item.ten_nhan_vien || "Không tên",
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-          item.full_name || item.ten_nhan_vien || "N"
+        staffName: item.nhan_vien?.full_name || "Không tên",
+        avatar: item.nhan_vien?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          item.nhan_vien?.full_name || "N"
         )}&background=0D8ABC&color=fff`,
-        role: "Nhân viên",
-        date: new Date(item.ngay_gio || item.ngay).toLocaleDateString("vi-VN"),
-        dateTime: new Date(item.ngay_gio || item.ngay).toLocaleString("vi-VN", {
+        role: formatRole(item.nhan_vien?.chuc_danh || item.nhan_vien?.vai_tro),
+        date: new Date(item.ngay_nghi).toLocaleDateString("vi-VN"),
+        loaiNghi: item.loai_nghi,
+        note: item.ly_do || "",
+        status: item.trang_thai,
+        rejectReason: item.ly_do_tu_choi,
+        submittedDateTime: new Date(item.created_at).toLocaleString("vi-VN", {
           year: "numeric",
           month: "2-digit",
           day: "2-digit",
           hour: "2-digit",
           minute: "2-digit",
         }),
-        shift: "morning",
-        room: "Phòng chung",
-        hours: 8,
-        note: item.ghi_chu || "",
-        status: status,
-        submittedDate: new Date(
-          item.created_at || item.ngay_gio
-        ).toLocaleDateString("vi-VN", {
+        submittedDate: new Date(item.created_at).toLocaleDateString("vi-VN", {
           year: "numeric",
           month: "long",
           day: "numeric",
         }),
+        confirmedDate: item.updated_at ? new Date(item.updated_at).toLocaleString("vi-VN") : null,
       };
+    });
+    
+    // Sắp xếp: chờ duyệt lên đầu, rồi tới ngày tạo mới nhất
+    confirmations.value.sort((a, b) => {
+      if (a.status === 'cho_duyet' && b.status !== 'cho_duyet') return -1;
+      if (a.status !== 'cho_duyet' && b.status === 'cho_duyet') return 1;
+      return new Date(b.submittedDateTime) - new Date(a.submittedDateTime);
     });
   } catch (e) {
     console.error("Lỗi tải yêu cầu xác nhận", e);
-  }
-};
-
-// Actions for confirmations
-const approveConfirmation = async (id) => {
-  const confirmation = confirmations.value.find((c) => c.id === id);
-  if (!confirmation) return;
-
-  selectedConfirmation.value = confirmation;
-  isConfirmationModalOpen.value = true;
-  isProcessingConfirmation.value = true;
-
-  try {
-    await api.put(`/dang-ky-ca/${id}`, { trang_thai: "confirmed" });
-    showSuccessToast("Thành công", "Đã xác nhận yêu cầu");
-    isConfirmationModalOpen.value = false;
-    await fetchConfirmations();
-  } catch (e) {
-    showErrorToast("Lỗi", "Không thể xác nhận yêu cầu");
-  } finally {
-    isProcessingConfirmation.value = false;
-  }
-};
-
-const rejectConfirmation = async (id) => {
-  const confirmation = confirmations.value.find((c) => c.id === id);
-  if (!confirmation) return;
-
-  selectedConfirmation.value = confirmation;
-  isConfirmationModalOpen.value = true;
-  isProcessingConfirmation.value = true;
-
-  try {
-    await api.put(`/dang-ky-ca/${id}`, { trang_thai: "rejected" });
-    showSuccessToast("Thành công", "Đã từ chối yêu cầu");
-    isConfirmationModalOpen.value = false;
-    await fetchConfirmations();
-  } catch (e) {
-    showErrorToast("Lỗi", "Không thể từ chối yêu cầu");
-  } finally {
-    isProcessingConfirmation.value = false;
   }
 };
 
@@ -1085,67 +1125,32 @@ const handleApproveFromModal = async () => {
   isProcessingConfirmation.value = true;
 
   try {
-    await api.put(`/dang-ky-ca/${selectedConfirmation.value.id}`, {
-      trang_thai: "confirmed",
-    });
-    showSuccessToast("Thành công", "Đã xác nhận yêu cầu");
+    await api.patch(`/admin/lich-nghi/${selectedConfirmation.value.id}/duyet`);
+    showSuccessToast("Thành công", "Đã duyệt đơn xin nghỉ");
     isConfirmationModalOpen.value = false;
     await fetchConfirmations();
   } catch (e) {
-    showErrorToast("Lỗi", "Không thể xác nhận yêu cầu");
+    showErrorToast("Lỗi", e.response?.data?.message || "Không thể duyệt yêu cầu");
   } finally {
     isProcessingConfirmation.value = false;
   }
 };
 
-const handleRejectFromModal = async () => {
+const handleRejectFromModal = async (reason) => {
   if (!selectedConfirmation.value) return;
   isProcessingConfirmation.value = true;
 
   try {
-    await api.put(`/dang-ky-ca/${selectedConfirmation.value.id}`, {
-      trang_thai: "rejected",
+    await api.patch(`/admin/lich-nghi/${selectedConfirmation.value.id}/tu-choi`, {
+      ly_do: reason
     });
-    showSuccessToast("Thành công", "Đã từ chối yêu cầu");
+    showSuccessToast("Thành công", "Đã từ chối đơn xin nghỉ");
     isConfirmationModalOpen.value = false;
     await fetchConfirmations();
   } catch (e) {
-    showErrorToast("Lỗi", "Không thể từ chối yêu cầu");
+    showErrorToast("Lỗi", e.response?.data?.message || "Không thể từ chối yêu cầu");
   } finally {
     isProcessingConfirmation.value = false;
-  }
-};
-
-const updateStatusForConfirmation = async (confirmationId, newStatus) => {
-  updatingStatusId.value = confirmationId;
-  try {
-    const response = await api.put(
-      `/lich-dang-ky/${confirmationId}/doi-trang-thai`,
-      {
-        trang_thai: newStatus,
-      }
-    );
-
-    if (response.data.success) {
-      showSuccessToast("Thành công", `Đổi trạng thái thành công`);
-      editingStatusId.value = null;
-      // Refresh both confirmations list and schedule to show updated shifts
-      await fetchConfirmations();
-      await fetchShiftsForWeek();
-    } else {
-      showErrorToast(
-        "Lỗi",
-        response.data.message || "Không thể cập nhật trạng thái"
-      );
-    }
-  } catch (error) {
-    console.error("Error updating status:", error);
-    showErrorToast(
-      "Lỗi",
-      error.response?.data?.message || "Không thể cập nhật trạng thái"
-    );
-  } finally {
-    updatingStatusId.value = null;
   }
 };
 

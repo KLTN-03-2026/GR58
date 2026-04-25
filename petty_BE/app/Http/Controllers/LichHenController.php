@@ -4,68 +4,180 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreLichHenRequest;
 use App\Models\LichHen;
+use App\Models\LichLamViec;
 use App\Models\ThuCung;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class LichHenController extends Controller
 {
-
     /**
-     * Transform a single LichHen model to an array replacing khach_hang_id with khach_hang (full name).
+     * Trả về danh sách slot còn trống trong ngày (8:00–16:00, bỏ 12:00 nghỉ trưa).
+     * Capacity = số bác sĩ có LichLamViec cover giờ đó.
+     * ca_sang: 8:00–16:59 | ca_chieu: 13:00–16:59
      */
+    public function availableSlots(Request $request): JsonResponse
+    {
+        $request->validate(['date' => ['required', 'date']]);
+
+        $date = Carbon::parse($request->date)->startOfDay();
+
+        if ($date->lt(Carbon::today())) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Không thể xem slot của ngày đã qua',
+            ], 422);
+        }
+
+        $dateStr   = $date->toDateString();
+        $allShifts = LichLamViec::where('ngay_lam', $dateStr)
+            ->whereHas('nhanVien', fn ($q) => $q->where('vai_tro', 'bac_si'))
+            ->get();
+
+        if ($allShifts->isEmpty()) {
+            return response()->json([
+                'status'  => true,
+                'message' => 'Phòng khám không có lịch làm việc cho ngày này',
+                'slots'   => [],
+            ]);
+        }
+
+        $slots = [];
+        for ($hour = 8; $hour <= 16; $hour++) {
+            // Bỏ giờ 12:00 — giờ nghỉ trưa của phòng khám
+            if ($hour === 12) {
+                continue;
+            }
+
+            $slotTime = Carbon::parse($dateStr . ' ' . sprintf('%02d:00:00', $hour));
+
+            // ca_sang: 08:00–16:59 (slot cuối 16:00, bệnh nhân ra 17:00)
+            // ca_chieu: 13:00–16:59
+            $capacity = $allShifts->filter(function ($shift) use ($hour) {
+                if ($shift->thoi_gian_truc === LichLamViec::CA_SANG) {
+                    return $hour >= 8 && $hour <= 16;
+                }
+                if ($shift->thoi_gian_truc === LichLamViec::CA_CHIEU) {
+                    return $hour >= 13 && $hour <= 16;
+                }
+                return false;
+            })->count();
+
+            if ($capacity === 0) {
+                continue;
+            }
+
+            $booked = LichHen::whereIn('trang_thai', ['confirmed', 'in-progress'])
+                ->where('ngay_gio', '>=', $slotTime->copy()->subMinutes(59)->format('Y-m-d H:i:s'))
+                ->where('ngay_gio', '<',  $slotTime->copy()->addMinutes(60)->format('Y-m-d H:i:s'))
+                ->whereDate('ngay_gio', $dateStr)
+                ->count();
+
+            $slots[] = [
+                'time'               => sprintf('%02d:00', $hour),
+                'capacity_total'     => $capacity,
+                'capacity_remaining' => max(0, $capacity - $booked),
+                'available'          => $booked < $capacity,
+            ];
+        }
+
+        return response()->json([
+            'status' => true,
+            'date'   => $dateStr,
+            'slots'  => $slots,
+        ]);
+    }
 
     /**
      * Store a newly created appointment in storage.
+     * KhachHang booking → auto-confirmed + slot check inside transaction.
      */
     public function store(StoreLichHenRequest $request): JsonResponse
     {
         $data = $request->validated();
 
-        // normalize ngay_gio to proper datetime string if present
         if (!empty($data['ngay_gio'])) {
             $data['ngay_gio'] = Carbon::parse($data['ngay_gio'])->format('Y-m-d H:i:s');
         }
 
-        // assign the authenticated customer id as khach_hang_id if available
         $user = $request->user();
-        if ($user) {
-            // Nếu là khách hàng đặt lịch
-            if ($user instanceof \App\Models\KhachHang) {
-                $data['khach_hang_id'] = $user->id;
-                $data['nguon_goc'] = 'online'; // Explicitly mark as online booking
 
-                // owner-check: ensure the pet belongs to the authenticated customer
-                $owns = ThuCung::where('id', $data['thu_cung_id'])
-                    ->where('khach_hang_id', $user->id)
-                    ->exists();
+        if ($user instanceof \App\Models\KhachHang) {
+            $data['khach_hang_id'] = $user->id;
+            $data['nguon_goc']     = 'online';
 
-                if (! $owns) {
+            $owns = ThuCung::where('id', $data['thu_cung_id'])
+                ->where('khach_hang_id', $user->id)
+                ->exists();
+
+            if (! $owns) {
+                throw ValidationException::withMessages([
+                    'thu_cung_id' => [\Illuminate\Support\Facades\Lang::get('messages.pet_not_owner')],
+                ]);
+            }
+
+            // Auto-confirm với slot check + lock để tránh race condition
+            $lichHen = DB::transaction(function () use ($data) {
+                $ngayGio  = Carbon::parse($data['ngay_gio']);
+                $dateStr  = $ngayGio->toDateString();
+                $hour     = (int) $ngayGio->format('H');
+
+                $shifts = LichLamViec::where('ngay_lam', $dateStr)
+                    ->whereHas('nhanVien', fn ($q) => $q->where('vai_tro', 'bac_si'))
+                    ->get();
+
+                $capacity = $shifts->filter(function ($shift) use ($hour) {
+                    if ($shift->thoi_gian_truc === LichLamViec::CA_SANG) {
+                        return $hour >= 8 && $hour <= 15;
+                    }
+                    if ($shift->thoi_gian_truc === LichLamViec::CA_CHIEU) {
+                        return $hour >= 13 && $hour <= 16;
+                    }
+                    return false;
+                })->count();
+
+                if ($capacity === 0) {
                     throw ValidationException::withMessages([
-                        'thu_cung_id' => [\Illuminate\Support\Facades\Lang::get('messages.pet_not_owner')],
+                        'ngay_gio' => ['Phòng khám không có lịch làm việc cho ngày này, vui lòng chọn ngày khác'],
                     ]);
                 }
-            }
-            // Nếu là Admin/NhanVien tạo lịch hẹn (khach_hang_id phải có trong request)
-            elseif ($user instanceof \App\Models\Admin || $user instanceof \App\Models\NhanVien) {
-                $data['nguon_goc'] = $data['nguon_goc'] ?? 'walk-in'; // Default to walk-in if not provided
-                if (empty($data['khach_hang_id'])) {
+
+                $booked = LichHen::whereIn('trang_thai', ['confirmed', 'in-progress'])
+                    ->where('ngay_gio', '>=', $ngayGio->copy()->subMinutes(59)->format('Y-m-d H:i:s'))
+                    ->where('ngay_gio', '<',  $ngayGio->copy()->addMinutes(60)->format('Y-m-d H:i:s'))
+                    ->whereDate('ngay_gio', $dateStr)
+                    ->lockForUpdate()
+                    ->count();
+
+                if ($booked >= $capacity) {
                     throw ValidationException::withMessages([
-                        'khach_hang_id' => ['Vui lòng chọn khách hàng'],
+                        'ngay_gio' => ['Khung giờ này đã đầy, vui lòng chọn giờ khác'],
                     ]);
                 }
+
+                $data['trang_thai'] = 'confirmed';
+                return LichHen::create($data);
+            });
+        } elseif ($user instanceof \App\Models\Admin || $user instanceof \App\Models\NhanVien) {
+            $data['nguon_goc'] = $data['nguon_goc'] ?? 'walk-in';
+            if (empty($data['khach_hang_id'])) {
+                throw ValidationException::withMessages([
+                    'khach_hang_id' => ['Vui lòng chọn khách hàng'],
+                ]);
             }
+            $lichHen = LichHen::create($data);
+        } else {
+            $lichHen = LichHen::create($data);
         }
-
-        $lichHen = LichHen::create($data);
 
         $payload = new \App\Http\Resources\LichHenResource($lichHen->fresh()->load(['thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'khachHang']));
 
         return response()->json([
             'status' => true,
-            'data' => $payload,
+            'data'   => $payload,
         ], 201);
     }
 

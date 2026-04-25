@@ -130,6 +130,11 @@ const routes = [
           import("../views/admin/personnel/schedule-management/index.vue"),
       },
       {
+        path: "leave-management",
+        component: () =>
+          import("../views/admin/personnel/schedule-management/LeaveManagement.vue"),
+      },
+      {
         path: "invoice-list",
         component: () =>
           import("../views/admin/finance-invoice/invoice-list/index.vue"),
@@ -240,6 +245,10 @@ const routes = [
         path: "schedule",
         component: () => import("../views/doctor/schedule/index.vue"),
       },
+      {
+        path: "schedule/my-schedule",
+        component: () => import("../views/doctor/schedule/MySchedule.vue"),
+      },
     ],
   },
 
@@ -268,6 +277,10 @@ const routes = [
       {
         path: "schedule",
         component: () => import("../views/nurse/schedule/index.vue"),
+      },
+      {
+        path: "schedule/my-schedule",
+        component: () => import("../views/nurse/schedule/MySchedule.vue"),
       },
       {
         path: "inventory",
