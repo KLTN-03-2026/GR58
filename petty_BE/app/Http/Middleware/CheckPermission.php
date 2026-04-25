@@ -13,7 +13,7 @@ class CheckPermission
      * Handle an incoming request.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @param  string  $permission  Tên quyền cần kiểm tra (vd: 'lich_hen_xem')
+     * @param  string  $permission  Permission name to check (e.g., 'lich_hen.xem')
      */
     public function handle(Request $request, Closure $next, string $permission): Response
     {
@@ -27,40 +27,24 @@ class CheckPermission
             ], 401);
         }
 
-        // Nếu là Khách hàng (User/KhachHang), bỏ qua kiểm tra quyền (cho phép truy cập)
+        // Nếu là Khách hàng, bỏ qua kiểm tra quyền (hoặc có thể kiểm tra quyền riêng)
         if ($user instanceof \App\Models\KhachHang || $user instanceof \App\Models\User) {
             return $next($request);
         }
 
-        // AUTO-FIX: Tự động gán quyền nếu chưa có
-        if (($user instanceof \App\Models\Admin || $user instanceof \App\Models\NhanVien) && empty($user->phan_quyen_id)) {
-            \Log::warning("User #{$user->id} chưa có phan_quyen_id, tự động gán...");
-
-            if ($user instanceof \App\Models\Admin) {
-                $user->update(['phan_quyen_id' => 1]); // Admin mặc định
-                $user->refresh();
-            } elseif ($user instanceof \App\Models\NhanVien) {
-                $roleMap = [
-                    'Bác sĩ' => 2,
-                    'Điều dưỡng' => 3,
-                    'Lễ tân' => 4,
-                ];
-                $user->update(['phan_quyen_id' => $roleMap[$user->vai_tro] ?? 2]);
-                $user->refresh();
-            }
-        }
-
-        // Kiểm tra xem user có phương thức hasPermission không (cho Admin và NhanVien)
+        // Kiểm tra xem user có phương thức hasPermission không
         if (!method_exists($user, 'hasPermission')) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không thể xác định quyền của người dùng'
-            ], 403);
+                'message' => 'User model does not support permission checking.'
+            ], 500);
         }
 
-        // Kiểm tra quyền cho Admin và NhanVien
+        // Kiểm tra quyền
         try {
             if (!$user->hasPermission($permission)) {
+                Log::warning("User #{$user->id} attempted to access without permission: {$permission}");
+                
                 return response()->json([
                     'success' => false,
                     'message' => 'Bạn không có quyền thực hiện chức năng này',
@@ -68,8 +52,7 @@ class CheckPermission
                 ], 403);
             }
         } catch (\Exception $e) {
-            // Nếu có lỗi khi check permission (ví dụ: phanQuyen null)
-            \Log::error("Lỗi kiểm tra quyền: " . $e->getMessage());
+            Log::error("Permission check error: " . $e->getMessage());
 
             return response()->json([
                 'success' => false,
