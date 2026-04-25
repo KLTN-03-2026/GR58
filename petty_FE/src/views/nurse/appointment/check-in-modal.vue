@@ -55,7 +55,7 @@
             <div class="flex-1">
               <p class="font-nunito text-sm text-gray-600">Khách hàng</p>
               <p class="font-nunito font-semibold text-base text-gray-900">
-                {{ appointment?.khach_hang || "N/A" }}
+              {{ appointment?.khach_hang?.full_name || appointment?.khach_hang || "N/A" }}
               </p>
             </div>
           </div>
@@ -276,12 +276,23 @@ const selectedDoctor = ref("");
 
 const fetchDoctors = async () => {
   try {
-    const res = await api.get('/nhan-vien?vai_tro=bac_si');
+    const res = await api.get('/nhan-vien/danh-sach-bac-si');
     if (res.data && res.data.status) {
-      doctors.value = res.data.data;
+      doctors.value = Array.isArray(res.data.data)
+        ? res.data.data
+        : (res.data.data?.data || []);
     }
   } catch (error) {
-    console.error("Failed to fetch doctors:", error);
+    // Thử endpoint dự phòng
+    try {
+      const res2 = await api.get('/nhan-vien', { params: { vai_tro: 'bac_si', per_page: 100 } });
+      if (res2.data?.data) {
+        const raw = res2.data.data;
+        doctors.value = Array.isArray(raw) ? raw : (raw?.data || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch doctors:", e);
+    }
   }
 };
 

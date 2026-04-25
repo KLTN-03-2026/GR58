@@ -249,6 +249,12 @@ const routes = [
         path: "schedule/my-schedule",
         component: () => import("../views/doctor/schedule/MySchedule.vue"),
       },
+      {
+        path: "lich-kham/phieu-kham/:id",
+        component: () =>
+          import("../views/doctor/appointment/examination-form/index.vue"),
+        props: true,
+      },
     ],
   },
 
@@ -318,6 +324,7 @@ const routes = [
         path: "kho-thuoc",
         component: () => import("../views/nurse/inventory/index.vue"),
       },
+    
     ],
   },
   {
