@@ -31,9 +31,10 @@ class LichHenResource extends JsonResource
             'thoi_gian_thanh_toan' => $this->thoi_gian_thanh_toan,
             'khach_hang' => $this->whenLoaded('khachHang', function () {
                 return [
-                    'id' => $this->khachHang->id,
-                    'full_name' => $this->khachHang->full_name ?? $this->khachHang->ho_ten ?? data_get($this->khachHang, 'ten'),
-                    'so_dien_thoai' => $this->khachHang->so_dien_thoai,
+                    'id'       => $this->khachHang->id,
+                    'full_name'=> $this->khachHang->full_name ?? $this->khachHang->ho_ten,
+                    'phone'    => $this->khachHang->phone ?? $this->khachHang->so_dien_thoai,
+                    'rank'     => $this->khachHang->rank,
                 ];
             }),
             'thu_cung' => $this->whenLoaded('thuCung', function () {
@@ -46,9 +47,11 @@ class LichHenResource extends JsonResource
             }),
             'dich_vu' => $this->whenLoaded('dichVu', function () {
                 return [
-                    'id' => $this->dichVu->id,
-                    'ten_dich_vu' => $this->dichVu->ten_dich_vu ?? $this->dichVu->ten,
-                    'ten' => $this->dichVu->ten,
+                    'id'         => $this->dichVu->id,
+                    'ten_dich_vu'=> $this->dichVu->ten_dich_vu ?? $this->dichVu->ten,
+                    'ten'        => $this->dichVu->ten,
+                    'gia_tien'   => (float) $this->dichVu->gia_tien,
+                    'mo_ta'      => $this->dichVu->mo_ta,
                 ];
             }),
             'nhan_vien' => $this->whenLoaded('nhanVien', function () {

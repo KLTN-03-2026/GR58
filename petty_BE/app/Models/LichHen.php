@@ -69,4 +69,10 @@ class LichHen extends Model
     {
         return $this->belongsTo(NhanVien::class, 'y_ta_checkin_id');
     }
+    public function dichVus()
+    {
+    return $this->belongsToMany(DichVu::class, 'lich_hen_dich_vu', 'lich_hen_id', 'dich_vu_id')
+                ->withPivot(['so_luong', 'don_gia', 'thanh_tien'])
+                ->withTimestamps();
+    }
 }

@@ -31,6 +31,7 @@ use App\Http\Controllers\HoSoBenhAnController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\LichNghiController;
+use App\Http\Controllers\ThanhToanController;
 
 Route::post('/khach-hang/dang-ki', [KhachHangController::class, 'dangKi']);
 Route::post('/khach-hang/dang-nhap', [KhachHangController::class, 'dangNhap']);
@@ -359,5 +360,20 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 // Trong Route::middleware('auth:sanctum')->group(function () { ... })
 Route::get('/statistics/dashboard', [\App\Http\Controllers\Api\StatisticController::class, 'getDashboardData'])
+    ->middleware(['auth:sanctum', 'staff.only']);
+
+Route::post('/thanh-toan/preview', [ThanhToanController::class, 'preview'])
     ->middleware('staff.only');
 
+Route::post('/thanh-toan', [ThanhToanController::class, 'store'])
+    ->middleware('staff.only');
+
+Route::get('/thanh-toan/{id}', [ThanhToanController::class, 'show'])
+    ->middleware('staff.only');
+
+// ── Thêm dịch vụ vào lịch hẹn (nhiều dịch vụ) ──
+Route::post('/lich-hen/{id}/them-dich-vu', [LichHenController::class, 'themDichVu'])
+    ->middleware('staff.only');
+
+Route::delete('/lich-hen/{id}/xoa-dich-vu/{dich_vu_id}', [LichHenController::class, 'xoaDichVu'])
+    ->middleware('staff.only');
