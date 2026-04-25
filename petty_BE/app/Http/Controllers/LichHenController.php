@@ -179,6 +179,11 @@ class LichHenController extends Controller
             $query->where('nhan_vien_id', $request->get('nhan_vien_id'));
         }
 
+        // Filter lịch hẹn chưa thanh toán (thanh_toan_id is null)
+        if ($request->boolean('chua_thanh_toan')) {
+            $query->whereNull('thanh_toan_id');
+        }
+
         // Filter by time range: from_date and to_date (accepts date or datetime)
         try {
             $from = $request->filled('from_date') ? Carbon::parse($request->get('from_date')) : null;

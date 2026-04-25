@@ -136,67 +136,65 @@ class StatisticController extends Controller
     }
  
     // Helper dùng chung để tính doanh thu
-    private function calcRevenue($from, $to): float
-    {
-        return (float) DB::table('lich_hens')
-            ->join('dich_vus', 'lich_hens.dich_vu_id', '=', 'dich_vus.id')
-            ->where('lich_hens.trang_thai', 'completed')
-            ->whereBetween('lich_hens.ngay_gio', [$from, $to])
-            ->sum('dich_vus.gia_tien');
-    }
+    // ── TRƯỚC (tính từ lich_hens) ──
+private function calcRevenue($from, $to): float
+{
+    return (float) DB::table('thanh_toans')
+        ->where('trang_thai', 'da_thanh_toan')
+        ->whereBetween('ngay_thanh_toan', [$from, $to])
+        ->sum('tong_tien_sau_giam');
+}
+ 
+// ── SAU (tính từ thanh_toans — chính xác hơn, có khuyến mãi) ──
+ 
+ 
  
     // ----------------------------------------------------------------
     // 2. BIỂU ĐỒ DOANH THU THEO NGÀY / THÁNG
     // ----------------------------------------------------------------
     private function getRevenueChart($from, $to, int $days): array
-    {
-        // <= 60 ngày → group by ngày; > 60 ngày → group by tháng
-        $byDay = $days <= 60;
+{
+    $byDay = $days <= 60;
  
-        $rows = DB::table('lich_hens')
-            ->join('dich_vus', 'lich_hens.dich_vu_id', '=', 'dich_vus.id')
-            ->where('lich_hens.trang_thai', 'completed')
-            ->whereBetween('lich_hens.ngay_gio', [$from, $to])
-            ->select(
-                DB::raw($byDay
-                    ? "DATE(lich_hens.ngay_gio) as label"
-                    : "DATE_FORMAT(lich_hens.ngay_gio, '%Y-%m') as label"),
-                DB::raw('SUM(dich_vus.gia_tien) as total')
-            )
-            ->groupBy('label')
-            ->orderBy('label')
-            ->get()
-            ->keyBy('label');
+    $rows = DB::table('thanh_toans')
+        ->where('trang_thai', 'da_thanh_toan')
+        ->whereBetween('ngay_thanh_toan', [$from, $to])
+        ->select(
+            DB::raw($byDay
+                ? "DATE(ngay_thanh_toan) as label"
+                : "DATE_FORMAT(ngay_thanh_toan, '%Y-%m') as label"),
+            DB::raw('SUM(tong_tien_sau_giam) as total')
+        )
+        ->groupBy('label')
+        ->orderBy('label')
+        ->get()
+        ->keyBy('label');
  
-        $result = [];
- 
-        if ($byDay) {
-            $cursor = $from->copy()->startOfDay();
-            while ($cursor->lte($to)) {
-                $key      = $cursor->toDateString();
-                $result[] = [
-                    'label' => $key,
-                    'value' => isset($rows[$key]) ? (float) $rows[$key]->total : 0,
-                ];
-                $cursor->addDay();
-            }
-        } else {
-            $cursor = $from->copy()->startOfMonth();
-            while ($cursor->lte($to)) {
-                $key      = $cursor->format('Y-m');
-                $result[] = [
-                    'label' => $cursor->format('m/Y'),
-                    'value' => isset($rows[$key]) ? (float) $rows[$key]->total : 0,
-                ];
-                $cursor->addMonth();
-            }
+    $result = [];
+    if ($byDay) {
+        $cursor = $from->copy()->startOfDay();
+        while ($cursor->lte($to)) {
+            $key      = $cursor->toDateString();
+            $result[] = [
+                'label' => $key,
+                'value' => isset($rows[$key]) ? (float) $rows[$key]->total : 0,
+            ];
+            $cursor->addDay();
         }
- 
-        return [
-            'data'     => $result,
-            'group_by' => $byDay ? 'day' : 'month',
-        ];
+    } else {
+        $cursor = $from->copy()->startOfMonth();
+        while ($cursor->lte($to)) {
+            $key      = $cursor->format('Y-m');
+            $result[] = [
+                'label' => $cursor->format('m/Y'),
+                'value' => isset($rows[$key]) ? (float) $rows[$key]->total : 0,
+            ];
+            $cursor->addMonth();
+        }
     }
+ 
+    return ['data' => $result, 'group_by' => $byDay ? 'day' : 'month'];
+}
  
     // ----------------------------------------------------------------
     // 3. TRẠNG THÁI LỊCH HẸN (Donut chart)
