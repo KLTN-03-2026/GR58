@@ -317,10 +317,13 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import CheckInModal from "../appointment/check-in-modal.vue";
 import CreateAppointmentModal from "../appointment/create-appointment/index.vue";
 import CreateCustomerModal from "../customer/create-customer/index.vue";
 import { getAllAppointments } from "../../../services/lichHenService";
+
+const router = useRouter();
 
 // Icons from Figma
 const iconCalendarPlus =
@@ -380,18 +383,15 @@ const appointments = ref([]);
 const loadDashboardData = async () => {
   loading.value = true;
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const res = await getAllAppointments({ 
-  per_page: 100, 
-  from_date: today + ' 00:00:00', 
-  to_date: today + ' 23:59:59' 
-});
+    const today = new Date(Date.now() + 7 * 60 * 60 * 1000)
+  .toISOString().split('T')[0];
 
-    // Backend trả pagination object khi có per_page
-    // res.data = { data: [...], current_page: 1, total: N }
-    const data = Array.isArray(res.data) 
-      ? res.data 
-      : (res.data?.data || []);
+const res = await getAllAppointments({
+  per_page: 100,
+  from_date: today + ' 00:00:00',  // ← thêm giờ
+  to_date: today + ' 23:59:59'     // ← thêm giờ
+});
+      const data = res.data || [];
     
     let upcoming = 0;
     let waiting = 0;
@@ -407,12 +407,14 @@ const loadDashboardData = async () => {
         status: statusGroup,
         petName: item.thu_cung?.ten_thu_cung || 'N/A',
         petType: item.thu_cung?.giong || 'N/A',
-        petImage: petImage, 
+        petImage: petImage,
         ownerName: item.khach_hang?.full_name || 'N/A',
+        phone: item.khach_hang?.phone || item.khach_hang?.so_dien_thoai || null,
         appointmentTime: item.ngay_gio ? new Date(item.ngay_gio).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}) : '--:--',
+        ngay_gio: item.ngay_gio,
         checkedIn: !!item.thoi_gian_checkin,
         checkInTime: item.thoi_gian_checkin ? new Date(item.thoi_gian_checkin).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}) : null,
-        service: item.dich_vu?.ten_dich_vu || 'N/A',
+        service: item.dich_vu?.ten_dich_vu || item.dich_vu?.ten || 'N/A',
         doctor: item.nhan_vien?.full_name || 'N/A',
         room: item.nhan_vien?.phong_kham || null,
         delay: null,
@@ -464,14 +466,19 @@ const handleCreateCustomerSubmit = (data) => {
 };
 
 const checkIn = (appointment) => {
-  // Map appointment data to patientInfo structure
+  // Truyền đúng id và data thực để modal gọi API
   selectedAppointment.value = {
-    ...appointment,
-    phone: "0901234567", // Mock phone
-    species: appointment.petType.split(" ")[0], // Simple split for mock
-    breed: appointment.petType.split(" ").slice(1).join(" "),
-    birthDate: "01/01/2022", // Mock date
-    room: "P.101", // Assign a default room for check-in
+    id: appointment.id,
+    petName: appointment.petName,
+    petType: appointment.petType,
+    petImage: appointment.petImage,
+    ownerName: appointment.ownerName,
+    phone: appointment.phone || null,
+    service: appointment.service,
+    doctor: appointment.doctor,
+    room: appointment.room || null,
+    appointmentTime: appointment.appointmentTime,
+    ngay_gio: appointment.ngay_gio,
   };
   isCheckInModalOpen.value = true;
 };
@@ -496,8 +503,10 @@ const handleCheckInConfirm = (patientInfo) => {
 };
 
 const collectPayment = (appointment) => {
-  console.log("Collect payment:", appointment.petName);
-  // TODO: Implement payment collection logic
+  router.push({
+    path: '/nurse/invoices',
+    query: { lich_hen_id: appointment.id }
+  });
 };
 </script>
 

@@ -848,7 +848,11 @@ const loadPaymentData = async () => {
     if (response && response.data && response.data.length > 0) {
       // Map backend data to frontend format
       payments.value = response.data.map(lichHen => {
-        const tongTien = parseFloat(lichHen.tong_tien) || 0;
+        // Ưu tiên lấy tiền từ thanh_toan nếu có
+        const thanhToan = lichHen.thanh_toan;
+        const tongTien = thanhToan
+          ? parseFloat(thanhToan.tong_tien_sau_giam) || 0
+          : parseFloat(lichHen.tong_tien) || parseFloat(lichHen.dich_vu?.gia_tien) || 0;
         const ngayGio = lichHen.ngay_gio;
 
         return {

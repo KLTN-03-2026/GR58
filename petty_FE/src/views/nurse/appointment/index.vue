@@ -1298,6 +1298,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
 import CheckInModal from "./check-in-modal.vue";
 import CreateAppointmentModal from "./create-appointment/index.vue";
 import {
@@ -1306,6 +1307,8 @@ import {
   getAllAppointments,
 } from "@/services/lichHenService";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
+
+const router = useRouter();
 
 // Icons for Appointments
 const iconSearch =
@@ -1921,8 +1924,11 @@ const handleCheckInConfirm = (patientInfo) => {
 };
 
 const collectPayment = (appointment) => {
-  console.log("Collect payment:", appointment.petName);
-  // TODO: Implement payment collection logic
+  // Điều hướng sang trang hóa đơn với lich_hen_id
+  router.push({
+    path: '/nurse/invoices',
+    query: { lich_hen_id: appointment.id }
+  });
 };
 
 // Reminder Methods

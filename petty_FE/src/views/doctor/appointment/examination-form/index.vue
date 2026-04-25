@@ -411,6 +411,7 @@
           <!-- Complete & Transfer Button -->
           <button
             class="bg-[#5a9690] text-white rounded-lg px-8 py-3 text-sm font-medium text-center tracking-[-0.1504px] hover:bg-[#4a857f] transition-colors"
+            @click="hoanTatVaChuyenThuNgan"
           >
             Hoàn tất & Chuyển thu ngân
           </button>
@@ -799,6 +800,51 @@ const handleFollowUpSave = (data) => {
   isFollowUpModalOpen.value = false;
   showSuccessToast("Đã lưu lịch hẹn tái khám");
 };
+const hoanTatVaChuyenThuNgan = async () => {
+  if (!diagnosis.value.trim()) {
+    showErrorToast('Vui lòng nhập chẩn đoán trước khi hoàn tất')
+    return
+  }
+
+  saving.value = true
+  try {
+    // Bước 1: Lưu phiếu khám
+    const phieuKhamData = {
+      lich_hen_id: appointmentId.value,
+      nhiet_do: vitalSigns.value.temperature ? parseFloat(vitalSigns.value.temperature) : null,
+      can_nang: vitalSigns.value.weight ? parseFloat(vitalSigns.value.weight) : null,
+      nhip_tim: vitalSigns.value.heartRate ? parseInt(vitalSigns.value.heartRate) : null,
+      nhip_tho: vitalSigns.value.respiratoryRate ? parseInt(vitalSigns.value.respiratoryRate) : null,
+      ly_do_den_kham: reasonForVisit.value || null,
+      trieu_chung: symptoms.value || null,
+      chan_doan: diagnosis.value,
+      ghi_chu: notes.value || null,
+      loai_chi_dinh: selectedPrescriptionType.value,
+    }
+    await api.post('/phieu-kham', phieuKhamData)
+
+    // Bước 2: Đổi trạng thái lịch hẹn sang completed
+    await api.post(`/lich-hen/${appointmentId.value}/hoan-thanh-kham`, {
+      ghi_chu: notes.value || null,
+    })
+
+    showSuccessToast('Hoàn tất khám! Đang chuyển sang thu ngân...')
+
+    // Bước 3: Chuyển sang trang thu ngân sau 1 giây
+    setTimeout(() => {
+      router.push({
+        path: '/nurse/invoices',
+        query: { lich_hen_id: appointmentId.value }
+      })
+    }, 1000)
+
+  } catch (error) {
+    console.error('Lỗi hoàn tất khám:', error)
+    showErrorToast(error.response?.data?.message || 'Lỗi khi hoàn tất khám bệnh')
+  } finally {
+    saving.value = false
+  }
+}
 
 // Load data on mount
 onMounted(() => {
