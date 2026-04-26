@@ -36,6 +36,9 @@ class DatabaseSeeder extends Seeder
             KiemKeSeeder::class,
             AssignDefaultRolesSeeder::class, // Chạy cuối cùng để gán quyền
             PhieuKhamSeeder::class,
+            KhuyenMaiSeeder::class, // Chạy trước ThanhToanSeeder
+            LichHenSeeder::class, // Chạy trước ThanhToanSeeder
+            ThanhToanSeeder::class, // Tạo thanh toán từ lịch hẹn
         ]);
     }
 }
