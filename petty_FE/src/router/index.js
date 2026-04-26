@@ -24,6 +24,18 @@ const routes = [
     meta: { layout: "main" },
   },
 
+  /********************** Forum ************************* */
+  {
+    path: "/forum",
+    component: () => import("../views/forum/index.vue"),
+    meta: { layout: "main" },
+  },
+  {
+    path: "/forum/:id",
+    component: () => import("../views/forum/detail.vue"),
+    meta: { layout: "main" },
+  },
+
   /********************** Customer ************************* */
   {
     path: "/customer/register",
