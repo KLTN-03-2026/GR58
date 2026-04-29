@@ -60,7 +60,7 @@
 
       <!-- Diễn Đàn -->
       <router-link
-        to="/dien-dan"
+        to="/forum"
         class="flex items-center gap-0 px-2.5 py-1.5 font-['Nunito_Sans'] font-bold text-base leading-5 text-gray-500 rounded-md transition-all duration-200 hover:text-black whitespace-nowrap"
         active-class="!text-[#222831] !font-black"
       >
@@ -379,7 +379,7 @@
           Liên Hệ
         </router-link>
         <router-link
-          to="/dien-dan"
+          to="/forum"
           class="px-4 py-3 font-['Nunito_Sans'] font-bold text-base text-gray-700 rounded-md transition-colors hover:bg-[#d4d4d8]"
           @click="mobileMenuOpen = false"
         >
