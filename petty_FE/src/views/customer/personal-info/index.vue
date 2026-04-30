@@ -427,13 +427,15 @@ const emailRef = ref(null);
 const addressRef = ref(null);
 const fileInputRef = ref(null);
 const avatarFile = ref(null);
-const avatarPreview = ref(user.value?.anh_dai_dien_url || user.value?.anh_dai_dien || null);
+const avatarPreview = ref(
+  user.value?.anh_dai_dien_url || user.value?.anh_dai_dien || null
+);
 const avatarLocalUrl = ref(null); // object URL created for preview
 const avatarUploading = ref(false);
 
 function handleImageError(e) {
-  // Nếu ảnh lỗi, fallback sang avatar.png
-  e.target.src = '/avatar.png';
+  e.target.src = "/avatar.png";
+  avatarPreview.value = "/avatar.png";
 }
 
 function focusFirstError(errs) {
@@ -480,7 +482,10 @@ function handleFileChange(e) {
   const file = input?.files?.[0] || null;
   if (!file) return;
   if (!file.type.startsWith("image/")) {
-    showErrorToast("Định dạng không hợp lệ", "Vui lòng chọn tệp ảnh (jpg, png, ...)");
+    showErrorToast(
+      "Định dạng không hợp lệ",
+      "Vui lòng chọn tệp ảnh (jpg, png, ...)"
+    );
     return;
   }
   avatarFile.value = file;
@@ -525,26 +530,18 @@ async function uploadAvatar() {
     const updatedUser = res?.data?.user || res?.data?.data || res?.data;
     if (updatedUser) {
       user.value = updatedUser;
-      if (updatedUser.anh_dai_dien_url) {
-        avatarPreview.value = updatedUser.anh_dai_dien_url;
-      } else if (updatedUser.anh_dai_dien) {
-        avatarPreview.value = updatedUser.anh_dai_dien;
-      }
       try {
         const token = getToken();
         if (token) setAuth(token, updatedUser, true);
       } catch (e) {}
     }
 
-    window.dispatchEvent(new CustomEvent("user-updated", { detail: updatedUser }));
+    window.dispatchEvent(
+      new CustomEvent("user-updated", { detail: updatedUser })
+    );
     showSuccessToast("Cập nhật thành công", "Ảnh đại diện đã được cập nhật");
+    // Giữ blob URL làm preview — onBeforeUnmount sẽ cleanup khi rời trang
     avatarFile.value = null;
-    if (avatarLocalUrl.value) {
-      try {
-        URL.revokeObjectURL(avatarLocalUrl.value);
-      } catch (e) {}
-      avatarLocalUrl.value = null;
-    }
   } catch (e) {
     const msg = e?.response?.data?.message || e?.message || "Tải ảnh thất bại";
     if (e?.response?.status === 422) {
@@ -632,7 +629,10 @@ async function saveProfile() {
         showErrorToast("Lỗi", msg);
       }
     } else if (e?.response?.status === 401) {
-      showErrorToast("Phiên hết hạn", "Bạn chưa đăng nhập hoặc phiên đã hết hạn. Vui lòng đăng nhập lại.");
+      showErrorToast(
+        "Phiên hết hạn",
+        "Bạn chưa đăng nhập hoặc phiên đã hết hạn. Vui lòng đăng nhập lại."
+      );
       logout();
     } else {
       showErrorToast("Lỗi", msg);
