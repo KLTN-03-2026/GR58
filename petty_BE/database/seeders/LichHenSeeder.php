@@ -141,9 +141,9 @@ class LichHenSeeder extends Seeder
                     // Tạo thú cưng mới nếu khách hàng chưa có
                     $petForKh = ThuCung::create([
                         'ten_thu_cung' => 'Pet_' . $khId,
-                        'loai' => 'cho',
-                        'giong' => 'Mixed',
-                        'tuoi' => rand(1, 10),
+                        'loai_thu_cung' => 'cho',
+                        'giong_thu_cung' => 'Mixed',
+                        'tuoi_thu_cung' => Carbon::now()->subYears(rand(1, 10))->format('Y-m-d'),
                         'can_nang' => rand(5, 30),
                         'gioi_tinh' => rand(0, 1) ? 'duc' : 'cai',
                         'khach_hang_id' => $khId,

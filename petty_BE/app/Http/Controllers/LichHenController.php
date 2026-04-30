@@ -600,7 +600,7 @@ class LichHenController extends Controller
             }
 
             // Kiểm tra trạng thái lịch hẹn
-            if (!in_array($lichHen->trang_thai, ['pending', 'confirmed'])) {
+            if (!in_array($lichHen->trang_thai, ['pending', 'confirmed', 'cho_xac_nhan', 'da_xac_nhan'])) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Lịch hẹn không thể check-in. Trạng thái hiện tại: ' . $lichHen->trang_thai,
@@ -620,7 +620,7 @@ class LichHenController extends Controller
 
             // Thực hiện check-in
             $lichHen->thoi_gian_checkin = now();
-            $lichHen->trang_thai = 'in-progress'; // Chuyển sang trạng thái chờ bác sĩ khám
+            $lichHen->trang_thai = 'dang_kham'; // Chuyển sang trạng thái chờ bác sĩ khám
             $lichHen->y_ta_checkin_id = $user->id; // Lưu ID y tá thực hiện check-in
 
             // Gán bác sĩ nếu được chọn

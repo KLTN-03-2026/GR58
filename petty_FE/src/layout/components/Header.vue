@@ -190,11 +190,11 @@ const handleSearch = () => {
 
 const handleProfileClick = () => {
   if (route.path.startsWith("/doctor")) {
-    router.push("/doctor/trang-ca-nhan");
+    router.push("/doctor/profile");
   } else if (route.path.startsWith("/nurse")) {
-    router.push("/nurse/trang-ca-nhan");
+    router.push("/nurse/profile");
   } else {
-    router.push("/admin/trang-ca-nhan");
+    router.push("/admin/profile");
   }
 };
 
