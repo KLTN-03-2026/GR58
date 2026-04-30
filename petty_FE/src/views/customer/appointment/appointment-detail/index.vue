@@ -153,8 +153,8 @@
           </div>
         </section>
 
-        <!-- Ghi chú & Hướng dẫn -->
-        <section v-if="selectedAppt.note">
+        <!-- Hướng dẫn -->
+        <section v-if="selectedAppt.instruction">
           <div class="flex items-center gap-3 mb-3">
             <svg class="w-5 h-5" viewBox="0 0 20 20" fill="none">
               <circle cx="10" cy="10" r="8" stroke="#12a594" stroke-width="2" />
@@ -165,19 +165,11 @@
                 stroke-linecap="round"
               />
             </svg>
-            <h3 class="font-semibold">Ghi chú & Hướng dẫn</h3>
+            <h3 class="font-semibold">Hướng dẫn</h3>
           </div>
-          <div class="space-y-3">
-            <div class="bg-amber-50 border !border-yellow-200 rounded-xl p-4">
-              <p class="font-bold text-amber-800 text-sm">Lưu ý:</p>
-              <p class="font-medium text-amber-800">{{ selectedAppt.note }}</p>
-            </div>
-            <div class="bg-blue-50 border !border-blue-200 rounded-xl p-4">
-              <p class="font-bold text-blue-900 text-sm">Hướng dẫn:</p>
-              <p class="font-medium text-blue-900">
-                Vui lòng nhịn ăn 8 tiếng trước khi khám
-              </p>
-            </div>
+          <div class="bg-blue-50 border !border-blue-200 rounded-xl p-4">
+            <p class="font-bold text-blue-900 text-sm">Hướng dẫn:</p>
+            <p class="font-medium text-blue-900">{{ selectedAppt.instruction }}</p>
           </div>
         </section>
 
@@ -194,17 +186,15 @@
             </svg>
             <h3 class="font-semibold">Trạng thái</h3>
           </div>
-          <div>
-            <div
-              :class="[
-                'inline-block rounded-lg px-5 py-2',
-                statusClass(getRawStatus(selectedAppt)),
-              ]"
-            >
-              <span class="font-medium text-lg">{{
-                statusLabel(getRawStatus(selectedAppt))
-              }}</span>
-            </div>
+          <div
+            :class="[
+              'w-full rounded-lg px-5 py-2 text-center',
+              statusClass(getRawStatus(selectedAppt)),
+            ]"
+          >
+            <span class="font-medium text-lg">{{
+              statusLabel(getRawStatus(selectedAppt))
+            }}</span>
           </div>
         </section>
 

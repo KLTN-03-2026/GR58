@@ -1,92 +1,54 @@
 <template>
-  <!-- Make inner container transparent so variant background (success/error/etc.) from the toast wrapper is visible -->
-  <div
-    class="toast-container bg-transparent rounded-lg w-full max-w-[520px] shadow-lg overflow-visible pointer-events-auto"
-  >
-    <div class="flex gap-3 items-start p-4 relative">
-      <!-- Icon + Content -->
-      <div class="flex gap-3 items-start flex-1 min-w-0">
-        <!-- Icon -->
-        <div class="flex-shrink-0 w-6 h-6 mt-0.5 flex justify-center items-center">
-          <component :is="iconComponent" :size="24" :class="iconColorClass" />
-        </div>
-
-        <!-- Title + Description -->
-        <div class="flex flex-col gap-1 flex-1 min-w-0">
-          <p
-            class="text-sm md:text-base font-semibold leading-5 font-nunitoSans"
-            style="color: #ffffff"
-          >
-            {{ title }}
-          </p>
-          <p
-            class="text-sm font-normal leading-5 whitespace-pre-wrap font-nunitoSans"
-            v-html="message"
-            style="color: rgba(255, 255, 255, 0.95)"
-          ></p>
-        </div>
+  <div class="toast-card bg-white rounded-xl shadow-lg overflow-hidden w-full pointer-events-auto border !border-black/8">
+    <div class="flex items-start gap-3 px-4 pt-4 pb-3">
+      <!-- Icon -->
+      <div class="flex-shrink-0 mt-0.5">
+        <component :is="iconComponent" :size="20" :class="iconColorClass" />
       </div>
 
-      <!-- Close Button -->
+      <!-- Title + Description -->
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-bold text-gray-900 font-nunitoSans leading-5">{{ title }}</p>
+        <p
+          v-if="message"
+          class="text-sm font-medium text-gray-500 font-nunitoSans leading-5 mt-0.5 whitespace-pre-wrap"
+          v-html="message"
+        ></p>
+      </div>
+
+      <!-- Close -->
       <button
         @click.stop="$emit('close-toast')"
         aria-label="Close"
-        class="flex-shrink-0 p-1.5 -m-1.5 rounded-md hover:bg-white/10 transition"
-        style="color: rgba(255, 255, 255, 0.95)"
+        class="flex-shrink-0 p-1 -m-1 rounded-md hover:bg-gray-100 transition text-gray-400 hover:text-gray-600"
       >
-        <X :size="16" />
+        <X :size="15" />
       </button>
     </div>
-    <!-- Progress Bar -->
-    <div
-      class="toast-progress absolute bottom-0 left-0 h-1.5 w-full"
-      :style="{
-        animation: `progress-bar ${duration}ms linear forwards`,
-        background: 'rgba(255,255,255,0.18)',
-      }"
-    ></div>
+
+    <!-- Accent bar -->
+    <div class="relative h-1 w-full overflow-hidden" :class="barBgClass">
+      <div
+        class="absolute inset-y-0 left-0 h-full"
+        :class="barFillClass"
+        :style="{ animation: `progress-bar ${duration}ms linear forwards` }"
+      ></div>
+    </div>
   </div>
 </template>
-
-<style>
-@keyframes progress-bar {
-  from {
-    width: 100%;
-  }
-  to {
-    width: 0%;
-  }
-}
-
-.toast-container:hover .toast-progress {
-  animation-play-state: paused !important;
-}
-</style>
 
 <script setup>
 import { computed } from 'vue';
 import { CheckCircle2, XCircle, Info, AlertTriangle, X } from 'lucide-vue-next';
 
 const props = defineProps({
-  type: {
-    type: String,
-    default: "success",
-  },
-  title: {
-    type: String,
-    default: "",
-  },
-  message: {
-    type: String,
-    default: "",
-  },
-  duration: {
-    type: Number,
-    default: 4000,
-  },
+  type: { type: String, default: 'success' },
+  title: { type: String, default: '' },
+  message: { type: String, default: '' },
+  duration: { type: Number, default: 4000 },
 });
 
-defineEmits(["close-toast"]);
+defineEmits(['close-toast']);
 
 const iconComponent = computed(() => {
   switch (props.type) {
@@ -100,28 +62,57 @@ const iconComponent = computed(() => {
 
 const iconColorClass = computed(() => {
   switch (props.type) {
-    case 'success': return 'text-green-500';
+    case 'success': return 'text-teal-500';
     case 'error': return 'text-red-500';
     case 'info': return 'text-blue-500';
     case 'warning': return 'text-amber-500';
-    default: return 'text-white';
+    default: return 'text-gray-400';
+  }
+});
+
+const barBgClass = computed(() => {
+  switch (props.type) {
+    case 'success': return 'bg-teal-100';
+    case 'error': return 'bg-red-100';
+    case 'info': return 'bg-blue-100';
+    case 'warning': return 'bg-amber-100';
+    default: return 'bg-gray-100';
+  }
+});
+
+const barFillClass = computed(() => {
+  switch (props.type) {
+    case 'success': return 'bg-teal-500';
+    case 'error': return 'bg-red-500';
+    case 'info': return 'bg-blue-500';
+    case 'warning': return 'bg-amber-400';
+    default: return 'bg-gray-400';
   }
 });
 </script>
 
-<style scoped>
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&family=Nunito:wght@400&display=swap");
+<style>
+@keyframes progress-bar {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
 
-/* Ensure toast content appears above the progress bar and nothing covers the text */
-.toast-container {
-  position: relative;
-  overflow: visible;
+/* Strip toastification's own background/padding so our white card takes full control */
+.Vue-Toastification__toast {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  min-height: unset !important;
+  border-radius: 0 !important;
 }
-.toast-container > .flex {
-  position: relative;
-  z-index: 10;
+.Vue-Toastification__toast--success,
+.Vue-Toastification__toast--error,
+.Vue-Toastification__toast--info,
+.Vue-Toastification__toast--warning {
+  background: transparent !important;
 }
-.toast-progress {
-  z-index: 0;
+.Vue-Toastification__toast-body {
+  padding: 0 !important;
+  margin: 0 !important;
 }
 </style>

@@ -110,7 +110,20 @@
         <!-- Chọn giờ khám -->
         <div class="flex flex-col gap-2">
           <label class="text-sm font-semibold text-black">Chọn giờ khám</label>
-          <div class="grid grid-cols-4 gap-2">
+          <div v-if="loadingSlots" class="grid grid-cols-4 gap-2">
+            <div
+              v-for="i in 8"
+              :key="i"
+              class="px-4 py-2 rounded-lg bg-gray-100 animate-pulse h-9"
+            />
+          </div>
+          <div
+            v-else-if="!loadingSlots && timeSlots.length === 0"
+            class="text-sm text-gray-400 py-2 text-center"
+          >
+            Chọn ngày để xem khung giờ trống
+          </div>
+          <div v-else class="grid grid-cols-4 gap-2">
             <button
               v-for="slot in timeSlots"
               :key="slot.time"
@@ -129,7 +142,7 @@
               {{ slot.time }}
             </button>
           </div>
-          <p class="text-sm font-medium text-gray-500">
+          <p v-if="timeSlots.length > 0 && !loadingSlots" class="text-sm font-medium text-gray-500">
             * Các khung giờ bị mờ đã kín lịch
           </p>
         </div>
@@ -179,6 +192,7 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
+import client from "@/utils/api";
 import CloseIcon from "@/assets/svg/close.svg";
 import ChevronLeftIcon from "@/assets/svg/chevron-left.svg";
 import ChevronRightIcon from "@/assets/svg/chevron-right.svg";
@@ -205,30 +219,11 @@ const emit = defineEmits(["close", "save"]);
 const currentDate = ref(new Date());
 const selectedDate = ref(null);
 const selectedTime = ref(null);
+const timeSlots = ref([]);
+const loadingSlots = ref(false);
 
 // Week days
 const weekDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-
-// Time slots
-const timeSlots = ref([
-  { time: "08:00", isBooked: false },
-  { time: "08:30", isBooked: false },
-  { time: "09:00", isBooked: true },
-  { time: "09:30", isBooked: false },
-  { time: "10:00", isBooked: false },
-  { time: "10:30", isBooked: true },
-  { time: "11:00", isBooked: false },
-  { time: "11:30", isBooked: false },
-  { time: "13:00", isBooked: false },
-  { time: "13:30", isBooked: false },
-  { time: "14:00", isBooked: true },
-  { time: "14:30", isBooked: false },
-  { time: "15:00", isBooked: false },
-  { time: "15:30", isBooked: false },
-  { time: "16:00", isBooked: false },
-  { time: "16:30", isBooked: false },
-  { time: "17:00", isBooked: false },
-]);
 
 // Computed
 const currentMonthYear = computed(() => {
@@ -400,6 +395,23 @@ function nextMonth() {
   }
 }
 
+async function fetchAvailableSlots(dateStr) {
+  loadingSlots.value = true;
+  timeSlots.value = [];
+  try {
+    const res = await client.get("/lich-hen/available-slots", { params: { date: dateStr } });
+    const slots = res.data?.slots || [];
+    timeSlots.value = slots.map((s) => ({
+      time: s.time,
+      isBooked: !s.available,
+    }));
+  } catch {
+    timeSlots.value = [];
+  } finally {
+    loadingSlots.value = false;
+  }
+}
+
 function selectDate(date) {
   if (!date.isDisabled) {
     selectedDate.value = {
@@ -407,6 +419,10 @@ function selectDate(date) {
       month: date.month,
       year: date.year,
     };
+    selectedTime.value = null;
+    const day = String(date.date).padStart(2, "0");
+    const month = String(date.month + 1).padStart(2, "0");
+    fetchAvailableSlots(`${date.year}-${month}-${day}`);
   }
 }
 
@@ -441,6 +457,8 @@ function resetForm() {
   selectedDate.value = null;
   selectedTime.value = null;
   currentDate.value = new Date();
+  timeSlots.value = [];
+  loadingSlots.value = false;
 }
 
 // Watch for popup open

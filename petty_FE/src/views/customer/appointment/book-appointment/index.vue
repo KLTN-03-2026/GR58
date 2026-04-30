@@ -2,71 +2,10 @@
   <div
     v-if="isOpen"
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-    @click.self="showSuccess ? null : closePopup"
+    @click.self="closePopup"
   >
-    <!-- Modal thành công -->
-    <div
-      v-if="showSuccess"
-      class="bg-white rounded-lg border !border-black/15 w-full max-w-[512px] shadow-xl"
-    >
-      <div class="flex flex-col p-6 gap-4 items-center">
-        <!-- Biểu tượng thành công -->
-        <div
-          class="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center"
-        >
-          <TickIcon class="w-10 h-10 text-teal-500" />
-        </div>
-
-        <!-- Thông điệp thành công -->
-        <div class="flex flex-col gap-2 items-center">
-          <h2 class="text-2xl font-bold text-black text-center">
-            Đặt lịch thành công
-          </h2>
-          <p class="text-sm font-medium text-gray-500 text-center">
-            Mã lịch hẹn của bạn là
-          </p>
-          <p class="text-sm font-medium text-teal-600 text-center">
-            {{ bookingCode }}
-          </p>
-        </div>
-
-        <!-- Tóm tắt đặt lịch -->
-        <div
-          class="w-full bg-teal-50 rounded-lg p-4 flex flex-col gap-1 items-center"
-        >
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-semibold text-gray-500">Thú cưng:</span>
-            <span class="text-sm font-medium text-black">{{
-              selectedPet?.name
-            }}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-semibold text-gray-500">Dịch vụ:</span>
-            <span class="text-sm font-medium text-black">{{
-              selectedService?.name
-            }}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-semibold text-gray-500">Thời gian:</span>
-            <span class="text-sm font-medium text-black">{{
-              formattedDateTime
-            }}</span>
-          </div>
-        </div>
-
-        <!-- Nút đóng -->
-        <button
-          @click="closeSuccessPopup"
-          class="w-full h-9 bg-[#5A9690] hover:bg-[#5A9690]/80 rounded-lg transition-colors"
-        >
-          <span class="text-sm font-semibold text-white"> Hoàn tất </span>
-        </button>
-      </div>
-    </div>
-
     <!-- Modal đặt lịch chính -->
     <div
-      v-else
       class="bg-white rounded-lg border !border-black/15 w-full max-w-[512px] max-h-[90vh] shadow-xl flex flex-col"
     >
       <!-- Fixed Header: Tiêu đề + Thanh tiến độ -->
@@ -588,8 +527,6 @@ const selectedTime = ref(null);
 const paymentMethod = ref("online");
 
 // Trạng thái thành công
-const showSuccess = ref(false);
-const bookingCode = ref("");
 const isSubmitting = ref(false);
 
 // Tên khách hàng (ưu tiên tên người dùng đã đăng nhập)
@@ -841,8 +778,6 @@ const closePopup = () => {
     selectedDate.value = null;
     selectedTime.value = null;
     paymentMethod.value = "online";
-    showSuccess.value = false;
-    bookingCode.value = "";
   }, 300);
 };
 
@@ -872,25 +807,8 @@ const confirmBooking = async () => {
 
     const data = res.data && res.data.data ? res.data.data : null;
 
-    // cố gắng lấy mã lịch từ phản hồi (ma / code / id), nếu không có thì sinh ngẫu nhiên
-    if (data) {
-      if (data.ma) bookingCode.value = data.ma;
-      else if (data.code) bookingCode.value = data.code;
-      else if (data.booking_code) bookingCode.value = data.booking_code;
-      else if (data.id)
-        bookingCode.value = `#LH${String(data.id).padStart(6, "0")}`;
-      else
-        bookingCode.value = `#LH${String(
-          Math.floor(Math.random() * 1000000)
-        ).padStart(6, "0")}`;
-    } else {
-      bookingCode.value = `#LH${String(
-        Math.floor(Math.random() * 1000000)
-      ).padStart(6, "0")}`;
-    }
-
-    showSuccess.value = true;
     showSuccessToast("Đặt lịch thành công", "Lịch hẹn của bạn đã được tạo.");
+    closePopup();
 
     // phát sự kiện kèm phản hồi server khi có
     emit("confirm", data || payload);
@@ -922,10 +840,6 @@ const confirmBooking = async () => {
   }
 };
 
-const closeSuccessPopup = () => {
-  showSuccess.value = false;
-  closePopup();
-};
 
 const formatPrice = (price) => {
   if (!price) return "";

@@ -48,7 +48,7 @@
         </button>
         <button
           @click="confirmCancel"
-          class="flex-1 px-4 py-2 bg-white border border-red-200 text-red-600 text-sm font-semibold rounded-lg hover:bg-red-50"
+          class="flex-1 px-4 py-2 bg-white border !border-red-200 text-red-600 text-sm font-semibold rounded-lg hover:bg-red-50"
         >
           Xác nhận Hủy
         </button>

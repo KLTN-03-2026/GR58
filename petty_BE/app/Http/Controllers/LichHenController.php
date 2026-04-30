@@ -158,6 +158,21 @@ class LichHenController extends Controller
                     ]);
                 }
 
+                // Một thú cưng không thể có 2 lịch hẹn trong cùng khung giờ
+                $petConflict = LichHen::whereIn('trang_thai', ['confirmed', 'in-progress'])
+                    ->where('thu_cung_id', $data['thu_cung_id'])
+                    ->where('ngay_gio', '>=', $ngayGio->copy()->subMinutes(59)->format('Y-m-d H:i:s'))
+                    ->where('ngay_gio', '<',  $ngayGio->copy()->addMinutes(60)->format('Y-m-d H:i:s'))
+                    ->whereDate('ngay_gio', $dateStr)
+                    ->lockForUpdate()
+                    ->exists();
+
+                if ($petConflict) {
+                    throw ValidationException::withMessages([
+                        'thu_cung_id' => ['Thú cưng này đã có lịch hẹn trong khung giờ đó, vui lòng chọn giờ khác'],
+                    ]);
+                }
+
                 $data['trang_thai'] = 'confirmed';
                 return LichHen::create($data);
             });
@@ -226,11 +241,11 @@ class LichHenController extends Controller
 
         if ($from && $to) {
             // include whole day for to date if only date provided
-            $query->whereBetween('ngay_gio', [$from->format('Y-m-d H:i:s'), $to->format('Y-m-d H:i:s')]);
+            $query->whereBetween('ngay_gio', [$from->startOfDay()->format('Y-m-d H:i:s'), $to->endOfDay()->format('Y-m-d H:i:s')]);
         } elseif ($from) {
-            $query->where('ngay_gio', '>=', $from->format('Y-m-d H:i:s'));
+            $query->where('ngay_gio', '>=', $from->startOfDay()->format('Y-m-d H:i:s'));
         } elseif ($to) {
-            $query->where('ngay_gio', '<=', $to->format('Y-m-d H:i:s'));
+            $query->where('ngay_gio', '<=', $to->endOfDay()->format('Y-m-d H:i:s'));
         }
 
         $query->orderBy('ngay_gio', 'asc');
@@ -308,11 +323,11 @@ class LichHenController extends Controller
         }
 
         if ($from && $to) {
-            $query->whereBetween('ngay_gio', [$from->format('Y-m-d H:i:s'), $to->format('Y-m-d H:i:s')]);
+            $query->whereBetween('ngay_gio', [$from->startOfDay()->format('Y-m-d H:i:s'), $to->endOfDay()->format('Y-m-d H:i:s')]);
         } elseif ($from) {
-            $query->where('ngay_gio', '>=', $from->format('Y-m-d H:i:s'));
+            $query->where('ngay_gio', '>=', $from->startOfDay()->format('Y-m-d H:i:s'));
         } elseif ($to) {
-            $query->where('ngay_gio', '<=', $to->format('Y-m-d H:i:s'));
+            $query->where('ngay_gio', '<=', $to->endOfDay()->format('Y-m-d H:i:s'));
         }
 
         $query->orderBy('ngay_gio', 'desc');
@@ -463,8 +478,65 @@ class LichHenController extends Controller
 
         $validated = $request->validated();
 
-        $lichHen->ngay_gio = Carbon::parse($validated['ngay_gio'])->format('Y-m-d H:i:s');
-        $lichHen->save();
+        $ngayGio = Carbon::parse($validated['ngay_gio']);
+        $dateStr = $ngayGio->toDateString();
+        $hour    = (int) $ngayGio->format('H');
+
+        DB::transaction(function () use ($lichHen, $ngayGio, $dateStr, $hour, $validated) {
+            // Kiểm tra capacity bác sĩ
+            $shifts = LichLamViec::where('ngay_lam', $dateStr)
+                ->whereHas('nhanVien', fn ($q) => $q->where('vai_tro', 'bac_si'))
+                ->get();
+
+            $capacity = $shifts->filter(function ($shift) use ($hour) {
+                if ($shift->thoi_gian_truc === LichLamViec::CA_SANG) {
+                    return $hour >= 8 && $hour <= 15;
+                }
+                if ($shift->thoi_gian_truc === LichLamViec::CA_CHIEU) {
+                    return $hour >= 13 && $hour <= 16;
+                }
+                return false;
+            })->count();
+
+            if ($capacity === 0) {
+                throw ValidationException::withMessages([
+                    'ngay_gio' => ['Phòng khám không có lịch làm việc cho ngày này, vui lòng chọn ngày khác'],
+                ]);
+            }
+
+            $booked = LichHen::whereIn('trang_thai', ['confirmed', 'in-progress'])
+                ->where('id', '!=', $lichHen->id)
+                ->where('ngay_gio', '>=', $ngayGio->copy()->subMinutes(59)->format('Y-m-d H:i:s'))
+                ->where('ngay_gio', '<',  $ngayGio->copy()->addMinutes(60)->format('Y-m-d H:i:s'))
+                ->whereDate('ngay_gio', $dateStr)
+                ->lockForUpdate()
+                ->count();
+
+            if ($booked >= $capacity) {
+                throw ValidationException::withMessages([
+                    'ngay_gio' => ['Khung giờ này đã đầy, vui lòng chọn giờ khác'],
+                ]);
+            }
+
+            // Thú cưng không được có 2 lịch hẹn trong cùng khung giờ
+            $petConflict = LichHen::whereIn('trang_thai', ['confirmed', 'in-progress'])
+                ->where('id', '!=', $lichHen->id)
+                ->where('thu_cung_id', $lichHen->thu_cung_id)
+                ->where('ngay_gio', '>=', $ngayGio->copy()->subMinutes(59)->format('Y-m-d H:i:s'))
+                ->where('ngay_gio', '<',  $ngayGio->copy()->addMinutes(60)->format('Y-m-d H:i:s'))
+                ->whereDate('ngay_gio', $dateStr)
+                ->lockForUpdate()
+                ->exists();
+
+            if ($petConflict) {
+                throw ValidationException::withMessages([
+                    'thu_cung_id' => ['Thú cưng này đã có lịch hẹn trong khung giờ đó, vui lòng chọn giờ khác'],
+                ]);
+            }
+
+            $lichHen->ngay_gio = $ngayGio->format('Y-m-d H:i:s');
+            $lichHen->save();
+        });
 
         $payload = new \App\Http\Resources\LichHenResource($lichHen->fresh()->load(['thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'khachHang']));
 
@@ -493,7 +565,7 @@ class LichHenController extends Controller
         }
         // Staff có thể xóa bất kỳ lịch hẹn nào
 
-        $lichHen->delete();
+        $lichHen->update(['trang_thai' => 'cancelled']);
 
         return response()->json([
             'status' => true,
