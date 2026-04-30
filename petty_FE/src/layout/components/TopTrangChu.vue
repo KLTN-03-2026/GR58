@@ -445,13 +445,19 @@ const handleScroll = () => {
 };
 
 // Add scroll listener on mount
+function onUserUpdated(e) {
+  user.value = e.detail || getUser();
+}
+
 onMounted(() => {
   window.addEventListener("scroll", handleScroll);
+  window.addEventListener("user-updated", onUserUpdated);
 });
 
 // Remove scroll listener on unmount
 onUnmounted(() => {
   window.removeEventListener("scroll", handleScroll);
+  window.removeEventListener("user-updated", onUserUpdated);
 });
 
 // --- auth-aware UI ---

@@ -284,7 +284,7 @@
 <script setup>
 import { ref, computed, onBeforeUnmount, watch, nextTick } from "vue";
 import axios from "axios";
-import { useToast } from "vue-toastification";
+import { showSuccessToast, showErrorToast } from "@/utils/toast";
 import { getUser, logout, setAuth, getToken } from "../../../utils/auth";
 import CameraSmIcon from "@/assets/svg/camerasm.svg";
 import KeyIcon from "@/assets/svg/key.svg";
@@ -409,7 +409,6 @@ const onLinkFacebook = () => {
   alert("Chuyển đến Facebook để liên kết...");
 };
 
-const toast = useToast();
 const saving = ref(false);
 const errors = ref({});
 
@@ -481,7 +480,7 @@ function handleFileChange(e) {
   const file = input?.files?.[0] || null;
   if (!file) return;
   if (!file.type.startsWith("image/")) {
-    toast.error("Vui lòng chọn tệp ảnh (jpg, png, ...)");
+    showErrorToast("Định dạng không hợp lệ", "Vui lòng chọn tệp ảnh (jpg, png, ...)");
     return;
   }
   avatarFile.value = file;
@@ -537,7 +536,8 @@ async function uploadAvatar() {
       } catch (e) {}
     }
 
-    toast.success("Ảnh đại diện đã được cập nhật");
+    window.dispatchEvent(new CustomEvent("user-updated", { detail: updatedUser }));
+    showSuccessToast("Cập nhật thành công", "Ảnh đại diện đã được cập nhật");
     avatarFile.value = null;
     if (avatarLocalUrl.value) {
       try {
@@ -550,13 +550,13 @@ async function uploadAvatar() {
     if (e?.response?.status === 422) {
       const respErrors = e.response.data.errors || {};
       const first = respErrors?.anh_dai_dien || Object.values(respErrors)[0];
-      if (first && Array.isArray(first)) toast.error(first[0]);
-      else toast.error(msg);
+      if (first && Array.isArray(first)) showErrorToast("Lỗi", first[0]);
+      else showErrorToast("Lỗi", msg);
     } else if (e?.response?.status === 401) {
-      toast.error("Phiên hết hạn. Vui lòng đăng nhập lại.");
+      showErrorToast("Phiên hết hạn", "Vui lòng đăng nhập lại.");
       logout();
     } else {
-      toast.error(msg);
+      showErrorToast("Lỗi", msg);
     }
     console.error("uploadAvatar error", e);
   } finally {
@@ -617,7 +617,7 @@ async function saveProfile() {
         updatedUser.dia_chi || updatedUser.address || form.value.address;
     }
 
-    toast.success("Thông tin đã được cập nhật");
+    showSuccessToast("Cập nhật thành công", "Thông tin đã được cập nhật");
     isEditing.value = false;
   } catch (e) {
     const msg = e?.response?.data?.message || e?.message || "Cập nhật thất bại";
@@ -627,17 +627,15 @@ async function saveProfile() {
       focusFirstError(respErrors);
       const first = Object.values(respErrors)[0];
       if (first && Array.isArray(first)) {
-        toast.error(first[0]);
+        showErrorToast("Lỗi validation", first[0]);
       } else {
-        toast.error(msg);
+        showErrorToast("Lỗi", msg);
       }
     } else if (e?.response?.status === 401) {
-      toast.error(
-        "Bạn chưa đăng nhập hoặc phiên đã hết hạn. Vui lòng đăng nhập lại."
-      );
+      showErrorToast("Phiên hết hạn", "Bạn chưa đăng nhập hoặc phiên đã hết hạn. Vui lòng đăng nhập lại.");
       logout();
     } else {
-      toast.error(msg);
+      showErrorToast("Lỗi", msg);
     }
     console.error("saveProfile error", e);
   } finally {
