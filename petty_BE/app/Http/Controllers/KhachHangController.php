@@ -552,4 +552,37 @@ class KhachHangController extends Controller
         $frontendUrl = config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:5173'));
         return redirect($frontendUrl . '/auth/verified?token=' . $token);
     }
+
+    public function doiMatKhau(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['status' => false, 'message' => Lang::get('messages.unauthorized')], 401);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'mat_khau_cu'      => 'required|string',
+            'mat_khau_moi'     => 'required|string|min:8',
+            'xac_nhan_mat_khau' => 'required|string|same:mat_khau_moi',
+        ], [
+            'mat_khau_cu.required'       => 'Vui lòng nhập mật khẩu hiện tại.',
+            'mat_khau_moi.required'      => 'Vui lòng nhập mật khẩu mới.',
+            'mat_khau_moi.min'           => 'Mật khẩu mới phải có ít nhất 8 ký tự.',
+            'xac_nhan_mat_khau.required' => 'Vui lòng xác nhận mật khẩu mới.',
+            'xac_nhan_mat_khau.same'     => 'Xác nhận mật khẩu không khớp.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => false, 'message' => 'Dữ liệu không hợp lệ.', 'errors' => $validator->errors()], 422);
+        }
+
+        if (!Hash::check($request->mat_khau_cu, $user->password)) {
+            return response()->json(['status' => false, 'message' => 'Mật khẩu hiện tại không đúng.', 'errors' => ['mat_khau_cu' => ['Mật khẩu hiện tại không đúng.']]], 422);
+        }
+
+        $user->password = Hash::make($request->mat_khau_moi);
+        $user->save();
+
+        return response()->json(['status' => true, 'message' => 'Đổi mật khẩu thành công.']);
+    }
 }

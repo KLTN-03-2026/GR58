@@ -99,6 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/khach-hang/cap-nhat', [KhachHangController::class, 'capNhat']);
+    Route::post('/khach-hang/doi-mat-khau', [KhachHangController::class, 'doiMatKhau']);
     Route::put('/khach-hang/{id}', [KhachHangController::class, 'update']);
     Route::get('/khach-hang', [KhachHangController::class, 'index'])->middleware('staff.only');
 

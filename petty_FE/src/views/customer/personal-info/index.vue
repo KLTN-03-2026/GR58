@@ -261,38 +261,86 @@
         <div class="space-y-4">
           <div class="flex justify-between">
             <span class="font-medium">Loại tài khoản:</span>
-            <span class="font-bold text-gray-400">Silver</span>
+            <span class="font-bold text-gray-400">Thành viên</span>
           </div>
           <div class="flex justify-between">
             <span class="font-medium">Ngày tham gia:</span>
-            <span class="font-bold text-gray-600">15/01/2024</span>
+            <span class="font-bold text-gray-600">{{ joinDate }}</span>
           </div>
           <div class="flex justify-between">
             <span class="font-medium">Số thú cưng đã đăng ký:</span>
-            <span class="font-bold">2 bé</span>
+            <span class="font-bold">{{ petCount }} bé</span>
           </div>
           <div class="flex justify-between">
             <span class="font-medium">Tổng số lần khám:</span>
-            <span class="font-bold text-teal-600">8 lần</span>
+            <span class="font-bold text-teal-600">{{ totalVisits }} lần</span>
           </div>
         </div>
       </div>
     </div>
   </div>
+
+  <ChangePasswordPopup v-if="isChangePasswordOpen" @close="isChangePasswordOpen = false" />
 </template>
 
 <script setup>
-import { ref, computed, onBeforeUnmount, watch, nextTick } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
 import axios from "axios";
+import client from "@/utils/api";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
 import { getUser, logout, setAuth, getToken } from "../../../utils/auth";
 import CameraSmIcon from "@/assets/svg/camerasm.svg";
 import KeyIcon from "@/assets/svg/key.svg";
 import LogoutIcon from "@/assets/svg/log-out.svg";
+import ChangePasswordPopup from "./change-password/index.vue";
 
 const isEditing = ref(false);
 
 const user = ref(getUser() || null);
+
+// --- Thống kê tài khoản ---
+const petCount = ref(0);
+const totalVisits = ref(0);
+
+const joinDate = computed(() => {
+  const raw = user.value?.created_at;
+  if (!raw) return "—";
+  const d = new Date(raw);
+  if (isNaN(d)) return "—";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()}`;
+});
+
+async function fetchStats() {
+  try {
+    const [petsRes, apptRes] = await Promise.all([
+      client.get("/thu-cung", { params: { all: 1 } }),
+      client.get("/lich-hen"),
+    ]);
+    const pets = Array.isArray(petsRes.data?.data)
+      ? petsRes.data.data
+      : Array.isArray(petsRes.data)
+      ? petsRes.data
+      : [];
+    petCount.value = pets.length;
+
+    const appts = Array.isArray(apptRes.data?.data)
+      ? apptRes.data.data
+      : Array.isArray(apptRes.data?.data?.data)
+      ? apptRes.data.data.data
+      : Array.isArray(apptRes.data)
+      ? apptRes.data
+      : [];
+    totalVisits.value = appts.filter(
+      (a) => !["cancelled", "canceled"].includes(String(a.trang_thai || "").toLowerCase())
+    ).length;
+  } catch {
+    // giữ giá trị 0 nếu lỗi
+  }
+}
+
+onMounted(fetchStats);
 
 const initialName = (() => {
   if (user.value) {
@@ -388,8 +436,11 @@ watch(isEditing, (val) => {
   }
 });
 
+// --- Popup Đổi mật khẩu ---
+const isChangePasswordOpen = ref(false);
+
 const onChangePassword = () => {
-  alert("Chuyển đến trang đổi mật khẩu...");
+  isChangePasswordOpen.value = true;
 };
 
 const onLogoutAll = () => {
