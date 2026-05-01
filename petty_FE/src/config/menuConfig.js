@@ -68,7 +68,7 @@ export const menuConfig = {
           {
             key: "posts",
             label: "Bài viết",
-            path: "/admin/posts",
+            path: "/admin/bai-viet",
           },
           {
             key: "promotions",

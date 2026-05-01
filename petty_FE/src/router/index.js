@@ -152,17 +152,17 @@ const routes = [
           import("../views/admin/finance-invoice/invoice-list/index.vue"),
       },
       {
-        path: "posts",
+        path: "bai-viet",
         component: () =>
           import("../views/admin/communication/post/index.vue"),
       },
       {
-        path: "posts/create",
+        path: "bai-viet/them-moi",
         component: () =>
           import("../views/admin/communication/post/add-new-post/index.vue"),
       },
       {
-        path: "posts/edit/:id",
+        path: "bai-viet/chinh-sua/:id",
         component: () =>
           import("../views/admin/communication/post/edit-post/index.vue"),
       },
