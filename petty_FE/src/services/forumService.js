@@ -36,6 +36,16 @@ export const forumService = {
     const res = await api.post("/reactions/toggle", data);
     return res.data;
   },
+
+  async createPost(data) {
+    const res = await api.post("/bai-viet", data);
+    return res.data;
+  },
+
+  async updateComment(id, data) {
+    const res = await api.put(`/binh-luan/${id}`, data);
+    return res.data;
+  },
 };
 
 export default forumService;

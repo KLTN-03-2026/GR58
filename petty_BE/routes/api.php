@@ -32,6 +32,7 @@ use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\LichNghiController;
 use App\Http\Controllers\ThanhToanController;
+use App\Http\Controllers\YeuCauHoTroController;
 
 Route::post('/khach-hang/dang-ki', [KhachHangController::class, 'dangKi']);
 Route::post('/khach-hang/dang-nhap', [KhachHangController::class, 'dangNhap']);
@@ -200,6 +201,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/lich-dang-ky/{lichDangKy}/doi-trang-thai', [LichDangKyController::class, 'doiTrangThai'])->middleware('staff.only'); // Đổi trạng thái
 });
 
+// Yêu cầu hỗ trợ: gửi (public, có thể authenticated)
+Route::post('/yeu-cau-ho-tro', [YeuCauHoTroController::class, 'store']);
+
 // Public: list services
 Route::get('/dich-vu', [DichVuController::class, 'index']);
 // Public: view single service
@@ -354,6 +358,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Kiểm tra mã khuyến mãi (public - cho khách hàng)
     Route::post('/khuyen-mai/check-code', [KhuyenMaiController::class, 'checkCode']);
+
+    // Yêu cầu hỗ trợ: staff quản lý
+    Route::get('/yeu-cau-ho-tro', [YeuCauHoTroController::class, 'index'])->middleware('staff.only');
+    Route::patch('/yeu-cau-ho-tro/{yeuCauHoTro}', [YeuCauHoTroController::class, 'update'])->middleware('staff.only');
 
     // Hồ sơ bệnh án: danh sách bệnh nhân (staff only - bác sĩ xem)
     Route::get('/ho-so-benh-an', [HoSoBenhAnController::class, 'index'])->middleware('staff.only');

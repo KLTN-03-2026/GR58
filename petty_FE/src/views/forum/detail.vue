@@ -304,19 +304,32 @@ const isOwner = (authorId) => {
 };
 
 // Data Fetching
+const normalizePost = (p) => {
+  const author = p.nguoi_dung || p.nhan_vien || p.author || null;
+  const category = p.phan_loai_bai_viet || p.phan_loai || p.category || null;
+  return {
+    ...p,
+    nguoi_dung: author,
+    phan_loai_bai_viet: category,
+    likes_count: p.likes_count ?? p.reactions?.likes ?? 0,
+    dislikes_count: p.dislikes_count ?? p.reactions?.dislikes ?? 0,
+    user_reaction: p.user_reaction || null,
+  };
+};
+
 const fetchPost = async () => {
   loading.value = true;
   error.value = false;
   try {
     const id = route.params.id;
     const res = await forumService.getPostById(id);
-    post.value = res.data || res;
+    const raw = res.data || res;
+    post.value = normalizePost(raw);
     
     likesCount.value = post.value.likes_count || 0;
     dislikesCount.value = post.value.dislikes_count || 0;
     hasReacted.value = post.value.user_reaction || null; 
     
-    // Fetch comments after post
     fetchComments(id);
   } catch (err) {
     console.error('Error fetching post:', err);
@@ -325,11 +338,25 @@ const fetchPost = async () => {
   }
 };
 
+const normalizeComment = (c) => ({
+  ...c,
+  nguoi_dung: c.nguoi_dung || c.nhan_vien || c.author || null,
+  likes_count: c.likes_count ?? c.reactions?.likes ?? 0,
+  dislikes_count: c.dislikes_count ?? c.reactions?.dislikes ?? 0,
+  replies: (c.replies || []).map(r => ({
+    ...r,
+    nguoi_dung: r.nguoi_dung || r.nhan_vien || r.author || null,
+    likes_count: r.likes_count ?? r.reactions?.likes ?? 0,
+    dislikes_count: r.dislikes_count ?? r.reactions?.dislikes ?? 0,
+  })),
+});
+
 const fetchComments = async (postId) => {
   commentsLoading.value = true;
   try {
     const res = await forumService.getComments(postId);
-    commentsList.value = res.data || res || [];
+    const raw = res.data || res || [];
+    commentsList.value = Array.isArray(raw) ? raw.map(normalizeComment) : [];
   } catch (err) {
     console.error('Error fetching comments:', err);
   } finally {

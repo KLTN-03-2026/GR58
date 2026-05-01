@@ -3,7 +3,6 @@
     <!-- Hero Banner -->
     <div class="max-w-7xl mx-auto px-4 mb-10">
       <div class="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#5A9690] to-[#3B6B66] p-10 md:p-14 text-white shadow-xl shadow-[#5A9690]/20">
-        <!-- Decorative elements -->
         <div class="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 rounded-full bg-white opacity-10 blur-3xl"></div>
         <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-56 h-56 rounded-full bg-black opacity-15 blur-2xl"></div>
         <div class="absolute top-1/2 right-1/4 w-32 h-32 rounded-full bg-[#82C3BD] opacity-20 blur-2xl"></div>
@@ -18,20 +17,31 @@
             </p>
           </div>
           
-          <div class="w-full md:w-[400px] relative group">
-            <div class="absolute -inset-1 bg-white/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
-            <div class="relative flex items-center bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-1.5 shadow-inner transition-all duration-300 focus-within:bg-white/20 focus-within:border-white/40">
-              <svg class="w-6 h-6 text-white/80 ml-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-              <input 
-                v-model="searchQuery" 
-                type="text" 
-                placeholder="Tìm bài viết, cẩm nang..." 
-                class="w-full bg-transparent border-none text-white placeholder-white/70 focus:ring-0 px-4 py-3 outline-none font-medium"
-              >
-              <button v-if="searchQuery" @click="searchQuery = ''" class="mr-3 text-white/60 hover:text-white transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-              </button>
+          <div class="w-full md:w-[400px] flex flex-col gap-3">
+            <div class="relative group">
+              <div class="absolute -inset-1 bg-white/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+              <div class="relative flex items-center bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-1.5 shadow-inner transition-all duration-300 focus-within:bg-white/20 focus-within:border-white/40">
+                <svg class="w-6 h-6 text-white/80 ml-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <input 
+                  v-model="searchQuery" 
+                  type="text" 
+                  placeholder="Tìm bài viết, cẩm nang..." 
+                  class="w-full bg-transparent border-none text-white placeholder-white/70 focus:ring-0 px-4 py-3 outline-none font-medium"
+                >
+                <button v-if="searchQuery" @click="searchQuery = ''" class="mr-3 text-white/60 hover:text-white transition">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+              </div>
             </div>
+            <!-- Create Post Button (staff/admin only) -->
+            <button 
+              v-if="canCreatePost"
+              @click="showCreateModal = true"
+              class="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white font-bold px-6 py-3 rounded-xl transition-all duration-300"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+              Tạo bài viết mới
+            </button>
           </div>
         </div>
       </div>
@@ -70,7 +80,6 @@
             </li>
           </ul>
           
-          <!-- Decorative bottom banner -->
           <div class="mt-8 rounded-xl bg-amber-50 p-5 border border-amber-100 relative overflow-hidden">
             <svg class="absolute -bottom-4 -right-4 w-24 h-24 text-amber-200/50" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
             <h3 class="font-bold text-amber-900 mb-1 relative z-10">Góc chia sẻ</h3>
@@ -146,13 +155,11 @@
                 <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
               </div>
               
-              <!-- Gradient Overlay for contrast -->
               <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60"></div>
               
-              <!-- Floating Badge -->
               <div class="absolute top-4 left-4">
                 <span class="bg-white/90 backdrop-blur-sm text-[#5A9690] text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm">
-                  {{ getCategoryName(post.phan_loai_id || post.phan_loai_bai_viet_id) }}
+                  {{ getCategoryName(post.phan_loai_bai_viet_id) }}
                 </span>
               </div>
             </div>
@@ -160,27 +167,24 @@
             <!-- Content -->
             <div class="p-5 flex flex-col flex-1">
               <h3 class="font-bold text-xl text-[#432323] mb-3 line-clamp-2 leading-tight group-hover:text-[#5A9690] transition-colors">
-                {{ post.ten_bai_viet || post.tieu_de }}
+                {{ post.ten_bai_viet }}
               </h3>
               <p class="text-[#393E46] text-sm mb-5 line-clamp-3 flex-1 leading-relaxed opacity-80">
                 {{ post.mo_ta }}
               </p>
               
-              <!-- Footer Meta -->
               <div class="pt-4 mt-auto border-t border-gray-50 flex items-center justify-between">
-                <!-- Author -->
                 <div class="flex items-center gap-2.5">
                   <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#5A9690] to-[#82C3BD] flex items-center justify-center overflow-hidden shadow-sm text-white">
-                    <img v-if="post.nguoi_dung?.avatar" :src="getImageUrl(post.nguoi_dung.avatar)" class="w-full h-full object-cover">
-                    <span v-else class="font-bold text-sm">{{ getInitials(post.nguoi_dung?.name || post.author?.name || 'A') }}</span>
+                    <img v-if="post.author_avatar" :src="getImageUrl(post.author_avatar)" class="w-full h-full object-cover">
+                    <span v-else class="font-bold text-sm">{{ getInitials(post.author_name || 'A') }}</span>
                   </div>
                   <div class="flex flex-col">
-                    <span class="text-sm font-bold text-[#432323] leading-none">{{ post.nguoi_dung?.name || post.author?.name || 'Admin' }}</span>
+                    <span class="text-sm font-bold text-[#432323] leading-none">{{ post.author_name || 'Admin' }}</span>
                     <span class="text-[11px] text-gray-400 font-medium mt-1">{{ formatDate(post.created_at) }}</span>
                   </div>
                 </div>
                 
-                <!-- Stats -->
                 <div class="flex items-center gap-3 text-gray-400">
                   <div class="flex items-center gap-1.5 group-hover:text-[#5A9690] transition-colors">
                     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path></svg>
@@ -198,12 +202,120 @@
       </div>
     </div>
   </div>
+
+  <!-- Create Post Modal -->
+  <Teleport to="body">
+    <div v-if="showCreateModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="closeCreateModal">
+      <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="p-8">
+          <div class="flex items-center justify-between mb-8">
+            <h2 class="text-2xl font-black text-[#2C3E50]">Tạo bài viết mới</h2>
+            <button @click="closeCreateModal" class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
+
+          <form @submit.prevent="submitCreatePost" class="space-y-5">
+            <!-- Tiêu đề -->
+            <div>
+              <label class="block text-sm font-bold text-[#2C3E50] mb-2">Tiêu đề bài viết *</label>
+              <input 
+                v-model="createForm.ten_bai_viet"
+                type="text"
+                placeholder="Nhập tiêu đề bài viết..."
+                required
+                class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#5A9690]/30 focus:border-[#5A9690] transition-all font-medium"
+              />
+            </div>
+
+            <!-- Danh mục -->
+            <div>
+              <label class="block text-sm font-bold text-[#2C3E50] mb-2">Danh mục</label>
+              <select 
+                v-model="createForm.phan_loai_bai_viet_id"
+                class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#5A9690]/30 focus:border-[#5A9690] transition-all font-medium bg-white"
+              >
+                <option :value="null">-- Chọn danh mục --</option>
+                <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.ten_phan_loai }}</option>
+              </select>
+            </div>
+
+            <!-- Mô tả ngắn -->
+            <div>
+              <label class="block text-sm font-bold text-[#2C3E50] mb-2">Mô tả ngắn</label>
+              <textarea 
+                v-model="createForm.mo_ta"
+                rows="2"
+                placeholder="Tóm tắt nội dung bài viết..."
+                class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#5A9690]/30 focus:border-[#5A9690] transition-all font-medium resize-none"
+              ></textarea>
+            </div>
+
+            <!-- URL ảnh bìa -->
+            <div>
+              <label class="block text-sm font-bold text-[#2C3E50] mb-2">URL ảnh bìa</label>
+              <input 
+                v-model="createForm.anh_bai_viet"
+                type="text"
+                placeholder="https://... hoặc đường dẫn ảnh"
+                class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#5A9690]/30 focus:border-[#5A9690] transition-all font-medium"
+              />
+            </div>
+
+            <!-- Nội dung -->
+            <div>
+              <label class="block text-sm font-bold text-[#2C3E50] mb-2">Nội dung bài viết *</label>
+              <textarea 
+                v-model="createForm.noi_dung"
+                rows="8"
+                placeholder="Viết nội dung bài viết của bạn tại đây..."
+                required
+                class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#5A9690]/30 focus:border-[#5A9690] transition-all font-medium resize-none"
+              ></textarea>
+            </div>
+
+            <!-- Trạng thái -->
+            <div>
+              <label class="block text-sm font-bold text-[#2C3E50] mb-2">Trạng thái xuất bản</label>
+              <select 
+                v-model="createForm.trang_thai"
+                class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#5A9690]/30 focus:border-[#5A9690] transition-all font-medium bg-white"
+              >
+                <option value="published">Xuất bản ngay</option>
+                <option value="hidden">Lưu nháp</option>
+              </select>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-3 pt-2">
+              <button 
+                type="button"
+                @click="closeCreateModal"
+                class="flex-1 border border-gray-200 text-gray-600 font-bold py-3 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Hủy
+              </button>
+              <button 
+                type="submit"
+                :disabled="submittingPost"
+                class="flex-1 bg-gradient-to-r from-[#5A9690] to-[#4A807A] text-white font-bold py-3 rounded-xl hover:shadow-lg hover:shadow-[#5A9690]/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {{ submittingPost ? 'Đang đăng...' : 'Đăng bài viết' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { forumService } from '@/services/forumService';
+import { getToken, getUser } from '@/utils/auth';
+import { showSuccessToast, showErrorToast } from '@/utils/toast';
 import { format } from 'date-fns';
 
 const router = useRouter();
@@ -216,6 +328,33 @@ const error = ref(false);
 const searchQuery = ref('');
 const selectedCategoryId = ref(null);
 
+// Create post modal state
+const showCreateModal = ref(false);
+const submittingPost = ref(false);
+const createForm = ref({
+  ten_bai_viet: '',
+  noi_dung: '',
+  mo_ta: '',
+  anh_bai_viet: '',
+  phan_loai_bai_viet_id: null,
+  trang_thai: 'published',
+});
+
+// Auth
+const canCreatePost = computed(() => {
+  return !!getToken('admin') || !!getToken('y_ta') || !!getToken('bac_si') || !!getToken('le_tan') || !!getToken('tro_ly') || !!getToken('staff');
+});
+
+const normalizePost = (p) => ({
+  ...p,
+  phan_loai_bai_viet_id: p.phan_loai_bai_viet_id || p.phan_loai?.id,
+  likes_count: p.likes_count ?? p.reactions?.likes ?? 0,
+  dislikes_count: p.dislikes_count ?? p.reactions?.dislikes ?? 0,
+  comments_count: p.comments_count ?? 0,
+  author_name: p.nguoi_dung?.name || p.nhan_vien?.name || p.author?.name || null,
+  author_avatar: p.nguoi_dung?.avatar || p.nhan_vien?.avatar || null,
+});
+
 const fetchData = async () => {
   loading.value = true;
   error.value = false;
@@ -225,12 +364,12 @@ const fetchData = async () => {
       forumService.getCategories()
     ]);
     
-    // Extract data handling different structures
     let rawPosts = Array.isArray(postsRes) ? postsRes : (postsRes.data || []);
     let rawCategories = Array.isArray(categoriesRes) ? categoriesRes : (categoriesRes.data || []);
     
-    // Filter only published if backend doesn't do it
-    posts.value = rawPosts.filter(p => p.trang_thai === 'published' || p.trang_thai === 1 || !p.trang_thai);
+    posts.value = rawPosts
+      .filter(p => p.trang_thai === 'published' || p.trang_thai === 1 || !p.trang_thai)
+      .map(normalizePost);
     categories.value = rawCategories;
   } catch (err) {
     console.error('Error fetching forum data:', err);
@@ -251,14 +390,10 @@ const removeAccents = (str) => {
 
 const filteredPosts = computed(() => {
   return posts.value.filter(post => {
-    // Filter by category
-    const matchCategory = selectedCategoryId.value === null || post.phan_loai_id === selectedCategoryId.value || post.phan_loai_bai_viet_id === selectedCategoryId.value;
-    
-    // Filter by search query (title)
+    const matchCategory = selectedCategoryId.value === null || post.phan_loai_bai_viet_id === selectedCategoryId.value;
     const query = removeAccents(searchQuery.value);
-    const title = removeAccents(post.ten_bai_viet || post.tieu_de || '');
+    const title = removeAccents(post.ten_bai_viet || '');
     const matchSearch = query === '' || title.includes(query);
-    
     return matchCategory && matchSearch;
   });
 });
@@ -283,11 +418,63 @@ const getInitials = (name) => {
 
 const formatDate = (dateString) => {
   if (!dateString) return '';
-  return format(new Date(dateString), 'dd/MM/yyyy');
+  try {
+    return format(new Date(dateString), 'dd/MM/yyyy');
+  } catch {
+    return '';
+  }
 };
 
 const goToDetail = (id) => {
   router.push(`/forum/${id}`);
+};
+
+const closeCreateModal = () => {
+  showCreateModal.value = false;
+  createForm.value = {
+    ten_bai_viet: '',
+    noi_dung: '',
+    mo_ta: '',
+    anh_bai_viet: '',
+    phan_loai_bai_viet_id: null,
+    trang_thai: 'published',
+  };
+};
+
+const submitCreatePost = async () => {
+  if (!createForm.value.ten_bai_viet.trim() || !createForm.value.noi_dung.trim()) return;
+  
+  submittingPost.value = true;
+  try {
+    const payload = {
+      ten_bai_viet: createForm.value.ten_bai_viet.trim(),
+      noi_dung: createForm.value.noi_dung.trim(),
+      mo_ta: createForm.value.mo_ta.trim() || null,
+      anh_bai_viet: createForm.value.anh_bai_viet.trim() || null,
+      phan_loai_bai_viet_id: createForm.value.phan_loai_bai_viet_id || null,
+      trang_thai: createForm.value.trang_thai,
+    };
+    
+    const res = await forumService.createPost(payload);
+    const newPost = res.data || res;
+    
+    if (newPost && newPost.id && createForm.value.trang_thai === 'published') {
+      posts.value.unshift(normalizePost(newPost));
+    }
+    
+    showSuccessToast('Thành công', 'Đã đăng bài viết mới!');
+    closeCreateModal();
+    
+    if (createForm.value.trang_thai === 'published') {
+      fetchData();
+    }
+  } catch (err) {
+    console.error('Error creating post:', err);
+    const msg = err.response?.data?.message || 'Không thể tạo bài viết. Vui lòng thử lại.';
+    showErrorToast('Lỗi', msg);
+  } finally {
+    submittingPost.value = false;
+  }
 };
 </script>
 

@@ -8,13 +8,10 @@
         </p>
       </div>
 
+      <!-- Contact Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div
-          class="bg-white/40 border !border-teal-200 rounded-2xl p-6 flex gap-3"
-        >
-          <div
-            class="bg-teal-100 rounded-xl w-12 h-12 flex items-center justify-center flex-shrink-0"
-          >
+        <div class="bg-white/40 border !border-teal-200 rounded-2xl p-6 flex gap-3">
+          <div class="bg-teal-100 rounded-xl w-12 h-12 flex items-center justify-center flex-shrink-0">
             <PhoneCallIcon class="w-6 h-6 text-teal-700" />
           </div>
           <div>
@@ -24,12 +21,8 @@
           </div>
         </div>
 
-        <div
-          class="bg-white/40 border !border-teal-200 rounded-2xl p-6 flex gap-3"
-        >
-          <div
-            class="bg-teal-100 text-[#5A9690] rounded-xl w-12 h-12 flex items-center justify-center flex-shrink-0"
-          >
+        <div class="bg-white/40 border !border-teal-200 rounded-2xl p-6 flex gap-3">
+          <div class="bg-teal-100 text-[#5A9690] rounded-xl w-12 h-12 flex items-center justify-center flex-shrink-0">
             <EmailAddressIcon class="text-teal-700" />
           </div>
           <div>
@@ -39,12 +32,8 @@
           </div>
         </div>
 
-        <div
-          class="bg-white/40 border !border-teal-200 rounded-2xl p-6 flex gap-3"
-        >
-          <div
-            class="bg-teal-100 rounded-xl w-12 h-12 flex items-center justify-center flex-shrink-0"
-          >
+        <div class="bg-white/40 border !border-teal-200 rounded-2xl p-6 flex gap-3">
+          <div class="bg-teal-100 rounded-xl w-12 h-12 flex items-center justify-center flex-shrink-0">
             <QAMessIcon class="w-6 h-6 text-teal-700" />
           </div>
           <div>
@@ -56,6 +45,7 @@
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-[592px_1fr] gap-6 mb-8">
+        <!-- FAQ Section -->
         <div class="bg-white border !border-black/15 rounded-2xl p-10">
           <div class="mb-6">
             <h2 class="text-lg font-semibold mb-2">Câu hỏi thường gặp</h2>
@@ -74,14 +64,11 @@
                 @click="toggleFaq(index)"
                 class="flex justify-between items-center cursor-pointer gap-3"
               >
-                <span class="text-base font-semibold flex-1">{{
-                  faq.question
-                }}</span>
+                <span class="text-base font-semibold flex-1">{{ faq.question }}</span>
                 <ChevronDownIcon
                   class="w-6 h-6 transition-transform"
                   :class="{ 'rotate-180': activeFaq === index }"
-                >
-                </ChevronDownIcon>
+                />
               </div>
               <div
                 v-if="activeFaq === index"
@@ -93,6 +80,7 @@
           </div>
         </div>
 
+        <!-- Support Request Form -->
         <div class="bg-white border !border-black/15 rounded-2xl p-6">
           <div class="mb-6">
             <h2 class="text-lg font-semibold mb-2">Gửi yêu cầu hỗ trợ</h2>
@@ -101,39 +89,47 @@
             </p>
           </div>
 
-          <form @submit.prevent="onSubmitForm">
+          <!-- Success message -->
+          <div v-if="submitSuccess" class="mb-6 bg-teal-50 border border-teal-200 rounded-xl p-4 flex items-start gap-3">
+            <div class="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <div>
+              <p class="font-semibold text-teal-800">Gửi thành công!</p>
+              <p class="text-sm text-teal-700">Yêu cầu hỗ trợ của bạn đã được ghi nhận. Chúng tôi sẽ liên hệ trong 24h.</p>
+            </div>
+          </div>
+
+          <form v-if="!submitSuccess" @submit.prevent="onSubmitForm">
             <div class="mb-4">
-              <label class="block font-semibold text-base mb-2"
-                >Họ và tên *</label
-              >
+              <label class="block font-semibold text-base mb-2">Họ và tên *</label>
               <input
-                v-model="form.name"
+                v-model="form.ho_ten"
                 type="text"
                 required
-                class="w-full h-11 bg-gray-100 border !border-black/10 rounded-lg px-3 font-semibold"
+                placeholder="Nguyễn Văn A"
+                class="w-full h-11 bg-gray-100 border !border-black/10 rounded-lg px-3 font-semibold focus:outline-none focus:ring-2 focus:ring-teal-400/40 transition"
               />
             </div>
 
             <div class="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label class="block font-semibold text-base mb-2"
-                  >Email *</label
-                >
+                <label class="block font-semibold text-base mb-2">Email *</label>
                 <input
                   v-model="form.email"
                   type="email"
                   required
-                  class="w-full h-11 bg-gray-100 border !border-black/10 rounded-lg px-3 font-semibold"
+                  placeholder="email@example.com"
+                  class="w-full h-11 bg-gray-100 border !border-black/10 rounded-lg px-3 font-semibold focus:outline-none focus:ring-2 focus:ring-teal-400/40 transition"
                 />
               </div>
               <div>
-                <label class="block font-semibold text-base mb-2"
-                  >Số điện thoại</label
-                >
+                <label class="block font-semibold text-base mb-2">Số điện thoại</label>
                 <input
-                  v-model="form.phone"
+                  v-model="form.so_dien_thoai"
                   type="tel"
-                  class="w-full h-11 bg-gray-100 border !border-black/10 rounded-lg px-3 font-semibold"
+                  placeholder="0912 345 678"
+                  class="w-full h-11 bg-gray-100 border !border-black/10 rounded-lg px-3 font-semibold focus:outline-none focus:ring-2 focus:ring-teal-400/40 transition"
                 />
               </div>
             </div>
@@ -141,38 +137,54 @@
             <div class="mb-4">
               <label class="block font-semibold text-base mb-2">Chủ đề *</label>
               <input
-                v-model="form.subject"
+                v-model="form.chu_de"
                 type="text"
                 placeholder="VD: Thắc mắc về lịch hẹn"
                 required
-                class="w-full h-11 bg-gray-100 border !border-black/10 rounded-lg px-3 font-semibold"
+                class="w-full h-11 bg-gray-100 border !border-black/10 rounded-lg px-3 font-semibold focus:outline-none focus:ring-2 focus:ring-teal-400/40 transition"
               />
             </div>
 
             <div class="mb-6">
-              <label class="block font-semibold text-base mb-2"
-                >Nội dung *</label
-              >
+              <label class="block font-semibold text-base mb-2">Nội dung *</label>
               <textarea
-                v-model="form.message"
+                v-model="form.noi_dung"
                 placeholder="Mô tả chi tiết vấn đề của bạn..."
                 required
                 rows="3"
-                class="w-full bg-gray-100 border !border-black/10 rounded-lg px-3 py-3 font-semibold resize-vertical"
+                class="w-full bg-gray-100 border !border-black/10 rounded-lg px-3 py-3 font-semibold resize-vertical focus:outline-none focus:ring-2 focus:ring-teal-400/40 transition"
               ></textarea>
+            </div>
+
+            <!-- Error message -->
+            <div v-if="submitError" class="mb-4 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+              <p class="text-sm text-red-700 font-semibold">{{ submitError }}</p>
             </div>
 
             <button
               type="submit"
-              class="w-full bg-[#5a9690] hover:bg-[#4a8580] text-white rounded-lg py-3 flex items-center justify-center gap-2 font-semibold transition"
+              :disabled="isSubmitting"
+              class="w-full bg-[#5a9690] hover:bg-[#4a8580] text-white rounded-lg py-3 flex items-center justify-center gap-2 font-semibold transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <SendToIcon />
-              <span>Gửi yêu cầu</span>
+              <svg v-if="isSubmitting" class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <SendToIcon v-else />
+              <span>{{ isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu' }}</span>
             </button>
           </form>
+
+          <!-- Send another request button -->
+          <div v-if="submitSuccess" class="mt-4">
+            <button
+              @click="resetForm"
+              class="w-full border border-teal-300 text-teal-700 rounded-lg py-3 font-semibold hover:bg-teal-50 transition"
+            >
+              Gửi yêu cầu khác
+            </button>
+          </div>
         </div>
       </div>
 
+      <!-- Clinic Info -->
       <div class="bg-white border !border-black/15 rounded-2xl p-6">
         <div class="mb-6">
           <h2 class="text-lg font-semibold mb-2">Thông tin phòng khám</h2>
@@ -195,24 +207,16 @@
               <div class="flex gap-3">
                 <MapIcon class="w-6 h-6 text-teal-700" />
                 <div>
-                  <h4 class="font-semibold">
-                    Phòng khám Pettty - Chi nhánh Quận 1
-                  </h4>
-                  <p class="font-semibold text-gray-700">
-                    123 Đường Nguyễn Huệ, Quận 1, TP.HCM
-                  </p>
+                  <h4 class="font-semibold">Phòng khám Pettty - Chi nhánh Quận 1</h4>
+                  <p class="font-semibold text-gray-700">123 Đường Nguyễn Huệ, Quận 1, TP.HCM</p>
                 </div>
               </div>
               <div class="flex gap-3">
                 <ClockIcon class="w-6 h-6 text-teal-700" />
                 <div>
                   <h4 class="font-semibold">Giờ làm việc</h4>
-                  <p class="font-semibold text-gray-700">
-                    Thứ 2 - Thứ 6: 8:00 - 20:00
-                  </p>
-                  <p class="font-semibold text-gray-700">
-                    Thứ 7 - CN: 9:00 - 18:00
-                  </p>
+                  <p class="font-semibold text-gray-700">Thứ 2 - Thứ 6: 8:00 - 20:00</p>
+                  <p class="font-semibold text-gray-700">Thứ 7 - CN: 9:00 - 18:00</p>
                 </div>
               </div>
             </div>
@@ -232,17 +236,11 @@
               <div class="space-y-2">
                 <div class="bg-teal-50 rounded-xl p-3">
                   <h5 class="font-semibold text-[#2f5755]">Chi nhánh Quận 3</h5>
-                  <p class="font-semibold text-gray-700">
-                    456 Võ Văn Tần, Q.3, TP.HCM
-                  </p>
+                  <p class="font-semibold text-gray-700">456 Võ Văn Tần, Q.3, TP.HCM</p>
                 </div>
                 <div class="bg-teal-50 rounded-xl p-3">
-                  <h5 class="font-semibold text-[#2f5755]">
-                    Chi nhánh Thủ Đức
-                  </h5>
-                  <p class="font-semibold text-gray-700">
-                    789 Xa lộ Hà Nội, TP. Thủ Đức, TP.HCM
-                  </p>
+                  <h5 class="font-semibold text-[#2f5755]">Chi nhánh Thủ Đức</h5>
+                  <p class="font-semibold text-gray-700">789 Xa lộ Hà Nội, TP. Thủ Đức, TP.HCM</p>
                 </div>
               </div>
             </div>
@@ -252,10 +250,14 @@
     </div>
   </div>
 </template>
-  
-  <script setup>
+
+<script setup>
 import { ref } from "vue";
-// Icon
+import { hoTroService } from "@/services/hoTroService";
+import { getUser } from "@/utils/auth";
+import { showSuccessToast, showErrorToast } from "@/utils/toast";
+
+// Icons
 import PhoneCallIcon from "@/assets/svg/phonecall.svg";
 import QAMessIcon from "@/assets/svg/qa-mess.svg";
 import EmailAddressIcon from "@/assets/svg/emailaddress.svg";
@@ -264,9 +266,21 @@ import SendToIcon from "@/assets/svg/send-to.svg";
 import MapIcon from "@/assets/svg/map.svg";
 import ClockIcon from "@/assets/svg/clock.svg";
 
+// Pre-fill with user info if logged in
+const currentUser = getUser('customer');
+
 const activeFaq = ref(null);
-const chevronIcon =
-  "https://www.figma.com/api/mcp/asset/63ca2dab-6c0f-4f44-80e3-f557e6fe8b98";
+const isSubmitting = ref(false);
+const submitSuccess = ref(false);
+const submitError = ref('');
+
+const form = ref({
+  ho_ten: currentUser?.ho_ten || currentUser?.name || '',
+  email: currentUser?.email || '',
+  so_dien_thoai: currentUser?.so_dien_thoai || '',
+  chu_de: '',
+  noi_dung: '',
+});
 
 const faqs = [
   {
@@ -307,27 +321,47 @@ const faqs = [
   },
 ];
 
-const form = ref({
-  name: "",
-  email: "",
-  phone: "",
-  subject: "",
-  message: "",
-});
-
 const toggleFaq = (index) => {
   activeFaq.value = activeFaq.value === index ? null : index;
 };
 
-const onSubmitForm = () => {
-  alert("Yêu cầu của bạn đã được gửi! Chúng tôi sẽ liên hệ trong 24h.");
-  form.value = { name: "", email: "", phone: "", subject: "", message: "" };
+const onSubmitForm = async () => {
+  submitError.value = '';
+  isSubmitting.value = true;
+  try {
+    await hoTroService.submitRequest({
+      ho_ten: form.value.ho_ten.trim(),
+      email: form.value.email.trim(),
+      so_dien_thoai: form.value.so_dien_thoai.trim() || null,
+      chu_de: form.value.chu_de.trim(),
+      noi_dung: form.value.noi_dung.trim(),
+    });
+    submitSuccess.value = true;
+    showSuccessToast('Gửi thành công', 'Yêu cầu hỗ trợ đã được ghi nhận. Chúng tôi sẽ liên hệ trong 24h!');
+  } catch (err) {
+    const msg = err.response?.data?.message || 'Không thể gửi yêu cầu. Vui lòng thử lại sau.';
+    submitError.value = msg;
+    showErrorToast('Lỗi gửi yêu cầu', msg);
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+const resetForm = () => {
+  submitSuccess.value = false;
+  submitError.value = '';
+  form.value = {
+    ho_ten: currentUser?.ho_ten || currentUser?.name || '',
+    email: currentUser?.email || '',
+    so_dien_thoai: currentUser?.so_dien_thoai || '',
+    chu_de: '',
+    noi_dung: '',
+  };
 };
 
 const openGoogleMaps = () => {
   window.open("https://maps.google.com", "_blank");
 };
 </script>
-  
-  <style scoped>
-</style>
+
+<style scoped></style>
