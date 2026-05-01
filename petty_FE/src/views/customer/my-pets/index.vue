@@ -252,7 +252,8 @@ const resolveImageUrl = (imagePath) => {
 const mapBackendPetToCard = (item) => {
   const imagePath = item.anh_dai_dien || "";
   const candidates = getImageCandidates(imagePath);
-  const imageUrl = candidates.length ? candidates[0] : PLACEHOLDER_IMAGE;
+  // Prefer anh_dai_dien_url from backend — it already handles default-image logic for pets with no photo
+  const imageUrl = item.anh_dai_dien_url || (candidates.length ? candidates[0] : PLACEHOLDER_IMAGE);
 
   const type = item.loai_thu_cung || "";
   const tagClass =

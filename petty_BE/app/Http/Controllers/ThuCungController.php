@@ -371,4 +371,53 @@ class ThuCungController extends Controller
 
         return $data;
     }
+
+    /**
+     * Lấy lịch sử khám bệnh của thú cưng (dành cho khách hàng).
+     * Chỉ trả dữ liệu nếu thú cưng thuộc sở hữu của customer đang đăng nhập.
+     */
+    public function lichSuKhamForCustomer(ThuCung $thuCung, Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user || !($user instanceof \App\Models\KhachHang)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        if ((int) $thuCung->khach_hang_id !== (int) $user->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn không có quyền xem thông tin thú cưng này',
+            ], 403);
+        }
+
+        try {
+            $phieuKhams = \App\Models\PhieuKham::whereHas(
+                'lichHen',
+                fn($q) => $q->where('thu_cung_id', $thuCung->id)
+            )
+                ->with(['nhanVien', 'lichHen'])
+                ->orderByDesc('created_at')
+                ->get();
+
+            $data = $phieuKhams->map(fn($pk) => [
+                'id'             => $pk->id,
+                'date'           => $pk->created_at->format('d/m/Y'),
+                'bac_si'         => $pk->nhanVien?->full_name ?? 'Chưa xác định',
+                'chan_doan'      => $pk->chan_doan ?? '',
+                'ghi_chu'        => $pk->ghi_chu ?? '',
+                'ly_do_den_kham' => $pk->ly_do_den_kham ?? '',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data'    => ['phieu_khams' => $data],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi lấy lịch sử khám',
+            ], 500);
+        }
+    }
 }

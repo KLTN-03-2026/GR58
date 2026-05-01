@@ -4,83 +4,7 @@
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
     @click.self="close"
   >
-    <!-- Success View -->
     <div
-      v-if="isSuccess"
-      class="bg-white border !border-black/15 rounded-[10px] w-full max-w-[512px] m-4 p-6"
-    >
-      <div class="flex flex-col gap-4 items-center justify-center">
-        <!-- Success Icon -->
-        <div
-          class="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center"
-        >
-          <img
-            src="https://www.figma.com/api/mcp/asset/49ad787d-519e-4d49-84a2-20bd7851ef0c"
-            alt="Success"
-            class="w-10 h-10"
-          />
-        </div>
-
-        <!-- Title and Description -->
-        <div class="flex flex-col gap-2">
-          <h2
-            class="text-2xl font-semibold text-neutral-950 text-center leading-8"
-          >
-            Thêm thú cưng thành công
-          </h2>
-          <p class="text-sm font-semibold text-[#717182] text-center px-9">
-            Bạn có muốn đặt lịch khám cho bé {{ formData.name }} ngay không?
-          </p>
-        </div>
-
-        <!-- Pet Info Summary -->
-        <div class="bg-teal-50 rounded-[10px] w-full py-6 px-4">
-          <div class="flex flex-col gap-1 items-center">
-            <div class="flex gap-2 items-center justify-center py-0.5">
-              <p class="text-sm font-semibold text-gray-500">Loài:</p>
-              <p class="text-sm font-medium text-black">
-                {{ getSpeciesLabel(formData.species) }}
-              </p>
-            </div>
-            <div class="flex gap-2 items-center justify-center py-0.5">
-              <p class="text-sm font-semibold text-gray-500">Tên thú cưng:</p>
-              <p class="text-sm font-medium text-black">{{ formData.name }}</p>
-            </div>
-            <div
-              v-if="formData.breed"
-              class="flex gap-2 items-center justify-center py-0.5"
-            >
-              <p class="text-sm font-semibold text-gray-500">Giống:</p>
-              <p class="text-sm font-medium text-black">
-                {{ getBreedLabel(formData.breed) }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex gap-6 items-center">
-          <button
-            type="button"
-            @click="handleBookAppointment"
-            class="bg-[#5a9690] px-8 py-2 rounded-lg text-sm font-semibold text-white hover:bg-teal-800 transition"
-          >
-            Đặt lịch khám
-          </button>
-          <button
-            type="button"
-            @click="close"
-            class="bg-white border border-black/15 px-8 py-2 rounded-lg text-sm font-semibold text-black hover:bg-gray-50 transition"
-          >
-            Huỷ
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Form View -->
-    <div
-      v-else
       class="bg-white border !border-black/15 rounded-[10px] w-full max-w-[512px] max-h-[90vh] overflow-y-auto m-4"
     >
       <div class="flex flex-col gap-3 p-4">
@@ -315,12 +239,11 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["close", "submit", "reset", "bookAppointment"]);
+const emit = defineEmits(["close", "submit", "reset"]);
 
 const fileInput = ref(null);
 const avatarPreview = ref(null);
 const speciesType = ref("");
-const isSuccess = ref(false);
 
 const formData = reactive({
   name: "",
@@ -350,55 +273,20 @@ const handleFileChange = (event) => {
 
 const close = () => {
   emit("close");
-  // Reset state after transition
-  setTimeout(() => {
-    isSuccess.value = false;
-    resetForm();
-  }, 300);
+  setTimeout(resetForm, 300);
 };
 
 const handleSubmit = () => {
-  // Validate required fields
   if (!formData.name || !formData.species) {
     alert("Vui lòng điền đầy đủ thông tin bắt buộc");
     return;
   }
-
   emit("submit", { ...formData });
-  isSuccess.value = true;
 };
 
-const handleBookAppointment = () => {
-  emit("bookAppointment", { ...formData });
-  close();
-};
-
-const getSpeciesLabel = (species) => {
-  const speciesMap = {
-    dog: "Chó",
-    cat: "Mèo",
-    bird: "Chim",
-    parrot: "Vẹt",
-    hamster: "Chuột Hamster",
-    rabbit: "Thỏ",
-    squirrel: "Sóc",
-    other_species: "Loài khác",
-  };
-  return speciesMap[species] || species;
-};
-
-const getBreedLabel = (breed) => {
-  const breedMap = {
-    "golden-retriever": "Golden Retriever",
-    husky: "Husky",
-    poodle: "Poodle",
-    persian: "Persian",
-    siamese: "Siamese",
-    "scottish-fold": "Scottish Fold",
-    other: "Khác",
-  };
-  return breedMap[breed] || breed;
-};
+watch(() => props.isOpen, (val) => {
+  if (!val) resetForm();
+});
 
 watch(speciesType, (newVal) => {
   if (newVal === "dog") formData.species = "dog";

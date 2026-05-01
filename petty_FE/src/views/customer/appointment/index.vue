@@ -354,10 +354,11 @@
                 <!-- Pet Info -->
                 <div class="flex items-center gap-3">
                   <div
-                    class="flex-shrink-0 w-10 h-10 bg-sky-50 rounded-lg flex items-center justify-center border !border-sky-100/50"
+                    :class="petIconClass(appt.petSpecies).wrap"
+                    class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center border"
                   >
                     <svg
-                      class="w-5 h-5 text-sky-500"
+                      :class="['w-5 h-5', petIconClass(appt.petSpecies).icon]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -786,7 +787,20 @@ const mapAppointment = (item) => {
     note: item.ghi_chu || "",
     instruction: item.huong_dan || "",
     status: item.trang_thai || (item.thanhToan ? "paid" : "pending"),
+    petSpecies:
+      item.thuCung?.loai_thu_cung ||
+      item.thu_cung?.loai_thu_cung ||
+      "",
   };
+};
+
+const petIconClass = (species) => {
+  const s = String(species || "").toLowerCase();
+  if (s === "dog" || s.includes("cho"))
+    return { wrap: "bg-orange-50 !border-orange-100/50", icon: "text-orange-500" };
+  if (s === "cat" || s.includes("meo") || s.includes("mèo"))
+    return { wrap: "bg-sky-50 !border-sky-100/50", icon: "text-sky-500" };
+  return { wrap: "bg-purple-50 !border-purple-100/50", icon: "text-purple-500" };
 };
 
 // helpers to render status badge label and classes

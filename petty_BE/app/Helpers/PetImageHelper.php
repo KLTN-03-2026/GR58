@@ -16,12 +16,15 @@ class PetImageHelper
         $loai = strtolower($loai);
         $gioiTinh = $gioiTinh ? strtolower($gioiTinh) : null;
 
-        // Xác định tên file ảnh mặc định
+        // Xác định tên file ảnh mặc định (hỗ trợ cả tên tiếng Việt không dấu và tiếng Anh)
+        $isDog = in_array($loai, ['cho', 'chó', 'dog']);
+        $isCat = in_array($loai, ['meo', 'mèo', 'cat']);
+
         $imageName = match(true) {
-            $loai === 'cho' && $gioiTinh === 'duc' => 'choduc.jpg',
-            $loai === 'cho' && $gioiTinh === 'cai' => 'chocai.jpg',
-            $loai === 'cho' => 'choduc.jpg', // Mặc định chó đực nếu không có giới tính
-            $loai === 'meo' => 'meo.jpg',
+            $isDog && $gioiTinh === 'duc' => 'choduc.jpg',
+            $isDog && $gioiTinh === 'cai' => 'chocai.jpg',
+            $isDog => 'choduc.jpg',
+            $isCat => 'meo.jpg',
             default => 'thucungkhac.jpg',
         };
 

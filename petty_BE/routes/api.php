@@ -106,6 +106,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Thu cưng routes (require authentication)
     Route::get('/thu-cung', [ThuCungController::class, 'index']);
     Route::get('/thu-cung/{thuCung}', [ThuCungController::class, 'show']);
+    Route::get('/thu-cung/{thuCung}/lich-su-kham', [ThuCungController::class, 'lichSuKhamForCustomer']); // Khách hàng xem lịch sử khám của thú cưng
     Route::post('/thu-cung', [ThuCungController::class, 'store']);
     Route::put('/thu-cung/{thuCung}', [ThuCungController::class, 'update']);
     Route::patch('/thu-cung/{thuCung}', [ThuCungController::class, 'update']);

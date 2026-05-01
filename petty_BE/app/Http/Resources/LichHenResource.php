@@ -41,6 +41,7 @@ class LichHenResource extends JsonResource
                 return [
                     'id'             => $this->thuCung->id,
                     'ten_thu_cung'   => $this->thuCung->ten_thu_cung ?? $this->thuCung->ten,
+                    'loai_thu_cung'  => $this->thuCung->loai_thu_cung,
                     'giong_thu_cung' => $this->thuCung->giong_thu_cung,
                     'tuoi_thu_cung'  => $this->thuCung->tuoi_thu_cung
                         ? $this->thuCung->tuoi_thu_cung->format('Y-m-d')

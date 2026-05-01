@@ -47,6 +47,7 @@
             "
             alt="Pet"
             class="w-24 h-24 rounded-xl object-cover"
+            @error="handleImgError"
           />
           <div>
             <h3 class="text-amber-600 font-semibold text-lg">{{ pet.name }}</h3>
@@ -97,45 +98,40 @@
 
         <!-- Tab Vaccination -->
         <div v-show="tab === 'vaccination'" class="space-y-4">
-          <div
-            v-for="v in pet.vaccinations"
-            :key="v.date"
-            class="border border-gray-300 rounded-xl p-4"
-          >
-            <div class="flex justify-between items-center">
-              <span class="font-semibold text-slate-900">{{ v.name }}</span>
-              <span class="text-sm font-medium">{{ v.date }}</span>
-            </div>
-            <p class="text-gray-600 text-sm mt-1">Bác sĩ: {{ v.doctor }}</p>
-          </div>
-
-          <div
-            v-if="pet.upcomingVaccination"
-            class="bg-amber-50 border border-yellow-300 rounded-xl p-4"
-          >
-            <div class="flex items-center gap-2 mb-1">
-              <svg
-                class="w-5 h-5"
-                fill="none"
-                stroke="#bb4d00"
-                viewBox="0 0 16 16"
-              >
-                <circle cx="8" cy="8" r="6" stroke-width="2" />
-                <path d="M8 5v3l2 2" stroke-width="2" stroke-linecap="round" />
-              </svg>
-              <span class="font-bold text-orange-900">Lịch tiêm sắp tới</span>
-            </div>
-            <p class="font-bold text-orange-700">
-              {{ pet.upcomingVaccination }}
-            </p>
+          <div class="flex flex-col items-center justify-center py-8 text-center text-gray-400">
+            <svg class="w-12 h-12 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="font-medium text-sm">Chưa có lịch tiêm phòng</p>
           </div>
         </div>
 
         <!-- Tab Medical -->
         <div v-show="tab === 'medical'" class="space-y-4">
+          <!-- Loading -->
+          <div v-if="loadingHistory" class="flex justify-center py-8">
+            <svg class="animate-spin w-8 h-8 text-[#5a9690]" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+          </div>
+
+          <!-- Empty state -->
           <div
-            v-for="m in pet.medicalRecords"
-            :key="m.date"
+            v-else-if="medicalRecords.length === 0"
+            class="flex flex-col items-center justify-center py-8 text-center text-gray-400"
+          >
+            <svg class="w-12 h-12 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p class="font-medium text-sm">Chưa có lịch sử khám bệnh</p>
+          </div>
+
+          <!-- Records list -->
+          <div
+            v-else
+            v-for="m in medicalRecords"
+            :key="m.id"
             class="border border-gray-300 rounded-xl p-4"
           >
             <div class="flex justify-between items-center mb-1">
@@ -143,7 +139,7 @@
               <span class="text-sm font-medium">{{ m.date }}</span>
             </div>
             <p class="text-gray-600 text-sm">Bác sĩ: {{ m.doctor }}</p>
-            <p class="text-slate-700 font-medium text-sm">
+            <p v-if="m.note" class="text-slate-700 font-medium text-sm">
               Ghi chú: {{ m.note }}
             </p>
           </div>
@@ -152,6 +148,7 @@
         <!-- Action Buttons -->
         <div class="flex gap-3 mt-8">
           <button
+            @click="handleBookAppointment"
             class="flex-1 bg-[#5a9690] text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:opacity-90 transition"
           >
             Đặt lịch khám lại
@@ -398,9 +395,11 @@
 
 <script setup>
 import { ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import axios from "axios";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
 import { getToken } from "@/utils/auth";
+import { getLichSuKham } from "@/services/thuCungService";
 import CloseIcon from "@/assets/svg/close.svg";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api";
@@ -412,9 +411,15 @@ const props = defineProps({
 
 const emit = defineEmits(["close", "updated"]);
 
+const router = useRouter();
+
 // Tabs & popup
 const tab = ref("vaccination");
 const showUpdatePopup = ref(false);
+
+// Lịch sử khám bệnh
+const loadingHistory = ref(false);
+const medicalRecords = ref([]);
 
 // Dữ liệu chỉnh sửa
 const petData = ref({
@@ -512,6 +517,49 @@ watch(
 // Lấy ID chính xác (rất quan trọng!)
 const getPetId = () => {
   return props.pet?.id || props.pet?.thu_cung_id || props.pet?.pet_id || null;
+};
+
+// Fetch lịch sử khám khi popup mở
+const fetchHistory = async (petId) => {
+  if (!petId) return;
+  loadingHistory.value = true;
+  medicalRecords.value = [];
+  try {
+    const res = await getLichSuKham(petId);
+    const list = res?.data?.phieu_khams ?? [];
+    medicalRecords.value = list.map((pk) => ({
+      id: pk.id,
+      title: pk.chan_doan || pk.ly_do_den_kham || "Khám tổng quát",
+      date: pk.date,
+      doctor: pk.bac_si,
+      note: pk.ghi_chu || "",
+    }));
+  } catch {
+    medicalRecords.value = [];
+  } finally {
+    loadingHistory.value = false;
+  }
+};
+
+watch(
+  () => props.isOpen,
+  (val) => {
+    if (val && props.pet) {
+      fetchHistory(props.pet.id || props.pet.thu_cung_id);
+    }
+  }
+);
+
+// Đặt lịch khám lại
+const handleBookAppointment = () => {
+  const petId = getPetId();
+  emit("close");
+  router.push({ path: "/customer/appointments/book", query: { pet_id: petId } });
+};
+
+// Ảnh fallback
+const handleImgError = (event) => {
+  event.target.src = imgPetPlaceholder;
 };
 
 // Các hàm
