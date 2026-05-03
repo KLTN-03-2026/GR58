@@ -497,6 +497,10 @@ export default {
       type: String,
       default: "HSBA-001",
     },
+    recordData: {
+      type: Object,
+      default: null,
+    },
     // For view mode
     resultData: {
       type: Object,
@@ -537,7 +541,7 @@ export default {
         uploadBtn:
           "https://www.figma.com/api/mcp/asset/573b343d-a6fa-4f24-bb9c-b2bc40a709a6",
       },
-      patientInfo: {
+      patientInfo: this.recordData?.patientInfo || {
         image:
           "https://www.figma.com/api/mcp/asset/e67eace5-4e3d-4730-901c-05b98d42a814",
         name: "Milo",
@@ -547,7 +551,7 @@ export default {
         ownerName: "Nguyễn Văn A",
         ownerPhone: "0901.234.567",
       },
-      orderInfo: {
+      orderInfo: this.recordData?.orderInfo || {
         service: "Siêu âm ổ bụng",
         note: "Kiểm tra dị vật dạ dày. Thú cưng dữ, cần rọ mõm.",
       },

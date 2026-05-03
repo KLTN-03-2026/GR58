@@ -620,7 +620,7 @@ class LichHenController extends Controller
 
             // Thực hiện check-in
             $lichHen->thoi_gian_checkin = now();
-            $lichHen->trang_thai = 'dang_kham'; // Chuyển sang trạng thái chờ bác sĩ khám
+            $lichHen->trang_thai = 'in-progress'; // Chuyển sang trạng thái chờ bác sĩ khám
             $lichHen->y_ta_checkin_id = $user->id; // Lưu ID y tá thực hiện check-in
 
             // Gán bác sĩ nếu được chọn
@@ -795,7 +795,7 @@ class LichHenController extends Controller
 
             $query = LichHen::with(['khachHang', 'thuCung', 'dichVu', 'nhanVien', 'yTaCheckin'])
                 ->whereNotNull('thoi_gian_checkin') // Đã check-in
-                ->where('trang_thai', 'in-progress') // Đang chờ khám
+                ->whereIn('trang_thai', ['in-progress', 'dang_kham']) // Đang chờ khám
                 ->whereNull('thoi_gian_bat_dau_kham'); // Chưa bắt đầu khám
 
             // Nếu là bác sĩ, chỉ xem bệnh nhân được phân công cho mình
@@ -875,7 +875,7 @@ class LichHenController extends Controller
             }
 
             // Kiểm tra trạng thái lịch hẹn
-            if ($lichHen->trang_thai !== 'in-progress') {
+            if (!in_array($lichHen->trang_thai, ['in-progress', 'dang_kham'])) {
                 return response()->json([
                     'status' => false,
                     'message' => 'Lịch hẹn không thể bắt đầu khám. Trạng thái hiện tại: ' . $lichHen->trang_thai,
@@ -907,6 +907,7 @@ class LichHenController extends Controller
 
             // Gán bác sĩ và bắt đầu khám
             $lichHen->nhan_vien_id = $user->id; // Gán bác sĩ đang khám
+            $lichHen->trang_thai = 'in-progress';
             $lichHen->thoi_gian_bat_dau_kham = now();
             $lichHen->save();
 
@@ -953,7 +954,7 @@ class LichHenController extends Controller
             $query = LichHen::with(['khachHang', 'thuCung', 'dichVu', 'nhanVien'])
                 ->whereNotNull('thoi_gian_bat_dau_kham') // Đã bắt đầu khám
                 ->whereNull('thoi_gian_hoan_thanh') // Chưa hoàn thành
-                ->where('trang_thai', 'in-progress');
+                ->whereIn('trang_thai', ['in-progress', 'dang_kham']);
 
             // Nếu là bác sĩ, chỉ xem bệnh nhân của mình
             if ($user instanceof \App\Models\NhanVien) {

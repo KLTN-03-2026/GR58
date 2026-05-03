@@ -61,6 +61,9 @@
     <div v-if="loading" class="text-center py-12 text-gray-500">
       Đang tải lịch khám...
     </div>
+    <div v-else-if="error" class="text-center py-12 text-red-600">
+      {{ error }}
+    </div>
     <div
       v-else-if="displayAppointments.length === 0"
       class="text-center py-12 text-gray-500"
@@ -186,10 +189,14 @@
                   {{ appt.thu_cung?.ten_thu_cung || "Chưa có tên" }}
                 </h3>
                 <span class="text-[#101828]"
-                  >({{ appt.thu_cung?.giong_loai || "?" }})</span
+                  >({{
+                    appt.thu_cung?.giong_thu_cung ||
+                    appt.thu_cung?.loai_thu_cung ||
+                    "?"
+                  }})</span
                 >
                 <span class="text-sm text-[#4a5565]"
-                  >- {{ calculateAge(appt.thu_cung?.ngay_sinh) }}</span
+                  >- {{ calculateAge(appt.thu_cung?.tuoi_thu_cung) }}</span
                 >
 
                 <span
@@ -216,12 +223,16 @@
 
               <div class="flex items-center gap-3 text-sm">
                 <span class="text-[#364153]">Chủ:</span>
-                <span class="font-bold">{{ appt.khach_hang }}</span>
+                <span class="font-bold">{{
+                  appt.khach_hang?.full_name || "Chưa có chủ nuôi"
+                }}</span>
                 <span class="text-[#99a1af]">•</span>
                 <div class="flex items-center gap-1">
                   <!-- <img src="@/assets/svg/phonecall.svg" class="w-4 h-4" /> -->
                   <span class="text-[#4a5565]">{{
-                    appt.khach_hang?.so_dien_thoai || "Chưa có"
+                    appt.khach_hang?.phone ||
+                    appt.khach_hang?.so_dien_thoai ||
+                    "Chưa có"
                   }}</span>
                 </div>
               </div>
@@ -229,7 +240,7 @@
               <div
                 class="inline-flex px-3 py-1 bg-blue-50 border !border-[#bedbff] rounded-lg text-xs text-[#1447e6] w-fit"
               >
-                {{ appt.dich_vu?.ten || "Khám tổng quát" }}
+                {{ appt.dich_vu?.ten_dich_vu || appt.dich_vu?.ten || "Khám tổng quát" }}
               </div>
 
               <!-- Ghi chú -->
@@ -305,6 +316,7 @@
 import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import api from "@/utils/api";
+import { getUser } from "@/utils/auth";
 import { format, differenceInMinutes, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 //Icon SVG
@@ -316,7 +328,9 @@ const router = useRouter();
 const currentDate = ref(new Date());
 const appointments = ref([]); // Bệnh nhân chờ khám
 const examiningAppointments = ref([]); // Bệnh nhân đang khám
+const completedAppointments = ref([]); // Bệnh nhân đã hoàn thành
 const loading = ref(false);
+const error = ref(null);
 const activeTab = ref("waiting"); // Mặc định tab "Chờ khám"
 
 // Format helpers
@@ -419,11 +433,13 @@ const statusTabs = computed(() => {
   const examining = examiningAppointments.value.length;
 
   // Tổng số
-  const all = waiting + examining;
+  const completed = completedAppointments.value.length;
+  const all = waiting + examining + completed;
 
   return [
     { label: "Chờ khám", value: "waiting", count: waiting },
     { label: "Đang khám", value: "examining", count: examining },
+    { label: "Hoàn thành", value: "completed", count: completed },
     { label: "Tất cả", value: "all", count: all },
   ];
 });
@@ -437,9 +453,15 @@ const displayAppointments = computed(() => {
   } else if (activeTab.value === "examining") {
     // Tab đang khám - lấy từ examiningAppointments
     list = [...examiningAppointments.value];
+  } else if (activeTab.value === "completed") {
+    list = [...completedAppointments.value];
   } else {
-    // Tab tất cả - gộp cả 2 list
-    list = [...appointments.value, ...examiningAppointments.value];
+    // Tab tất cả - gộp toàn bộ workflow trong ngày
+    list = [
+      ...appointments.value,
+      ...examiningAppointments.value,
+      ...completedAppointments.value,
+    ];
   }
 
   // Sắp xếp theo thời gian check-in (ai check-in trước khám trước)
@@ -452,7 +474,7 @@ const displayAppointments = computed(() => {
 
 // Lấy dữ liệu từ API - CHỈ BỆNH NHÂN ĐÃ CHECK-IN (chờ khám)
 const fetchAppointments = async () => {
-  loading.value = true;
+  error.value = null;
   try {
     const dateStr = format(currentDate.value, "yyyy-MM-dd");
 
@@ -464,8 +486,6 @@ const fetchAppointments = async () => {
       },
     });
 
-    console.log("API Response (Bệnh nhân chờ khám):", res.data);
-
     // Handle both paginated and non-paginated responses
     let data = [];
     if (res.data.status && res.data.data) {
@@ -475,28 +495,14 @@ const fetchAppointments = async () => {
         data = res.data.data.data;
       }
     }
-
-    console.log("Processed data count:", data.length);
-    if (data.length > 0) {
-      console.log("Sample appointment:", {
-        id: data[0].id,
-        ngay_gio: data[0].ngay_gio,
-        thoi_gian_checkin: data[0].thoi_gian_checkin,
-        trang_thai: data[0].trang_thai,
-        khach_hang: data[0].khach_hang,
-        thu_cung: data[0].thu_cung?.ten_thu_cung,
-      });
-    }
-
     appointments.value = data.map((appt) => ({
       ...appt,
       displayStatus: getStatus(appt),
     }));
   } catch (err) {
     console.error("Error fetching appointments:", err);
-    console.error("Error details:", err.response?.data);
-  } finally {
-    loading.value = false;
+    error.value =
+      err.response?.data?.message || "Không thể tải danh sách chờ khám.";
   }
 };
 
@@ -511,8 +517,6 @@ const fetchExaminingAppointments = async () => {
         per_page: 100,
       },
     });
-
-    console.log("API Response (Bệnh nhân đang khám):", res.data);
 
     let data = [];
     if (res.data.status && res.data.data) {
@@ -529,13 +533,59 @@ const fetchExaminingAppointments = async () => {
     }));
   } catch (err) {
     console.error("Error fetching examining appointments:", err);
+    error.value =
+      err.response?.data?.message || "Không thể tải danh sách đang khám.";
+  }
+};
+
+// Lấy danh sách bệnh nhân đã hoàn thành trong ngày
+const fetchCompletedAppointments = async () => {
+  try {
+    const dateStr = format(currentDate.value, "yyyy-MM-dd");
+    const currentDoctor = getUser("bac_si");
+    const res = await api.get("/lich-hen-all", {
+      params: {
+        from_date: `${dateStr} 00:00:00`,
+        to_date: `${dateStr} 23:59:59`,
+        trang_thai: "completed",
+        per_page: 100,
+        ...(currentDoctor?.id ? { nhan_vien_id: currentDoctor.id } : {}),
+      },
+    });
+
+    let data = [];
+    if (res.data.status && res.data.data) {
+      if (Array.isArray(res.data.data)) {
+        data = res.data.data;
+      } else if (res.data.data.data && Array.isArray(res.data.data.data)) {
+        data = res.data.data.data;
+      }
+    }
+
+    completedAppointments.value = data.map((appt) => ({
+      ...appt,
+      displayStatus: {
+        type: "completed",
+        label: "Hoàn thành",
+        color: "green",
+      },
+    }));
+  } catch (err) {
+    console.error("Error fetching completed appointments:", err);
+    error.value =
+      err.response?.data?.message || "Không thể tải danh sách hoàn thành.";
   }
 };
 
 // Fetch tất cả dữ liệu
 const fetchAllData = async () => {
   loading.value = true;
-  await Promise.all([fetchAppointments(), fetchExaminingAppointments()]);
+  error.value = null;
+  await Promise.all([
+    fetchAppointments(),
+    fetchExaminingAppointments(),
+    fetchCompletedAppointments(),
+  ]);
   loading.value = false;
 };
 

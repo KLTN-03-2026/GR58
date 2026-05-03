@@ -102,11 +102,17 @@
       <div class="flex items-center gap-2 mb-6">
         <!-- <img :src="icons.clockOrange" alt="" class="w-5 h-5" /> -->
         <h2 class="text-base font-semibold text-black">
-          Đang chờ thực hiện ({{ pendingRecords.length }})
+          Đang chờ thực hiện ({{ filteredPendingRecords.length }})
         </h2>
       </div>
 
-      <div class="overflow-hidden">
+      <div v-if="loading" class="py-10 text-center text-gray-500">
+        Đang tải danh sách cận lâm sàng...
+      </div>
+      <div v-else-if="error" class="py-10 text-center text-red-600">
+        {{ error }}
+      </div>
+      <div v-else-if="filteredPendingRecords.length" class="overflow-hidden">
         <table class="w-full">
           <thead>
             <tr class="border-b border-[rgba(0,0,0,0.1)]">
@@ -156,7 +162,7 @@
           </thead>
           <tbody>
             <tr
-              v-for="record in pendingRecords"
+              v-for="record in filteredPendingRecords"
               :key="record.id"
               class="border-b !border-gray-300"
             >
@@ -218,6 +224,9 @@
           </tbody>
         </table>
       </div>
+      <div v-else class="py-10 text-center text-gray-500">
+        Không có chỉ định cận lâm sàng đang chờ.
+      </div>
     </div>
 
     <!-- Completed Table -->
@@ -230,11 +239,11 @@
           class="text-[16px] font-normal leading-4 text-neutral-950 tracking-[-0.3125px]"
           style="font-family: 'Inter', sans-serif"
         >
-          Đã hoàn tất ({{ completedRecords.length }})
+          Đã hoàn tất ({{ filteredCompletedRecords.length }})
         </h2>
       </div>
 
-      <div class="overflow-hidden">
+      <div v-if="filteredCompletedRecords.length" class="overflow-hidden">
         <table class="w-full">
           <thead>
             <tr class="border-b border-[rgba(0,0,0,0.1)]">
@@ -284,7 +293,7 @@
           </thead>
           <tbody>
             <tr
-              v-for="record in completedRecords"
+              v-for="record in filteredCompletedRecords"
               :key="record.id"
               class="border-b border-[rgba(0,0,0,0.1)] last:border-b-0"
             >
@@ -367,6 +376,9 @@
           </tbody>
         </table>
       </div>
+      <div v-else class="py-10 text-center text-gray-500">
+        Chưa có kết quả cận lâm sàng hoàn tất.
+      </div>
     </div>
 
     <!-- Ket Qua Sieu Am Modal -->
@@ -374,6 +386,7 @@
       v-if="isResultModalOpen"
       :mode="resultModalMode"
       :record-id="selectedRecord?.code"
+      :record-data="selectedRecord"
       :result-data="viewResultData"
       @close="closeResultModal"
       @save="handleSaveResult"
@@ -382,13 +395,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { computed, onMounted, ref } from "vue";
+import api from "@/utils/api";
 import ClinicalTestResult from "./clinical-test-result/index.vue";
 
 // Modal state
 const isResultModalOpen = ref(false);
 const resultModalMode = ref("upload");
 const selectedRecord = ref(null);
+const loading = ref(false);
+const error = ref(null);
+const pendingRecords = ref([]);
+const completedRecords = ref([]);
+const searchQuery = ref("");
 
 // Computed property for view mode data
 const viewResultData = computed(() => {
@@ -396,31 +415,128 @@ const viewResultData = computed(() => {
     return undefined;
   }
 
-  return {
-    petImage:
-      "https://www.figma.com/api/mcp/asset/e67eace5-4e3d-4730-901c-05b98d42a814",
-    petName: selectedRecord.value.patientName,
-    petSpecies: selectedRecord.value.patientBreed,
-    petAge: "2 tuổi",
-    petWeight: "28kg",
-    ownerName: "Nguyễn Văn A",
-    ownerPhone: "0901.234.567",
-    images: [
-      {
-        url: "https://www.figma.com/api/mcp/asset/f01361b0-2d8c-43d7-bb5a-199a6e6fb476",
-        name: "Ultrasound 1",
-      },
-      {
-        url: "https://www.figma.com/api/mcp/asset/262a170f-695f-41f4-9fbd-ce1f709b4d6d",
-        name: "Ultrasound 2",
-      },
-    ],
-    imageCount: 2,
-    performedBy: selectedRecord.value.doctor,
-    time: selectedRecord.value.time,
-    conclusion: "Thai kỳ ổn định, 2 bào thai",
-  };
+  return buildResultData(selectedRecord.value);
 });
+
+const stats = computed(() => ({
+  pending: pendingRecords.value.length,
+  completedToday: completedRecords.value.filter((record) => record.isToday).length,
+  total: pendingRecords.value.length + completedRecords.value.length,
+}));
+
+const filteredPendingRecords = computed(() => filterRecords(pendingRecords.value));
+const filteredCompletedRecords = computed(() => filterRecords(completedRecords.value));
+
+const defaultPetImage =
+  "https://www.figma.com/api/mcp/asset/e67eace5-4e3d-4730-901c-05b98d42a814";
+
+const formatDateTime = (value) => {
+  if (!value) return "--:--";
+  const date = new Date(String(value).replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) return "--:--";
+  return date.toLocaleString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+  });
+};
+
+const isSameDay = (value) => {
+  const date = new Date(String(value).replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) return false;
+  const now = new Date();
+  return date.toDateString() === now.toDateString();
+};
+
+const getPet = (record) => record?.lich_hen?.thu_cung || {};
+const getOwner = (record) => record?.lich_hen?.khach_hang || {};
+
+const mapClinicalRecord = (record) => {
+  const pet = getPet(record);
+  const owner = getOwner(record);
+  const files = record.tep_dinh_kem_can_lam_sang || [];
+
+  return {
+    id: record.id,
+    code: `PK-${String(record.id).padStart(4, "0")}`,
+    patientName: pet.ten_thu_cung || pet.ten || "Chưa có tên",
+    patientBreed:
+      pet.giong_thu_cung || pet.loai_thu_cung || pet.giong_loai || "Chưa rõ giống",
+    service: "Cận lâm sàng",
+    doctor: record.nhan_vien?.full_name || "Chưa xác định",
+    time: formatDateTime(record.created_at),
+    isToday: isSameDay(record.thoi_gian_tra_ket_qua || record.created_at),
+    conclusion: record.ket_qua_can_lam_sang || "",
+    files,
+    raw: record,
+    patientInfo: {
+      image: pet.anh_dai_dien || pet.anh || defaultPetImage,
+      name: pet.ten_thu_cung || pet.ten || "Chưa có tên",
+      species: pet.giong_thu_cung || pet.loai_thu_cung || "Thú cưng",
+      age: pet.tuoi_thu_cung || "Chưa rõ tuổi",
+      weight: record.can_nang ? `${record.can_nang}kg` : "Chưa cân",
+      ownerName: owner.full_name || owner.ho_ten || "Chưa có chủ nuôi",
+      ownerPhone: owner.phone || owner.so_dien_thoai || "Chưa có SĐT",
+    },
+    orderInfo: {
+      service: "Cận lâm sàng",
+      note: record.ghi_chu || record.chan_doan || "Không có lưu ý",
+    },
+  };
+};
+
+const buildResultData = (record) => {
+  const files = record.files || [];
+  return {
+    petImage: record.patientInfo?.image || defaultPetImage,
+    petName: record.patientName,
+    petSpecies: record.patientBreed,
+    petAge: record.patientInfo?.age || "Chưa rõ tuổi",
+    petWeight: record.patientInfo?.weight || "Chưa cân",
+    ownerName: record.patientInfo?.ownerName || "Chưa có chủ nuôi",
+    ownerPhone: record.patientInfo?.ownerPhone || "Chưa có SĐT",
+    images: files.length ? files : [{ url: "", name: "Không có file" }],
+    imageCount: files.length,
+    performedBy: record.doctor,
+    time: formatDateTime(record.raw?.thoi_gian_tra_ket_qua || record.raw?.updated_at),
+    conclusion: record.conclusion || "Chưa có kết luận",
+  };
+};
+
+const filterRecords = (records) => {
+  const keyword = searchQuery.value.trim().toLowerCase();
+  if (!keyword) return records;
+
+  return records.filter((record) => {
+    return [record.code, record.patientName, record.patientBreed, record.service]
+      .filter(Boolean)
+      .some((value) => value.toLowerCase().includes(keyword));
+  });
+};
+
+const loadClinicalRecords = async () => {
+  loading.value = true;
+  error.value = null;
+  try {
+    const { data: res } = await api.get("/phieu-kham", {
+      params: {
+        loai_chi_dinh: "chi_dinh_can_lam_sang",
+        per_page: 100,
+      },
+    });
+
+    const records = (res.data || []).map(mapClinicalRecord);
+    pendingRecords.value = records.filter((record) => !record.raw?.ket_qua_can_lam_sang);
+    completedRecords.value = records.filter((record) => record.raw?.ket_qua_can_lam_sang);
+  } catch (err) {
+    console.error("Clinical testing load error:", err);
+    error.value =
+      err.response?.data?.message || "Không thể tải dữ liệu cận lâm sàng.";
+  } finally {
+    loading.value = false;
+  }
+};
 
 const openUploadResultModal = (record) => {
   selectedRecord.value = record;
@@ -440,9 +556,31 @@ const closeResultModal = () => {
 };
 
 const handleSaveResult = (data) => {
-  console.log("Saved result:", data);
-  // TODO: Update record status and move to completed list
-  closeResultModal();
+  saveResult(data);
+};
+
+const saveResult = async (data) => {
+  if (!selectedRecord.value?.id) return;
+
+  try {
+    const files = data.files.map((file) => ({
+      name: file.name,
+      url: file.preview || "",
+      type: file.file?.type || "",
+    }));
+
+    await api.patch(`/phieu-kham/${selectedRecord.value.id}`, {
+      ket_qua_can_lam_sang: data.conclusion || "Đã có kết quả",
+      tep_dinh_kem_can_lam_sang: files,
+      thoi_gian_tra_ket_qua: new Date().toISOString(),
+    });
+
+    await loadClinicalRecords();
+    closeResultModal();
+  } catch (err) {
+    console.error("Clinical testing save error:", err);
+    alert(err.response?.data?.message || "Không thể lưu kết quả cận lâm sàng.");
+  }
 };
 
 // Icons from Figma
@@ -470,68 +608,7 @@ const icons = {
     "https://www.figma.com/api/mcp/asset/d2ca21dc-5376-47eb-944d-72fcb76def1e",
 };
 
-// Search query
-const searchQuery = ref("");
-
-// Statistics
-const stats = ref({
-  pending: 3,
-  completedToday: 1,
-  total: 4,
-});
-
-// Pending records
-const pendingRecords = ref([
-  {
-    id: 1,
-    code: "HSBA-001",
-    patientName: "Milo",
-    patientBreed: "Chó Golden Retriever",
-    service: "Siêu âm",
-    doctor: "BS. Nguyễn Văn A",
-    time: "09:30 hôm nay",
-  },
-  {
-    id: 2,
-    code: "HSBA-002",
-    patientName: "Lucy",
-    patientBreed: "Mèo Ba Tư",
-    service: "X-Quang",
-    doctor: "BS. Trần Thu B",
-    time: "09:45 hôm nay",
-  },
-  {
-    id: 3,
-    code: "HSBA-003",
-    patientName: "Max",
-    patientBreed: "Chó Poodle",
-    service: "Xét nghiệm máu",
-    doctor: "BS. Nguyễn Văn A",
-    time: "10:00 hôm nay",
-  },
-]);
-
-// Completed records
-const completedRecords = ref([
-  {
-    id: 4,
-    code: "HSBA-004",
-    patientName: "Bella",
-    patientBreed: "Mèo Anh lông ngắn",
-    service: "Siêu âm",
-    doctor: "BS. Lê Văn C",
-    time: "08:30 hôm nay",
-  },
-  {
-    id: 5,
-    code: "HSBA-005",
-    patientName: "Rocky",
-    patientBreed: "Chó Husky",
-    service: "X-Quang",
-    doctor: "BS. Nguyễn Văn A",
-    time: "Hôm qua",
-  },
-]);
+onMounted(loadClinicalRecords);
 </script>
 
 <style scoped>

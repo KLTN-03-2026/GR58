@@ -76,11 +76,42 @@ class PhieuKhamController extends Controller
     /**
      * Lấy danh sách tất cả phiếu khám
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $phieuKhams = PhieuKham::with(['lichHen', 'nhanVien'])
-                ->paginate(15);
+            $query = PhieuKham::with([
+                'lichHen.thuCung',
+                'lichHen.khachHang',
+                'nhanVien',
+            ]);
+
+            if ($request->filled('loai_chi_dinh')) {
+                $query->where('loai_chi_dinh', $request->get('loai_chi_dinh'));
+            }
+
+            if ($request->filled('from_date')) {
+                $query->where('created_at', '>=', \Carbon\Carbon::parse($request->get('from_date'))->startOfDay());
+            }
+
+            if ($request->filled('to_date')) {
+                $query->where('created_at', '<=', \Carbon\Carbon::parse($request->get('to_date'))->endOfDay());
+            }
+
+            if ($request->filled('search')) {
+                $keyword = $request->get('search');
+                $query->where(function ($q) use ($keyword) {
+                    $q->where('id', $keyword)
+                        ->orWhereHas('lichHen.thuCung', function ($petQuery) use ($keyword) {
+                            $petQuery->where('ten_thu_cung', 'like', "%{$keyword}%")
+                                ->orWhere('ten', 'like', "%{$keyword}%");
+                        });
+                });
+            }
+
+            $perPage = (int) $request->get('per_page', 15);
+            $phieuKhams = $query
+                ->orderByDesc('created_at')
+                ->paginate($perPage);
 
             return response()->json([
                 'message' => 'Lấy danh sách phiếu khám thành công',
@@ -234,7 +265,12 @@ class PhieuKhamController extends Controller
             $validated = $request->validated();
 
             // Cập nhật phiếu khám
+            if (array_key_exists('ket_qua_can_lam_sang', $validated) && !empty($validated['ket_qua_can_lam_sang'])) {
+                $validated['thoi_gian_tra_ket_qua'] = $validated['thoi_gian_tra_ket_qua'] ?? now();
+            }
+
             $phieuKham->update($validated);
+            $phieuKham->load(['lichHen.thuCung', 'lichHen.khachHang', 'nhanVien']);
 
             return response()->json([
                 'success' => true,

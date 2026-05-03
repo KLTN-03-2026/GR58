@@ -8,6 +8,19 @@
       </p>
     </div>
 
+    <div
+      v-if="loading"
+      class="bg-blue-50 border !border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-700"
+    >
+      Đang tải dữ liệu dashboard...
+    </div>
+    <div
+      v-else-if="error"
+      class="bg-red-50 border !border-red-200 rounded-lg px-4 py-3 text-sm text-red-600"
+    >
+      {{ error }}
+    </div>
+
     <!-- Stats Cards -->
     <div class="grid grid-cols-4 gap-4 h-[110px]">
       <!-- Card 1: Ca khám hôm nay -->
@@ -268,6 +281,7 @@
                 </button>
                 <button
                   class="bg-[#155dfc] rounded-lg px-4 py-2.5 flex items-center gap-3 hover:bg-blue-700"
+                  @click="handleStartExam(nextPatient)"
                 >
                   <!-- <img :src="icons.playCircle" alt="" class="w-4 h-4" /> -->
                   <span
@@ -279,6 +293,12 @@
               </div>
             </div>
           </div>
+          <div
+            v-else
+            class="border !border-gray-300 rounded-[14px] px-6 py-8 text-center text-gray-500"
+          >
+            Hiện chưa có bệnh nhân nào đang chờ khám.
+          </div>
         </div>
 
         <!-- Queue List -->
@@ -289,7 +309,7 @@
             Tiếp theo trong hàng chờ:
           </p>
 
-          <div class="flex flex-col gap-3">
+          <div v-if="queueList.length" class="flex flex-col gap-3">
             <div
               v-for="patient in queueList"
               :key="patient.id"
@@ -392,6 +412,9 @@
               </div>
             </div>
           </div>
+          <div v-else class="text-sm text-gray-500">
+            Không còn bệnh nhân nào trong hàng chờ.
+          </div>
         </div>
       </div>
     </div>
@@ -411,7 +434,7 @@
       </div>
 
       <!-- Schedule List -->
-      <div class="flex flex-col gap-2">
+      <div v-if="scheduleToday.length" class="flex flex-col gap-2">
         <div
           v-for="schedule in scheduleToday"
           :key="schedule.id"
@@ -445,12 +468,15 @@
           </div>
         </div>
       </div>
+      <div v-else class="text-sm text-gray-500">
+        Hôm nay chưa có lịch đặt trước nào.
+      </div>
     </div>
 
     <!-- Change Turn Modal -->
     <ChangeTurnModal
       :is-open="isChangeTurnOpen"
-      :current-patient="nextPatient.petName"
+      :current-patient="nextPatient?.petName || ''"
       :next-patient="nextInQueueName"
       @close="isChangeTurnOpen = false"
       @confirm="handleConfirmSkip"
@@ -460,7 +486,7 @@
     <PriorityExamModal
       :is-open="isPriorityExamOpen"
       :patient-name="selectedPriorityPatient?.petName"
-      :current-patient="nextPatient.petName"
+      :current-patient="nextPatient?.petName || ''"
       @close="isPriorityExamOpen = false"
       @confirm="handleConfirmPriority"
     />
@@ -468,7 +494,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import {
+  getAllAppointments,
+  getPatientsWaitingExam,
+  getExaminingPatients,
+  startExamination,
+} from "@/services/lichHenService";
+import { getUser } from "@/utils/auth";
 import ChangeTurnModal from "./change-turn/index.vue";
 import PriorityExamModal from "./priority-examination/index.vue";
 
@@ -512,109 +546,226 @@ const icons = {
 };
 
 // State for modal
+const router = useRouter();
 const isChangeTurnOpen = ref(false);
 const isPriorityExamOpen = ref(false);
 const selectedPriorityPatient = ref(null);
+const loading = ref(false);
+const error = ref(null);
+
+const defaultPetImage =
+  "https://www.figma.com/api/mcp/asset/11853062-cea6-48f7-bbb7-c5806a6d16e0";
 
 // Stats data
 const stats = ref({
-  appointments: 12,
-  completed: 5,
-  waiting: 3,
-  revenue: "8.5M",
+  appointments: 0,
+  completed: 0,
+  waiting: 0,
+  revenue: "0 đ",
 });
 
 // Next patient data
-const nextPatient = ref({
-  petName: "Milo",
-  petType: "Chó Golden",
-  petImage:
-    "https://www.figma.com/api/mcp/asset/11853062-cea6-48f7-bbb7-c5806a6d16e0",
-  ownerName: "Nguyễn Văn A",
-  service: "Khám tổng quát",
-  appointmentTime: "09:00",
-  checkInTime: "--:--",
-  lateTime: "30 phút",
-  note: "Bé hơi dữ, cẩn thận khi tiếp cận",
-});
+const nextPatient = ref(null);
 
 // Queue list data
-const queueList = ref([
-  {
-    id: 1,
-    petName: "Lu",
-    petType: "Mèo Anh Lông Ngắn",
-    petImage:
-      "https://www.figma.com/api/mcp/asset/5041ba45-eefc-4b15-a371-9387846090d4",
-    ownerName: "Đỗ Thị D",
-    service: "Khám tổng quát",
-    badge: "Vãng lai",
-    status: "Đã đến",
-    checkInTime: "09:12",
-    waitTime: "Chờ 18 phút",
-    waitBadgeStyle: "bg-[#ffedd4] border !border-[#e9d4ff]",
-    waitTextStyle: "text-[#ca3500]",
-    waitIcon: icons.clockOrange,
-    canStartNow: true,
-  },
-  {
-    id: 2,
-    petName: "Luna",
-    petType: "Mèo Ba Tư",
-    petImage:
-      "https://www.figma.com/api/mcp/asset/7375820c-bb0e-4aa5-ad91-51671bea802f",
-    ownerName: "Trần Thị B",
-    service: "Tiêm phòng vắc-xin",
-    badge: "Thành Viên",
-    status: "Đã đến",
-    checkInTime: "09:24",
-    waitTime: "6 phút",
+const queueList = ref([]);
+
+// Schedule today data
+const scheduleToday = ref([]);
+
+const pad = (value) => String(value).padStart(2, "0");
+
+const formatDateParam = (date) => {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )}`;
+};
+
+const parseDateTime = (value) => {
+  if (!value) return null;
+  const date = new Date(typeof value === "string" ? value.replace(" ", "T") : value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const formatTime = (value) => {
+  const date = parseDateTime(value);
+  if (!date) return "--:--";
+  return date.toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const formatCurrency = (value) => {
+  const amount = Number(value) || 0;
+  if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(1)} tỷ`;
+  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)} tr`;
+  return `${new Intl.NumberFormat("vi-VN").format(Math.round(amount))} đ`;
+};
+
+const extractList = (response) => {
+  const payload = response?.data ?? response;
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.data?.data)) return payload.data.data;
+  return [];
+};
+
+const getPetType = (appointment) => {
+  const pet = appointment?.thu_cung || {};
+  return (
+    pet.giong_thu_cung ||
+    pet.giong_loai ||
+    pet.giong ||
+    pet.loai_thu_cung ||
+    "Chưa rõ giống"
+  );
+};
+
+const getBadge = (appointment) => {
+  if (appointment?.la_khach_vang_lai || appointment?.nguon_goc === "walkin") {
+    return "Vãng lai";
+  }
+  if (appointment?.khach_hang?.rank) return "Thành Viên";
+  return "Đặt trước";
+};
+
+const getWaitMinutes = (appointment) => {
+  const start = parseDateTime(appointment?.thoi_gian_checkin);
+  if (!start) return 0;
+  return Math.max(0, Math.floor((Date.now() - start.getTime()) / 60000));
+};
+
+const getLateMinutes = (appointment) => {
+  const appointmentTime = parseDateTime(appointment?.ngay_gio);
+  if (!appointmentTime) return 0;
+  return Math.max(0, Math.floor((Date.now() - appointmentTime.getTime()) / 60000));
+};
+
+const getWaitStyle = (waitMinutes) => {
+  if (waitMinutes >= 15) {
+    return {
+      waitBadgeStyle: "bg-[#ffedd4] border !border-[#e9d4ff]",
+      waitTextStyle: "text-[#ca3500]",
+      waitIcon: icons.clockOrange,
+    };
+  }
+
+  return {
     waitBadgeStyle: "bg-gray-100 border !border-gray-300",
     waitTextStyle: "text-[#364153]",
     waitIcon: icons.clockGray,
-    canStartNow: true,
-  },
-  {
-    id: 3,
-    petName: "Max",
-    petType: "Chó Husky",
-    petImage:
-      "https://www.figma.com/api/mcp/asset/0d89bcb6-abeb-47c3-9ff5-f8f4360b2872",
-    ownerName: "Lê Văn C",
-    service: "Cắt tỉa lông",
-    badge: "Đặt trước",
-    status: null,
-    appointmentTime: "10:30",
-    checkInTime: "--:--",
-    waitTime: "Còn 60 phút",
-    waitBadgeStyle: "bg-cyan-50 border !border-cyan-200",
-    waitTextStyle: "text-cyan-500",
-    waitIcon: icons.clockCyan,
-    canStartNow: false,
-  },
-]);
+  };
+};
 
-// Schedule today data
-const scheduleToday = ref([
-  {
-    id: 1,
-    time: "09:00",
-    petName: "Milo",
-    ownerName: "Nguyễn Văn A",
-  },
-  {
-    id: 2,
-    time: "10:30",
-    petName: "Max",
-    ownerName: "Lê Văn C",
-  },
-  {
-    id: 3,
-    time: "11:00",
-    petName: "Bella",
-    ownerName: "Hoàng Văn E",
-  },
-]);
+const mapPatient = (appointment) => {
+  const waitMinutes = getWaitMinutes(appointment);
+  const waitStyle = getWaitStyle(waitMinutes);
+
+  return {
+    id: appointment.id,
+    raw: appointment,
+    petName: appointment?.thu_cung?.ten_thu_cung || "Chưa có tên",
+    petType: getPetType(appointment),
+    petImage: appointment?.thu_cung?.anh_dai_dien || defaultPetImage,
+    ownerName: appointment?.khach_hang?.full_name || "Chưa có chủ nuôi",
+    service:
+      appointment?.dich_vu?.ten_dich_vu ||
+      appointment?.dich_vu?.ten ||
+      "Khám tổng quát",
+    badge: getBadge(appointment),
+    status: appointment?.thoi_gian_checkin ? "Đã đến" : null,
+    appointmentTime: formatTime(appointment?.ngay_gio),
+    checkInTime: formatTime(appointment?.thoi_gian_checkin),
+    lateTime: `${getLateMinutes(appointment)} phút`,
+    waitTime: waitMinutes > 0 ? `Chờ ${waitMinutes} phút` : "Vừa check-in",
+    note: appointment?.ghi_chu || "Không có ghi chú",
+    canStartNow:
+      Boolean(appointment?.thoi_gian_checkin) &&
+      !appointment?.thoi_gian_bat_dau_kham,
+    ...waitStyle,
+  };
+};
+
+const isCompleted = (appointment) => {
+  return (
+    appointment?.trang_thai === "completed" ||
+    appointment?.trang_thai === "Đã hoàn thành" ||
+    Boolean(appointment?.thoi_gian_hoan_thanh)
+  );
+};
+
+const getAppointmentRevenue = (appointment) => {
+  return Number(
+    appointment?.thanh_toan?.tong_tien_sau_giam ??
+      appointment?.thanh_toan?.tong_tien ??
+      appointment?.tong_tien ??
+      appointment?.dich_vu?.gia_tien ??
+      0
+  );
+};
+
+const mapSchedule = (appointment) => ({
+  id: appointment.id,
+  time: formatTime(appointment?.ngay_gio),
+  petName: appointment?.thu_cung?.ten_thu_cung || "Chưa có tên",
+  ownerName: appointment?.khach_hang?.full_name || "Chưa có chủ nuôi",
+});
+
+const loadDashboardData = async () => {
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const today = formatDateParam(new Date());
+    const currentDoctor = getUser("bac_si");
+    const doctorId = currentDoctor?.id;
+
+    const [waitingRes, examiningRes, allAppointmentsRes] = await Promise.all([
+      getPatientsWaitingExam({ ngay: today, per_page: 100 }),
+      getExaminingPatients({ ngay: today, per_page: 100 }),
+      getAllAppointments({
+        from_date: `${today} 00:00:00`,
+        to_date: `${today} 23:59:59`,
+        per_page: 100,
+        ...(doctorId ? { nhan_vien_id: doctorId } : {}),
+      }),
+    ]);
+
+    const waitingPatients = extractList(waitingRes).map(mapPatient);
+    const examiningPatients = extractList(examiningRes);
+    const todayAppointments = extractList(allAppointmentsRes);
+    const completedAppointments = todayAppointments.filter(isCompleted);
+
+    nextPatient.value = waitingPatients[0] || null;
+    queueList.value = waitingPatients.slice(1);
+    scheduleToday.value = todayAppointments
+      .filter((item) => !["cancelled", "Đã hủy"].includes(item?.trang_thai))
+      .sort((a, b) => {
+        const aTime = parseDateTime(a?.ngay_gio)?.getTime() || 0;
+        const bTime = parseDateTime(b?.ngay_gio)?.getTime() || 0;
+        return aTime - bTime;
+      })
+      .map(mapSchedule);
+
+    stats.value = {
+      appointments: todayAppointments.length,
+      completed: completedAppointments.length,
+      waiting: waitingPatients.length,
+      revenue: formatCurrency(completedAppointments.reduce(
+        (total, item) => total + getAppointmentRevenue(item),
+        0
+      )),
+      examining: examiningPatients.length,
+    };
+  } catch (err) {
+    console.error("Doctor dashboard data error:", err);
+    error.value =
+      err.response?.data?.message || "Không thể tải dữ liệu dashboard bác sĩ.";
+  } finally {
+    loading.value = false;
+  }
+};
 
 // Computed for next patient in queue
 const nextInQueueName = computed(() => {
@@ -625,12 +776,17 @@ const nextInQueueName = computed(() => {
 
 // Methods
 const handleSkipPatient = () => {
+  if (!nextPatient.value || queueList.value.length === 0) return;
   isChangeTurnOpen.value = true;
 };
 
 const handleConfirmSkip = (data) => {
   console.log("Skipping patient:", data);
-  // Implement logic to swap patients or move current to end of queue
+  const current = nextPatient.value;
+  const [next, ...rest] = queueList.value;
+
+  nextPatient.value = next || null;
+  queueList.value = current ? [...rest, current] : rest;
   isChangeTurnOpen.value = false;
 };
 
@@ -641,9 +797,26 @@ const handlePriorityExam = (patient) => {
 
 const handleConfirmPriority = (data) => {
   console.log("Priority exam for:", data);
-  // Implement logic to move patient to top of queue or start exam
+  if (selectedPriorityPatient.value) {
+    handleStartExam(selectedPriorityPatient.value);
+  }
   isPriorityExamOpen.value = false;
   selectedPriorityPatient.value = null;
+};
+
+const handleStartExam = async (patient) => {
+  if (!patient?.id) return;
+
+  try {
+    const res = await startExamination(patient.id);
+    if (res?.status) {
+      await loadDashboardData();
+      router.push(`/doctor/lich-kham/phieu-kham/${patient.id}`);
+    }
+  } catch (err) {
+    console.error("Start examination error:", err);
+    alert(err.response?.data?.message || "Không thể bắt đầu khám.");
+  }
 };
 
 // Badge styling helper methods
@@ -673,6 +846,8 @@ const getBadgeTextStyle = (badge) => {
   };
   return styles[badge] || "text-gray-700";
 };
+
+onMounted(loadDashboardData);
 </script>
 
 <style scoped>

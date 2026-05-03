@@ -20,6 +20,11 @@ class PhieuKhamResource extends JsonResource
             'chan_doan' => $this->chan_doan,
             'ghi_chu' => $this->ghi_chu,
             'loai_chi_dinh' => $this->loai_chi_dinh,
+            'ket_qua_can_lam_sang' => $this->ket_qua_can_lam_sang,
+            'tep_dinh_kem_can_lam_sang' => $this->tep_dinh_kem_can_lam_sang ?? [],
+            'thoi_gian_tra_ket_qua' => $this->thoi_gian_tra_ket_qua
+                ? $this->thoi_gian_tra_ket_qua->format('Y-m-d H:i:s')
+                : null,
             
             'lich_hen' => new LichHenResource($this->whenLoaded('lichHen')),
             'nhan_vien' => new NhanVienResource($this->whenLoaded('nhanVien')),

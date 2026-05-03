@@ -47,13 +47,19 @@
         </div>
 
         <!-- Category Filter -->
-        <button
-          class="h-10 px-4 bg-gray-50 border !border-gray-300 rounded-lg flex items-center justify-between gap-2 hover:bg-gray-100 transition-colors min-w-[120px]"
+        <select
+          v-model="selectedCategory"
+          class="h-10 px-4 bg-gray-50 border !border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors min-w-[160px]"
         >
-          <span class="text-sm font-normal text-gray-900">Tất cả</span>
-          <!-- <img :src="icons.chevronDown" alt="Dropdown" class="w-4 h-4" /> -->
-          <span class="text-gray-500">▼</span>
-        </button>
+          <option value="">Tất cả</option>
+          <option
+            v-for="category in categories"
+            :key="category"
+            :value="category"
+          >
+            {{ category }}
+          </option>
+        </select>
       </div>
     </div>
 
@@ -64,12 +70,23 @@
       <!-- Table Title -->
       <div class="flex items-center gap-2 mb-6">
         <h2 class="text-base font-semibold text-black">
-          Danh sách tồn kho ({{ inventoryItems.length }} sản phẩm)
+          Danh sách tồn kho ({{ filteredInventoryItems.length }} sản phẩm)
         </h2>
       </div>
 
+      <div v-if="loading" class="py-10 text-center text-gray-500">
+        Đang tải dữ liệu tồn kho...
+      </div>
+      <div v-else-if="error" class="py-10 text-center text-red-600">
+        {{ error }}
+      </div>
+
       <!-- Table -->
-      <div class="overflow-auto custom-scrollbar" style="max-height: 467.5px">
+      <div
+        v-else-if="filteredInventoryItems.length"
+        class="overflow-auto custom-scrollbar"
+        style="max-height: 467.5px"
+      >
         <table class="w-full">
           <thead>
             <tr class="border-b border-[rgba(0,0,0,0.1)]">
@@ -102,7 +119,7 @@
           </thead>
           <tbody>
             <tr
-              v-for="item in inventoryItems"
+              v-for="item in filteredInventoryItems"
               :key="item.id"
               :class="[
                 'border-b !border-gray-300',
@@ -198,14 +215,22 @@
           </tbody>
         </table>
       </div>
+      <div v-else class="py-10 text-center text-gray-500">
+        Không tìm thấy thuốc hoặc vật tư phù hợp.
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed, onMounted, ref } from "vue";
+import { listHangHoa } from "@/utils/hangHoa";
 
 const searchQuery = ref("");
+const selectedCategory = ref("");
+const loading = ref(false);
+const error = ref(null);
+const inventoryItems = ref([]);
 
 const icons = {
   info: "https://www.figma.com/api/mcp/asset/af6dc119-7098-4ec1-87b8-9af190156b33",
@@ -217,104 +242,83 @@ const icons = {
     "https://www.figma.com/api/mcp/asset/23ab8af5-f3be-4bbf-95ca-35f771c1d7b2",
 };
 
-const inventoryItems = ref([
-  {
-    id: 1,
-    name: "Vắc-xin Rabies (Nobivac)",
-    category: "Vắc-xin",
-    quantity: "25 Lọ",
-    minQuantity: "10",
-    stockStatus: "in-stock",
-    stockLabel: "Còn hàng",
-    expiryDate: "15/06/2025",
-    expiryWarning: false,
-    hasWarning: false,
-  },
-  {
-    id: 2,
-    name: "Kháng sinh Cephalexin 500mg",
-    category: "Thuốc",
-    quantity: "150 Viên",
-    minQuantity: "50",
-    stockStatus: "in-stock",
-    stockLabel: "Còn hàng",
-    expiryDate: "20/12/2025",
-    expiryWarning: true,
-    hasWarning: false,
-  },
-  {
-    id: 3,
-    name: "Thuốc tẩy giun Drontal",
-    category: "Thuốc",
-    quantity: "8 Viên",
-    minQuantity: "10",
-    stockStatus: "low-stock",
-    stockLabel: "Sắp hết",
-    expiryDate: "10/08/2025",
-    expiryWarning: false,
-    hasWarning: false,
-  },
-  {
-    id: 4,
-    name: "Vitamin tổng hợp ABC",
-    category: "Thuốc",
-    quantity: "3 Hộp",
-    minQuantity: "5",
-    stockStatus: "low-stock",
-    stockLabel: "Sắp hết",
-    expiryDate: "25/12/2024",
-    expiryWarning: false,
-    hasWarning: false,
-  },
-  {
-    id: 5,
-    name: "Vắc-xin 6 bệnh",
-    category: "Vắc-xin",
-    quantity: "18 Lọ",
-    minQuantity: "10",
-    stockStatus: "in-stock",
-    stockLabel: "Còn hàng",
-    expiryDate: "30/09/2025",
-    expiryWarning: false,
-    hasWarning: false,
-  },
-  {
-    id: 6,
-    name: "Thuốc chống viêm Meloxicam",
-    category: "Thuốc",
-    quantity: "0 Viên",
-    minQuantity: "20",
-    stockStatus: "out-of-stock",
-    stockLabel: "Hết hàng",
-    expiryDate: null,
-    expiryWarning: false,
-    hasWarning: true,
-  },
-  {
-    id: 7,
-    name: "Băng gạc vô trùng",
-    category: "Vật tư",
-    quantity: "50 Cuộn",
-    minQuantity: "20",
-    stockStatus: "in-stock",
-    stockLabel: "Còn hàng",
-    expiryDate: null,
-    expiryWarning: false,
-    hasWarning: false,
-  },
-  {
-    id: 8,
-    name: "Ống tiêm 5ml",
-    category: "Vật tư",
-    quantity: "200 Cái",
-    minQuantity: "100",
-    stockStatus: "in-stock",
-    stockLabel: "Còn hàng",
-    expiryDate: null,
-    expiryWarning: false,
-    hasWarning: false,
-  },
-]);
+const formatDate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("vi-VN");
+};
+
+const isExpiringSoon = (value) => {
+  if (!value) return false;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  const daysLeft = Math.ceil((date.getTime() - Date.now()) / 86400000);
+  return daysLeft >= 0 && daysLeft <= 60;
+};
+
+const resolveStockStatus = (quantity, minQuantity) => {
+  if (quantity <= 0) {
+    return { stockStatus: "out-of-stock", stockLabel: "Hết hàng" };
+  }
+  if (quantity <= minQuantity) {
+    return { stockStatus: "low-stock", stockLabel: "Sắp hết" };
+  }
+  return { stockStatus: "in-stock", stockLabel: "Còn hàng" };
+};
+
+const mapInventoryItem = (item) => {
+  const quantity = Number(item.tong_so_luong_nhap ?? item.so_luong ?? 0);
+  const minQuantity = Number(item.dinh_muc_toi_thieu ?? 0);
+  const latestBatch = item.chi_tiet_nhap_kho_gan_nhat?.[0] || null;
+  const stock = resolveStockStatus(quantity, minQuantity);
+
+  return {
+    id: item.id,
+    name: item.ten_mat_hang || item.ten || item.ma_hang_hoa || "Chưa có tên",
+    category: item.ten_danh_muc_hang_hoa || item.danh_muc?.ten_danh_muc_hang_hoa || "Chưa phân loại",
+    quantity: `${quantity} ${item.don_vi_tinh || ""}`.trim(),
+    minQuantity: `${minQuantity} ${item.don_vi_tinh || ""}`.trim(),
+    expiryDate: formatDate(latestBatch?.han_su_dung),
+    expiryWarning: isExpiringSoon(latestBatch?.han_su_dung),
+    hasWarning: stock.stockStatus !== "in-stock" || isExpiringSoon(latestBatch?.han_su_dung),
+    ...stock,
+  };
+};
+
+const categories = computed(() => {
+  return [...new Set(inventoryItems.value.map((item) => item.category))].sort();
+});
+
+const filteredInventoryItems = computed(() => {
+  const keyword = searchQuery.value.trim().toLowerCase();
+  return inventoryItems.value.filter((item) => {
+    const matchesKeyword =
+      !keyword ||
+      item.name.toLowerCase().includes(keyword) ||
+      item.category.toLowerCase().includes(keyword);
+    const matchesCategory =
+      !selectedCategory.value || item.category === selectedCategory.value;
+    return matchesKeyword && matchesCategory;
+  });
+});
+
+const loadInventory = async () => {
+  loading.value = true;
+  error.value = null;
+  try {
+    const data = await listHangHoa();
+    inventoryItems.value = data.map(mapInventoryItem);
+  } catch (err) {
+    console.error("Doctor pharmacy load error:", err);
+    error.value =
+      err.response?.data?.message || "Không thể tải dữ liệu kho thuốc.";
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(loadInventory);
 </script>
 
 <style scoped>

@@ -19,6 +19,9 @@ class PhieuKham extends Model
         'chan_doan',
         'ghi_chu',
         'loai_chi_dinh',
+        'ket_qua_can_lam_sang',
+        'tep_dinh_kem_can_lam_sang',
+        'thoi_gian_tra_ket_qua',
         'lich_hen_id',
         'nhan_vien_id',
     ];
@@ -28,6 +31,8 @@ class PhieuKham extends Model
         'can_nang' => 'decimal:2',
         'nhip_tim' => 'integer',
         'nhip_tho' => 'integer',
+        'tep_dinh_kem_can_lam_sang' => 'array',
+        'thoi_gian_tra_ket_qua' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
