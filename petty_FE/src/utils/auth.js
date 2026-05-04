@@ -3,13 +3,10 @@ import axios from "axios";
 export const ROLE_KEYS = {
   customer:    { token: "auth_token_customer",    user: "auth_user_customer" },
   admin:       { token: "auth_token_admin",       user: "auth_user_admin" },
-  // Per-role staff keys — each role has its own isolated storage slot
   y_ta:        { token: "auth_token_y_ta",        user: "auth_user_y_ta" },
   bac_si:      { token: "auth_token_bac_si",      user: "auth_user_bac_si" },
   le_tan:      { token: "auth_token_le_tan",      user: "auth_user_le_tan" },
   tro_ly:      { token: "auth_token_tro_ly",      user: "auth_user_tro_ly" },
-  // Legacy fallback — kept for the /staff/login page before role is known
-  staff:       { token: "auth_token_staff",       user: "auth_user_staff" },
 };
 
 /**

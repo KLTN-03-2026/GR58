@@ -297,7 +297,7 @@
                     Họ và tên *
                   </label>
                   <input
-                    v-model="form.name"
+                    v-model="form.ho_ten"
                     type="text"
                     placeholder="Nguyễn Văn A"
                     class="bg-[#f3f3f5] border-0 rounded-lg px-3 py-2 text-sm text-[#717182] tracking-[-0.15px] focus:outline-none focus:ring-2 focus:ring-[#009689]"
@@ -308,37 +308,52 @@
                   <label
                     class="text-sm font-medium text-[#0a0a0a] leading-[14px] tracking-[-0.15px]"
                   >
-                    Số điện thoại *
+                    Email *
                   </label>
                   <input
-                    v-model="form.phone"
-                    type="tel"
-                    placeholder="0909 xxx xxx"
+                    v-model="form.email"
+                    type="email"
+                    placeholder="email@example.com"
                     class="bg-[#f3f3f5] border-0 rounded-lg px-3 py-2 text-sm text-[#717182] tracking-[-0.15px] focus:outline-none focus:ring-2 focus:ring-[#009689]"
                     required
                   />
                 </div>
               </div>
 
-              <div class="flex flex-col gap-0.5">
-                <label
-                  class="text-sm font-medium text-[#0a0a0a] leading-[14px] tracking-[-0.15px]"
-                >
-                  Chủ đề *
-                </label>
-                <div class="relative">
-                  <select
-                    v-model="form.topic"
-                    class="w-full bg-[#f3f3f5] border-0 rounded-lg px-3 py-2 text-sm text-[#717182] tracking-[-0.15px] appearance-none focus:outline-none focus:ring-2 focus:ring-[#009689]"
-                    required
+              <div class="flex gap-4">
+                <div class="flex-1 flex flex-col gap-0.5">
+                  <label
+                    class="text-sm font-medium text-[#0a0a0a] leading-[14px] tracking-[-0.15px]"
                   >
-                    <option value="" disabled>Chọn chủ đề</option>
-                    <option value="appointment">Đặt lịch khám</option>
-                    <option value="service">Tư vấn dịch vụ</option>
-                    <option value="emergency">Cấp cứu</option>
-                    <option value="other">Khác</option>
-                  </select>
-                  <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                    Số điện thoại
+                  </label>
+                  <input
+                    v-model="form.so_dien_thoai"
+                    type="tel"
+                    placeholder="0909 xxx xxx"
+                    class="bg-[#f3f3f5] border-0 rounded-lg px-3 py-2 text-sm text-[#717182] tracking-[-0.15px] focus:outline-none focus:ring-2 focus:ring-[#009689]"
+                  />
+                </div>
+                <div class="flex-1 flex flex-col gap-0.5">
+                  <label
+                    class="text-sm font-medium text-[#0a0a0a] leading-[14px] tracking-[-0.15px]"
+                  >
+                    Chủ đề *
+                  </label>
+                  <div class="relative">
+                    <select
+                      v-model="form.chu_de"
+                      class="w-full bg-[#f3f3f5] border-0 rounded-lg px-3 py-2 text-sm text-[#717182] tracking-[-0.15px] appearance-none focus:outline-none focus:ring-2 focus:ring-[#009689]"
+                      required
+                    >
+                      <option value="" disabled>Chọn chủ đề</option>
+                      <option value="Đặt lịch khám">Đặt lịch khám</option>
+                      <option value="Tư vấn dịch vụ">Tư vấn dịch vụ</option>
+                      <option value="Cấp cứu">Cấp cứu</option>
+                      <option value="Khác">Khác</option>
+                    </select>
+                    <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                  </div>
                 </div>
               </div>
 
@@ -349,7 +364,7 @@
                   Nội dung tin nhắn *
                 </label>
                 <textarea
-                  v-model="form.message"
+                  v-model="form.noi_dung"
                   placeholder="Mô tả chi tiết câu hỏi hoặc vấn đề của bạn..."
                   class="bg-[#f3f3f5] border-0 rounded-lg px-3 py-2 text-sm text-[#717182] tracking-[-0.15px] h-16 resize-none focus:outline-none focus:ring-2 focus:ring-[#009689]"
                   required
@@ -358,10 +373,11 @@
 
               <button
                 type="submit"
-                class="bg-[#0d9488] text-white h-12 rounded-lg flex items-center justify-center gap-2 text-sm font-medium tracking-[-0.15px] hover:bg-[#0f766e] transition-colors"
+                :disabled="isSubmitting"
+                class="bg-[#0d9488] text-white h-12 rounded-lg flex items-center justify-center gap-2 text-sm font-medium tracking-[-0.15px] hover:bg-[#0f766e] transition-colors disabled:opacity-50"
               >
                 <Send class="w-4 h-4" />
-                Gửi tin nhắn
+                {{ isSubmitting ? 'Đang gửi...' : 'Gửi tin nhắn' }}
               </button>
             </form>
           </div>
@@ -427,28 +443,32 @@
 
 <script setup>
 import { ref } from 'vue';
-import { 
-  AlertCircle, 
-  Phone, 
-  MapPin, 
-  Info, 
-  MessageCircle, 
-  MessageSquare, 
-  Mail, 
-  PhoneCall, 
-  ChevronDown, 
+import {
+  AlertCircle,
+  Phone,
+  MapPin,
+  Info,
+  MessageCircle,
+  MessageSquare,
+  Mail,
+  PhoneCall,
+  ChevronDown,
   Send,
   HelpCircle,
   Map
 } from 'lucide-vue-next';
+import hoTroService from "@/services/hoTroService";
 
 // Data
 const form = ref({
-  name: "",
-  phone: "",
-  topic: "",
-  message: "",
+  ho_ten: "",
+  email: "",
+  so_dien_thoai: "",
+  chu_de: "",
+  noi_dung: "",
 });
+
+const isSubmitting = ref(false);
 
 const faqs = ref([
   {
@@ -470,16 +490,25 @@ const faqs = ref([
 ]);
 
 // Methods
-const submitForm = () => {
-  console.log("Form submitted:", form.value);
-  alert("Tin nhắn đã được gửi! Chúng tôi sẽ phản hồi sớm nhất.");
-  // Reset form
-  form.value = {
-    name: "",
-    phone: "",
-    topic: "",
-    message: "",
-  };
+const submitForm = async () => {
+  isSubmitting.value = true;
+  try {
+    await hoTroService.submitRequest(form.value);
+    alert("Tin nhắn đã được gửi! Chúng tôi sẽ phản hồi sớm nhất.");
+    // Reset form
+    form.value = {
+      ho_ten: "",
+      email: "",
+      so_dien_thoai: "",
+      chu_de: "",
+      noi_dung: "",
+    };
+  } catch (error) {
+    console.error("Lỗi gửi yêu cầu:", error);
+    alert("Có lỗi xảy ra. Vui lòng thử lại.");
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 
 const toggleFaq = (index) => {

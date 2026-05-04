@@ -267,6 +267,10 @@ const routes = [
           import("../views/doctor/appointment/examination-form/index.vue"),
         props: true,
       },
+      {
+        path: "contacts",
+        component: () => import("../views/doctor/contacts/index.vue"),
+      },
     ],
   },
 
@@ -336,7 +340,11 @@ const routes = [
         path: "kho-thuoc",
         component: () => import("../views/nurse/inventory/index.vue"),
       },
-    
+      {
+        path: "contacts",
+        component: () => import("../views/doctor/contacts/index.vue"),
+      },
+
     ],
   },
   {
@@ -355,7 +363,11 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth) {
     let role = "customer";
     if (to.path.startsWith("/admin")) role = "admin";
-    else if (to.path.startsWith("/doctor") || to.path.startsWith("/nurse") || to.path.startsWith("/staff") || to.path.startsWith("/receptionist") || to.path.startsWith("/assistant")) role = "staff";
+    else if (to.path.startsWith("/doctor")) role = "bac_si";
+    else if (to.path.startsWith("/nurse")) role = "y_ta";
+    else if (to.path.startsWith("/receptionist")) role = "le_tan";
+    else if (to.path.startsWith("/assistant")) role = "tro_ly";
+    else if (to.path.startsWith("/staff")) role = "y_ta";
 
     const token = getToken(role);
     if (!token) {

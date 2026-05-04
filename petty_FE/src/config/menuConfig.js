@@ -163,6 +163,13 @@ export const menuConfig = {
         path: "/doctor/schedule",
         type: "single",
       },
+      {
+        key: "contacts",
+        label: "Liên hệ",
+        icon: "https://www.figma.com/api/mcp/asset/420d4dcc-ebcb-4c4c-af6b-e3ef6d80dad3",
+        path: "/doctor/contacts",
+        type: "single",
+      },
     ],
   },
 
@@ -219,6 +226,13 @@ export const menuConfig = {
         label: "Phiếu Chi",
         icon: "https://www.figma.com/api/mcp/asset/380bf330-8557-432d-ae87-a709c49830ad",
         path: "/nurse/expense-vouchers",
+        type: "single",
+      },
+      {
+        key: "contacts",
+        label: "Liên hệ",
+        icon: "https://www.figma.com/api/mcp/asset/420d4dcc-ebcb-4c4c-af6b-e3ef6d80dad3",
+        path: "/nurse/contacts",
         type: "single",
       },
     ],
