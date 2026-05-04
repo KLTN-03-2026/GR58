@@ -43,10 +43,13 @@ class LichHenResource extends JsonResource
                     'ten_thu_cung'   => $this->thuCung->ten_thu_cung ?? $this->thuCung->ten,
                     'loai_thu_cung'  => $this->thuCung->loai_thu_cung,
                     'giong_thu_cung' => $this->thuCung->giong_thu_cung,
+                    'giong_loai'     => $this->thuCung->giong_loai,
+                    'giong'          => $this->thuCung->giong,
                     'tuoi_thu_cung'  => $this->thuCung->tuoi_thu_cung
                         ? $this->thuCung->tuoi_thu_cung->format('Y-m-d')
                         : null,
                     'can_nang'       => $this->thuCung->can_nang,
+                    'anh_dai_dien'   => $this->thuCung->anh_dai_dien,
                 ];
             }),
             'dich_vu' => $this->whenLoaded('dichVu', function () {
