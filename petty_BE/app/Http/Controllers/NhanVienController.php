@@ -19,6 +19,46 @@ use Illuminate\Http\JsonResponse;
 class NhanVienController extends Controller
 {
     /**
+     * Cập nhật hồ sơ của nhân viên hiện tại (self-service).
+     * Cho phép: full_name, phone, address, chuc_danh, nam_kinh_nghiem, chung_chi_hanh_nghe, bang_cap_chuyen_mon, anh_dai_dien
+     */
+    public function updateMe(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!($user instanceof NhanVien)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Chỉ nhân viên mới có thể cập nhật hồ sơ của mình.',
+            ], 403);
+        }
+
+        $data = $request->validate([
+            'full_name'            => 'sometimes|string|max:255',
+            'phone'                => 'sometimes|nullable|string|max:20',
+            'address'              => 'sometimes|nullable|string|max:255',
+            'chuc_danh'            => 'sometimes|nullable|string|max:255',
+            'nam_kinh_nghiem'      => 'sometimes|nullable|integer|min:0|max:60',
+            'chung_chi_hanh_nghe'  => 'sometimes|nullable|string|max:255',
+            'bang_cap_chuyen_mon'  => 'sometimes|nullable|string',
+            // avatar upload chưa làm multipart ở FE, nhưng vẫn cho phép set path/url nếu sau này cần
+            'anh_dai_dien'         => 'sometimes|nullable|string|max:255',
+        ]);
+
+        $user->fill($data);
+        $user->save();
+
+        $payload = $user->fresh()->toArray();
+        $payload['anh_dai_dien_url'] = UserImageHelper::getAvatarUrl($user->anh_dai_dien);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Cập nhật hồ sơ thành công.',
+            'data' => $payload,
+        ]);
+    }
+
+    /**
      * Danh sách bác sĩ — dùng cho check-in, không cần quyền đặc biệt ngoài staff.only
      */
     public function danhSachBacSi()

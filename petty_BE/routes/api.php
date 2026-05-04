@@ -243,6 +243,8 @@ Route::post('/payment/momo/ipn', [PaymentController::class, 'momoIPN']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/dang-xuat', [AdminController::class, 'dangXuat']);
     Route::post('/nhan-vien/dang-xuat', [NhanVienController::class, 'dangXuat']);
+    // Nhân viên: cập nhật hồ sơ của chính mình (đổi tên, SĐT, địa chỉ, hồ sơ chuyên môn...)
+    Route::patch('/nhan-vien/me', [NhanVienController::class, 'updateMe'])->middleware('staff.only');
 
     // Khoa: tạo mới (chỉ admin và nhân viên có quyền)
     Route::post('/khoa', [KhoaController::class, 'store'])->middleware(['staff.only', 'permission:khoa_tao']);

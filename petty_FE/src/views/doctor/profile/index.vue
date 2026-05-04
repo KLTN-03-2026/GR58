@@ -386,9 +386,16 @@
 </template>
 
 <script>
+import api from "@/utils/api";
+import { getUser, ROLE_KEYS } from "@/utils/auth";
+import { showSuccessToast, showErrorToast } from "@/utils/toast";
+
 export default {
   name: "profile",
   data() {
+    const currentDoctor = getUser("bac_si");
+    const fullName =
+      currentDoctor?.full_name || currentDoctor?.ho_ten || currentDoctor?.name || "Bác sĩ";
     return {
       // Active Tab
       activeTab: "personal", // 'personal' or 'professional'
@@ -397,7 +404,7 @@ export default {
       doctorProfile: {
         avatar:
           "https://www.figma.com/api/mcp/asset/4af27492-9c88-43d5-b84b-905cf059ab56",
-        name: "BS. Nguyễn Văn A",
+        name: fullName,
         role: "Bác sĩ chính",
         joinDate: "20/11/2023",
       },
@@ -409,17 +416,18 @@ export default {
 
       // Personal Information
       personalInfo: {
-        fullName: "BS. Nguyễn Văn A",
-        email: "nguyenvana@vietvetclinic.com",
-        address: "",
+        fullName: fullName,
+        email: currentDoctor?.email || "",
+        address: currentDoctor?.address || "",
+        phone: currentDoctor?.phone || "",
       },
 
       // Professional Information
       professionalInfo: {
-        licenseNumber: "",
-        specialization: "",
-        yearsOfExperience: null,
-        qualifications: "",
+        licenseNumber: currentDoctor?.chung_chi_hanh_nghe || "",
+        specialization: currentDoctor?.chuc_danh || "",
+        yearsOfExperience: currentDoctor?.nam_kinh_nghiem ?? null,
+        qualifications: currentDoctor?.bang_cap_chuyen_mon || "",
       },
 
       // Password Change Modal
@@ -463,17 +471,71 @@ export default {
     },
 
     // Save Personal Information
-    savePersonalInfo() {
-      console.log("Saving personal info:", this.personalInfo);
-      // TODO: Implement API call to save personal information
-      alert("Thông tin cá nhân đã được lưu!");
+    async savePersonalInfo() {
+      try {
+        const payload = {
+          full_name: this.personalInfo.fullName?.trim(),
+          phone: this.personalInfo.phone?.trim() || null,
+          address: this.personalInfo.address?.trim() || null,
+        };
+
+        const res = await api.patch("/nhan-vien/me", payload);
+        if (!res.data?.status) {
+          throw new Error(res.data?.message || "Cập nhật thất bại");
+        }
+
+        const updated = res.data.data;
+        // update UI
+        this.doctorProfile.name = updated.full_name || this.doctorProfile.name;
+        this.personalInfo.fullName = updated.full_name || this.personalInfo.fullName;
+        this.personalInfo.address = updated.address || "";
+        this.personalInfo.phone = updated.phone || "";
+
+        // update stored auth_user_bac_si so Header/Menu đổi ngay
+        try {
+          localStorage.setItem(ROLE_KEYS.bac_si.user, JSON.stringify(updated));
+        } catch (e) {
+          // ignore storage error
+        }
+
+        showSuccessToast("Thành công", "Đã lưu thông tin cá nhân.");
+      } catch (err) {
+        const msg =
+          err.response?.data?.message || err.message || "Không thể lưu thông tin cá nhân.";
+        showErrorToast("Lỗi", msg);
+      }
     },
 
     // Save Professional Information
-    saveProfessionalInfo() {
-      console.log("Saving professional info:", this.professionalInfo);
-      // TODO: Implement API call to save professional information
-      alert("Hồ sơ chuyên môn đã được lưu!");
+    async saveProfessionalInfo() {
+      try {
+        const payload = {
+          chung_chi_hanh_nghe: this.professionalInfo.licenseNumber?.trim() || null,
+          chuc_danh: this.professionalInfo.specialization?.trim() || null,
+          nam_kinh_nghiem:
+            this.professionalInfo.yearsOfExperience === "" ||
+            this.professionalInfo.yearsOfExperience === null
+              ? null
+              : Number(this.professionalInfo.yearsOfExperience),
+          bang_cap_chuyen_mon: this.professionalInfo.qualifications?.trim() || null,
+        };
+
+        const res = await api.patch("/nhan-vien/me", payload);
+        if (!res.data?.status) {
+          throw new Error(res.data?.message || "Cập nhật thất bại");
+        }
+
+        const updated = res.data.data;
+        try {
+          localStorage.setItem(ROLE_KEYS.bac_si.user, JSON.stringify(updated));
+        } catch (e) {}
+
+        showSuccessToast("Thành công", "Đã lưu hồ sơ chuyên môn.");
+      } catch (err) {
+        const msg =
+          err.response?.data?.message || err.message || "Không thể lưu hồ sơ chuyên môn.";
+        showErrorToast("Lỗi", msg);
+      }
     },
 
     // Change Password
@@ -501,8 +563,23 @@ export default {
   },
 
   mounted() {
-    // TODO: Load doctor profile data from API
-    console.log("Doctor profile page mounted");
+    // Sync lại dữ liệu từ storage khi vào trang
+    const currentDoctor = getUser("bac_si");
+    if (currentDoctor) {
+      const fullName =
+        currentDoctor.full_name || currentDoctor.ho_ten || currentDoctor.name || "";
+      if (fullName) {
+        this.doctorProfile.name = fullName;
+        this.personalInfo.fullName = fullName;
+      }
+      this.personalInfo.email = currentDoctor.email || this.personalInfo.email;
+      this.personalInfo.address = currentDoctor.address || "";
+      this.personalInfo.phone = currentDoctor.phone || "";
+      this.professionalInfo.licenseNumber = currentDoctor.chung_chi_hanh_nghe || "";
+      this.professionalInfo.specialization = currentDoctor.chuc_danh || "";
+      this.professionalInfo.yearsOfExperience = currentDoctor.nam_kinh_nghiem ?? null;
+      this.professionalInfo.qualifications = currentDoctor.bang_cap_chuyen_mon || "";
+    }
   },
 };
 </script>

@@ -275,9 +275,11 @@ const submitSuccess = ref(false);
 const submitError = ref('');
 
 const form = ref({
-  ho_ten: currentUser?.ho_ten || currentUser?.name || '',
+  // KhachHang dùng full_name, NhanVien dùng full_name, fallback ho_ten/name
+  ho_ten: currentUser?.full_name || currentUser?.ho_ten || currentUser?.name || '',
   email: currentUser?.email || '',
-  so_dien_thoai: currentUser?.so_dien_thoai || '',
+  // KhachHang dùng phone, fallback so_dien_thoai
+  so_dien_thoai: currentUser?.phone || currentUser?.so_dien_thoai || '',
   chu_de: '',
   noi_dung: '',
 });
@@ -351,9 +353,9 @@ const resetForm = () => {
   submitSuccess.value = false;
   submitError.value = '';
   form.value = {
-    ho_ten: currentUser?.ho_ten || currentUser?.name || '',
+    ho_ten: currentUser?.full_name || currentUser?.ho_ten || currentUser?.name || '',
     email: currentUser?.email || '',
-    so_dien_thoai: currentUser?.so_dien_thoai || '',
+    so_dien_thoai: currentUser?.phone || currentUser?.so_dien_thoai || '',
     chu_de: '',
     noi_dung: '',
   };
