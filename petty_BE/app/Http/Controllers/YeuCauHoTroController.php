@@ -40,7 +40,7 @@ class YeuCauHoTroController extends Controller
      */
     public function index(Request $request)
     {
-        $query = YeuCauHoTro::with('khachHang:id,ho_ten,email')
+        $query = YeuCauHoTro::with('khachHang:id,full_name,email')
             ->orderByDesc('created_at');
 
         if ($request->has('trang_thai')) {

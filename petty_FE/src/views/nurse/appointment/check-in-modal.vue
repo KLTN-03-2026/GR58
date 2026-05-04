@@ -55,7 +55,7 @@
             <div class="flex-1">
               <p class="font-nunito text-sm text-gray-600">Khách hàng</p>
               <p class="font-nunito font-semibold text-base text-gray-900">
-              {{ appointment?.khach_hang?.full_name || appointment?.khach_hang || "N/A" }}
+                {{ appointment?.khach_hang?.full_name || "N/A" }}
               </p>
             </div>
           </div>
@@ -99,7 +99,7 @@
             <div class="flex-1">
               <p class="font-nunito text-sm text-gray-600">Dịch vụ</p>
               <p class="font-nunito font-semibold text-base text-gray-900">
-                {{ appointment?.dich_vu?.ten || "N/A" }}
+                {{ appointment?.dich_vu?.ten_dich_vu || appointment?.dich_vu?.ten || "N/A" }}
               </p>
             </div>
           </div>
@@ -149,8 +149,9 @@
                 :disabled="loading"
               >
                 <option value="">-- Vui lòng chọn bác sĩ --</option>
-                <option v-for="bs in doctors" :key="bs.id" :value="bs.id">
+                <option v-for="bs in doctors" :key="bs.id" :value="String(bs.id)">
                   {{ bs.full_name }}
+                  <span v-if="bs.chuc_danh"> - {{ bs.chuc_danh }}</span>
                 </option>
               </select>
             </div>
@@ -249,7 +250,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from "vue";
+import { ref, watch, onUnmounted } from "vue";
 import { checkInAppointment } from "@/services/lichHenService";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
 import api from "@/utils/api";
@@ -276,23 +277,12 @@ const selectedDoctor = ref("");
 
 const fetchDoctors = async () => {
   try {
-    const res = await api.get('/nhan-vien/danh-sach-bac-si');
-    if (res.data && res.data.status) {
-      doctors.value = Array.isArray(res.data.data)
-        ? res.data.data
-        : (res.data.data?.data || []);
+    const res = await api.get('/bac-si/danh-sach');
+    if (res.data?.status) {
+      doctors.value = res.data.data || [];
     }
-  } catch (error) {
-    // Thử endpoint dự phòng
-    try {
-      const res2 = await api.get('/nhan-vien', { params: { vai_tro: 'bac_si', per_page: 100 } });
-      if (res2.data?.data) {
-        const raw = res2.data.data;
-        doctors.value = Array.isArray(raw) ? raw : (raw?.data || []);
-      }
-    } catch (e) {
-      console.error("Failed to fetch doctors:", e);
-    }
+  } catch (e) {
+    console.error("Failed to fetch doctors:", e);
   }
 };
 
@@ -310,20 +300,35 @@ const updateCurrentTime = () => {
   });
 };
 
-// Watch for modal open/close
+// Watch modal open/close
 watch(
   () => props.isOpen,
-  (newVal) => {
+  async (newVal) => {
     if (newVal) {
       updateCurrentTime();
       timeInterval = setInterval(updateCurrentTime, 1000);
-      selectedDoctor.value = props.appointment?.nhan_vien_id || "";
-      if (doctors.value.length === 0) fetchDoctors();
+      // Load bác sĩ từ DB trước, sau đó set giá trị đang chọn
+      await fetchDoctors();
+      selectedDoctor.value = props.appointment?.nhan_vien_id
+        ? String(props.appointment.nhan_vien_id)
+        : "";
     } else {
       if (timeInterval) {
         clearInterval(timeInterval);
         timeInterval = null;
       }
+    }
+  }
+);
+
+// Watch appointment thay đổi để cập nhật lại selectedDoctor
+watch(
+  () => props.appointment,
+  (newAppt) => {
+    if (props.isOpen && newAppt) {
+      selectedDoctor.value = newAppt.nhan_vien_id
+        ? String(newAppt.nhan_vien_id)
+        : "";
     }
   }
 );

@@ -256,6 +256,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/nhan-vien/{nhanVien}/mo-khoa', [NhanVienController::class, 'unlockAccount'])->middleware(['staff.only', 'permission:nhan_vien_mo_khoa_tai_khoan']);
     // Nhân viên: danh sách (chỉ admin và nhân viên có quyền)
     Route::get('/nhan-vien', [NhanVienController::class, 'index'])->middleware(['staff.only', 'permission:nhan_vien_xem']);
+    // Danh sách bác sĩ (dùng cho check-in, tất cả staff đều truy cập được)
+    Route::get('/bac-si/danh-sach', [NhanVienController::class, 'danhSachBacSi'])->middleware('staff.only');
     // Danh mục dịch vụ: tạo mới (staff only)
     Route::post('/danh-muc-dich-vu', [\App\Http\Controllers\DanhMucDichVuController::class, 'store'])->middleware('staff.only');
     // Danh mục hàng hóa: tạo mới (staff only)

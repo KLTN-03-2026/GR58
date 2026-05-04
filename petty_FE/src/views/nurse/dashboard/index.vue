@@ -294,9 +294,9 @@
     <!-- Check-in Modal -->
     <CheckInModal
       :is-open="isCheckInModalOpen"
-      :patient-info="selectedAppointment"
+      :appointment="selectedAppointment"
       @close="isCheckInModalOpen = false"
-      @confirm="handleCheckInConfirm"
+      @success="handleCheckInConfirm"
     />
 
     <!-- Create Appointment Modal -->
@@ -384,24 +384,33 @@ const loadDashboardData = async () => {
   loading.value = true;
   try {
     const today = new Date(Date.now() + 7 * 60 * 60 * 1000)
-  .toISOString().split('T')[0];
+      .toISOString().split('T')[0];
 
-const res = await getAllAppointments({
-  per_page: 100,
-  from_date: today + ' 00:00:00',  // ← thêm giờ
-  to_date: today + ' 23:59:59'     // ← thêm giờ
-});
-      const data = res.data || [];
-    
+    const res = await getAllAppointments({
+      per_page: 100,
+      from_date: today + ' 00:00:00',
+      to_date: today + ' 23:59:59',
+    });
+    const data = res.data || [];
+
     let upcoming = 0;
     let waiting = 0;
 
     appointments.value = data.map((item) => {
-      const statusGroup = item.trang_thai === 'checked_in' ? 'arrived' : (item.trang_thai === 'pending' || item.trang_thai === 'confirmed' ? 'upcoming' : 'payment');
+      const statusGroup =
+        item.trang_thai === 'checked_in'
+          ? 'arrived'
+          : item.trang_thai === 'pending' || item.trang_thai === 'confirmed'
+          ? 'upcoming'
+          : 'payment';
       if (statusGroup === 'upcoming') upcoming++;
       if (statusGroup === 'arrived') waiting++;
 
       return {
+        // Raw API data — dùng cho modal
+        raw: item,
+
+        // Flat fields — dùng cho card hiển thị
         id: item.id,
         type: "scheduled",
         status: statusGroup,
@@ -410,21 +419,25 @@ const res = await getAllAppointments({
         petImage: petImage,
         ownerName: item.khach_hang?.full_name || 'N/A',
         phone: item.khach_hang?.phone || item.khach_hang?.so_dien_thoai || null,
-        appointmentTime: item.ngay_gio ? new Date(item.ngay_gio).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}) : '--:--',
+        appointmentTime: item.ngay_gio
+          ? new Date(item.ngay_gio).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+          : '--:--',
         ngay_gio: item.ngay_gio,
         checkedIn: !!item.thoi_gian_checkin,
-        checkInTime: item.thoi_gian_checkin ? new Date(item.thoi_gian_checkin).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}) : null,
+        checkInTime: item.thoi_gian_checkin
+          ? new Date(item.thoi_gian_checkin).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+          : null,
         service: item.dich_vu?.ten_dich_vu || item.dich_vu?.ten || 'N/A',
         doctor: item.nhan_vien?.full_name || 'N/A',
         room: item.nhan_vien?.phong_kham || null,
         delay: null,
-      }
+      };
     });
 
     stats.value = {
       upcoming,
       waiting,
-      payment: 0, // Mock for now
+      payment: 0,
       total: appointments.value.length,
     };
   } catch (error) {
@@ -466,26 +479,14 @@ const handleCreateCustomerSubmit = (data) => {
 };
 
 const checkIn = (appointment) => {
-  // Truyền đúng id và data thực để modal gọi API
-  selectedAppointment.value = {
-    id: appointment.id,
-    petName: appointment.petName,
-    petType: appointment.petType,
-    petImage: appointment.petImage,
-    ownerName: appointment.ownerName,
-    phone: appointment.phone || null,
-    service: appointment.service,
-    doctor: appointment.doctor,
-    room: appointment.room || null,
-    appointmentTime: appointment.appointmentTime,
-    ngay_gio: appointment.ngay_gio,
-  };
+  // Truyền raw data để modal hiển thị đúng các trường nested
+  selectedAppointment.value = appointment.raw;
   isCheckInModalOpen.value = true;
 };
 
-const handleCheckInConfirm = (patientInfo) => {
-  // Find the appointment and update it
-  const index = appointments.value.findIndex((a) => a.id === patientInfo.id);
+const handleCheckInConfirm = (updatedData) => {
+  const id = updatedData?.id || selectedAppointment.value?.id;
+  const index = appointments.value.findIndex((a) => a.id === id);
   if (index !== -1) {
     appointments.value[index].status = "arrived";
     appointments.value[index].checkedIn = true;
@@ -493,10 +494,7 @@ const handleCheckInConfirm = (patientInfo) => {
       "vi-VN",
       { hour: "2-digit", minute: "2-digit" }
     );
-    appointments.value[index].room = patientInfo.room;
-
-    // Update stats
-    stats.value.upcoming--;
+    stats.value.upcoming = Math.max(0, stats.value.upcoming - 1);
     stats.value.waiting++;
   }
   isCheckInModalOpen.value = false;

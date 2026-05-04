@@ -125,23 +125,20 @@ const props = defineProps({
   // Optional user prop; if not provided we'll prefer the stored auth_user
   user: {
     type: Object,
-    default: () => ({
-      name: "Admin User",
-      email: "admin@petty.vn",
-      avatar: null,
-    }),
+    default: () => null,
   },
 });
 
 // Prefer stored auth_user (set by login) if present
+// getUser() không có role → resolveRole() tự detect từ URL (doctor/nurse/admin...)
 const storedUser = getUser();
 
 // Normalized user data used by the template
 const userData = computed(() => {
-  // BE returns fields like ho_ten, email, anh_dai_dien
+  // NhanVien dùng full_name, KhachHang dùng full_name, Admin dùng ho_ten hoặc name
   if (storedUser && Object.keys(storedUser).length > 0) {
     return {
-      ho_ten: storedUser.ho_ten || storedUser.name || null,
+      ho_ten: storedUser.full_name || storedUser.ho_ten || storedUser.name || null,
       email: storedUser.email || null,
       anh_dai_dien: storedUser.anh_dai_dien || storedUser.avatar || null,
     };
@@ -160,8 +157,8 @@ const hasUnreadNotifications = ref(true); // Example: set to true to show notifi
 
 // Computed
 const pageTitle = computed(() => props.title);
-const userName = computed(() => userData.value.ho_ten || "Admin User");
-const userEmail = computed(() => userData.value.email || "admin@petty.vn");
+const userName = computed(() => userData.value.ho_ten || "Người dùng");
+const userEmail = computed(() => userData.value.email || "");
 
 const userInitials = computed(() => {
   // If avatar exists, we won't show initials (template will prefer avatar)

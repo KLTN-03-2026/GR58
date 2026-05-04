@@ -131,6 +131,8 @@
               <div
                 class="inline-flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-medium"
                 :class="{
+                  'bg-gray-100 text-[#364153]':
+                    appt.displayStatus.type === 'scheduled',
                   'bg-[#dbe7ff] text-[#1447e6]':
                     appt.displayStatus.type === 'waiting',
                   'bg-orange-100 text-[#ea580c]':
@@ -263,9 +265,17 @@
 
           <!-- Action Button -->
           <div class="w-64 p-6 flex items-center justify-end">
+            <!-- Đã đặt, chưa check-in → chờ y tá check-in -->
+            <div
+              v-if="appt.displayStatus.type === 'scheduled'"
+              class="w-full text-center text-sm text-gray-400 border !border-dashed !border-gray-300 rounded-xl py-3 px-4"
+            >
+              Chờ y tá check-in
+            </div>
+
             <!-- Đang khám → TIẾP TỤC -->
             <button
-              v-if="appt.displayStatus.type === 'examining'"
+              v-else-if="appt.displayStatus.type === 'examining'"
               @click="startExam(appt.id)"
               class="w-full h-11 bg-[#f54900] text-white rounded-xl font-medium hover:bg-[#ca3500]"
             >
@@ -278,7 +288,6 @@
               @click="viewExamDetail(appt.id)"
               class="w-full h-11 border !border-gray-300 rounded-xl flex items-center justify-center gap-2 text-gray-700 hover:bg-gray-50"
             >
-              <!-- <img src="@/assets/svg/eye.svg" class="w-5 h-5" /> -->
               Xem kết quả
             </button>
 
@@ -326,9 +335,10 @@ import ChevronLeftIcon from "@/assets/svg/chevron-left.svg";
 // State
 const router = useRouter();
 const currentDate = ref(new Date());
-const appointments = ref([]); // Bệnh nhân chờ khám
+const appointments = ref([]); // Bệnh nhân chờ khám (đã check-in)
 const examiningAppointments = ref([]); // Bệnh nhân đang khám
 const completedAppointments = ref([]); // Bệnh nhân đã hoàn thành
+const scheduledAppointments = ref([]); // Lịch hẹn đã đặt (chưa check-in)
 const loading = ref(false);
 const error = ref(null);
 const activeTab = ref("waiting"); // Mặc định tab "Chờ khám"
@@ -426,17 +436,14 @@ const getStatus = (appt) => {
 
 // Tabs count - Dựa trên bệnh nhân đã check-in
 const statusTabs = computed(() => {
-  // Chờ khám: đã check-in, chưa bắt đầu khám
+  const scheduled = scheduledAppointments.value.length;
   const waiting = appointments.value.length;
-
-  // Đang khám: có thoi_gian_bat_dau_kham nhưng chưa hoàn thành
   const examining = examiningAppointments.value.length;
-
-  // Tổng số
   const completed = completedAppointments.value.length;
-  const all = waiting + examining + completed;
+  const all = scheduled + waiting + examining + completed;
 
   return [
+    { label: "Đã đặt", value: "scheduled", count: scheduled },
     { label: "Chờ khám", value: "waiting", count: waiting },
     { label: "Đang khám", value: "examining", count: examining },
     { label: "Hoàn thành", value: "completed", count: completed },
@@ -447,30 +454,60 @@ const statusTabs = computed(() => {
 const displayAppointments = computed(() => {
   let list = [];
 
-  if (activeTab.value === "waiting") {
-    // Tab chờ khám - lấy từ appointments
+  if (activeTab.value === "scheduled") {
+    list = [...scheduledAppointments.value];
+  } else if (activeTab.value === "waiting") {
     list = [...appointments.value];
   } else if (activeTab.value === "examining") {
-    // Tab đang khám - lấy từ examiningAppointments
     list = [...examiningAppointments.value];
   } else if (activeTab.value === "completed") {
     list = [...completedAppointments.value];
   } else {
-    // Tab tất cả - gộp toàn bộ workflow trong ngày
     list = [
+      ...scheduledAppointments.value,
       ...appointments.value,
       ...examiningAppointments.value,
       ...completedAppointments.value,
     ];
   }
 
-  // Sắp xếp theo thời gian check-in (ai check-in trước khám trước)
+  // Sắp xếp theo giờ hẹn
   return list.sort((a, b) => {
     const aTime = a.thoi_gian_checkin || a.ngay_gio;
     const bTime = b.thoi_gian_checkin || b.ngay_gio;
     return new Date(aTime) - new Date(bTime);
   });
 });
+
+// Lấy lịch hẹn đã đặt nhưng chưa check-in (confirmed)
+const fetchScheduledAppointments = async () => {
+  try {
+    const dateStr = format(currentDate.value, "yyyy-MM-dd");
+    const res = await api.get("/lich-hen-all", {
+      params: {
+        from_date: `${dateStr} 00:00:00`,
+        to_date: `${dateStr} 23:59:59`,
+        trang_thai: "confirmed",
+        per_page: 100,
+      },
+    });
+
+    let data = [];
+    if (res.data.status && res.data.data) {
+      if (Array.isArray(res.data.data)) {
+        data = res.data.data;
+      } else if (res.data.data.data && Array.isArray(res.data.data.data)) {
+        data = res.data.data.data;
+      }
+    }
+    scheduledAppointments.value = data.map((appt) => ({
+      ...appt,
+      displayStatus: { type: "scheduled", label: "Đã đặt", color: "gray" },
+    }));
+  } catch (err) {
+    console.error("Error fetching scheduled appointments:", err);
+  }
+};
 
 // Lấy dữ liệu từ API - CHỈ BỆNH NHÂN ĐÃ CHECK-IN (chờ khám)
 const fetchAppointments = async () => {
@@ -582,6 +619,7 @@ const fetchAllData = async () => {
   loading.value = true;
   error.value = null;
   await Promise.all([
+    fetchScheduledAppointments(),
     fetchAppointments(),
     fetchExaminingAppointments(),
     fetchCompletedAppointments(),

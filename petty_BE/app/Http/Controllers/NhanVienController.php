@@ -19,6 +19,20 @@ use Illuminate\Http\JsonResponse;
 class NhanVienController extends Controller
 {
     /**
+     * Danh sách bác sĩ — dùng cho check-in, không cần quyền đặc biệt ngoài staff.only
+     */
+    public function danhSachBacSi()
+    {
+        $data = NhanVien::where('vai_tro', 'bac_si')
+            ->where('trang_thai', 'hoat_dong')
+            ->select('id', 'full_name', 'chuc_danh')
+            ->orderBy('full_name')
+            ->get();
+
+        return response()->json(['status' => true, 'data' => $data]);
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index(\Illuminate\Http\Request $request)
