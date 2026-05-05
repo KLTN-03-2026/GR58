@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\DichVu;
-use App\Http\Requests\StoreDichVuRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
@@ -16,9 +15,6 @@ class DichVuController extends Controller
      */
     public function index()
     {
-        // By default return full records (all columns) with related category name.
-        // If the client needs the compact id/name list for selection UIs, pass ?only_brief=1
-        // Supports optional pagination via ?per_page=25
         $query = DichVu::with(['danhMuc:id,ten_nhom'])->orderBy('ten');
 
         if (request()->boolean('only_brief')) {
@@ -28,30 +24,30 @@ class DichVuController extends Controller
 
         $perPage = (int) request()->query('per_page', 0);
         if ($perPage > 0) {
-            $p = $query->paginate($perPage);
-            // Map items to include ten_nhom at top level
+            $p    = $query->paginate($perPage);
             $data = array_map(function ($item) {
-                $arr = $item->toArray();
+                $arr             = $item->toArray();
                 $arr['ten_nhom'] = $item->danhMuc ? $item->danhMuc->ten_nhom : null;
+                $arr['anh_dich_vu'] = $this->resolveImageUrl($arr['anh_dich_vu'] ?? null);
                 return $arr;
             }, $p->items());
 
             return response()->json([
                 'status' => true,
-                'data' => $data,
-                'meta' => [
+                'data'   => $data,
+                'meta'   => [
                     'current_page' => $p->currentPage(),
-                    'per_page' => $p->perPage(),
-                    'total' => $p->total(),
-                    'last_page' => $p->lastPage(),
+                    'per_page'     => $p->perPage(),
+                    'total'        => $p->total(),
+                    'last_page'    => $p->lastPage(),
                 ],
             ]);
         }
 
-        $items = $query->get();
-        $items = $items->map(function ($item) {
-            $arr = $item->toArray();
+        $items = $query->get()->map(function ($item) {
+            $arr             = $item->toArray();
             $arr['ten_nhom'] = $item->danhMuc ? $item->danhMuc->ten_nhom : null;
+            $arr['anh_dich_vu'] = $this->resolveImageUrl($arr['anh_dich_vu'] ?? null);
             return $arr;
         });
 
@@ -59,43 +55,62 @@ class DichVuController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
      * Store a newly created resource in storage.
+     * Hỗ trợ cả multipart/form-data (có ảnh) và JSON (không có ảnh)
      */
     public function store(Request $request)
     {
-        // Note: route protected by EnsureAdmin middleware
         $data = $request->validate([
-            'ten' => 'required|string|max:255',
-            'gia_tien' => 'required|numeric|min:0',
+            'ten'                 => 'required|string|max:255',
+            'gia_tien'            => 'required|numeric|min:0',
             'thoi_gian_thuc_hien' => 'nullable|integer|min:0',
-            'mo_ta' => 'nullable|string',
-            'ma_dich_vu' => 'nullable|string|max:100|unique:dich_vus,ma_dich_vu',
-            'huong_dan' => 'nullable|string',
-            'anh_dich_vu' => 'nullable|string',
-            'trang_thai' => 'required|in:kinh_doanh,ngung',
-            'danh_muc_id' => 'nullable|exists:danh_muc_dich_vus,id',
+            'mo_ta'               => 'nullable|string',
+            'ma_dich_vu'          => 'nullable|string|max:100|unique:dich_vus,ma_dich_vu',
+            'huong_dan'           => 'nullable|string',
+            'anh_dich_vu'         => 'nullable|string',
+            'trang_thai'          => 'required|in:kinh_doanh,ngung',
+            'danh_muc_id'         => 'nullable|exists:danh_muc_dich_vus,id',
         ]);
 
-        $dichVu = DichVu::create($data);
+        // ✅ Xử lý upload ảnh (nếu có)
+        if ($request->hasFile('anh_dich_vu_file')) {
+            $fileValidator = Validator::make($request->all(), [
+                'anh_dich_vu_file' => 'file|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
+            ]);
 
-        // include the category name if available
-        $tenNhom = null;
-        if ($dichVu->danh_muc_id) {
-            $tenNhom = $dichVu->danhMuc ? $dichVu->danhMuc->ten_nhom : null;
+            if ($fileValidator->fails()) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Ảnh không hợp lệ',
+                    'errors'  => $fileValidator->errors(),
+                ], 422);
+            }
+
+            $file = $request->file('anh_dich_vu_file');
+            if ($file && $file->isValid()) {
+                try {
+                    $path                 = $file->store('dichvu/images', 'public');
+                    $data['anh_dich_vu']  = url(Storage::url($path));
+                } catch (\Throwable $e) {
+                    Log::error('Service image store failed (create)', ['message' => $e->getMessage()]);
+                    return response()->json(['status' => false, 'message' => 'Lưu ảnh thất bại.'], 500);
+                }
+            }
         }
 
+        $dichVu  = DichVu::create($data);
+        $tenNhom = $dichVu->danh_muc_id && $dichVu->danhMuc
+            ? $dichVu->danhMuc->ten_nhom
+            : null;
+
+        $arr                 = $dichVu->toArray();
+        $arr['ten_nhom']     = $tenNhom;
+        $arr['anh_dich_vu']  = $this->resolveImageUrl($arr['anh_dich_vu'] ?? null);
+
         return response()->json([
-            'status' => true,
+            'status'  => true,
             'message' => 'Tạo dịch vụ thành công.',
-            'data' => array_merge($dichVu->toArray(), ['ten_nhom' => $tenNhom]),
+            'data'    => $arr,
         ], 201);
     }
 
@@ -105,75 +120,81 @@ class DichVuController extends Controller
     public function show(DichVu $dichVu)
     {
         $dichVu->load('danhMuc:id,ten_nhom');
-        $arr = $dichVu->toArray();
-        $arr['ten_nhom'] = $dichVu->danhMuc ? $dichVu->danhMuc->ten_nhom : null;
+        $arr                 = $dichVu->toArray();
+        $arr['ten_nhom']     = $dichVu->danhMuc ? $dichVu->danhMuc->ten_nhom : null;
+        $arr['anh_dich_vu']  = $this->resolveImageUrl($arr['anh_dich_vu'] ?? null);
 
-        return response()->json([
-            'status' => true,
-            'data' => $arr,
-        ]);
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(DichVu $dichVu)
-    {
-        //
+        return response()->json(['status' => true, 'data' => $arr]);
     }
 
     /**
      * Update the specified resource in storage.
+     * Hỗ trợ cả multipart/form-data (có ảnh) và JSON
      */
     public function update(Request $request, DichVu $dichVu)
     {
-        // Note: route should be protected by EnsureAdmin middleware
         $data = $request->validate([
-            'ten' => 'required|string|max:255',
-            'gia_tien' => 'required|numeric|min:0',
+            'ten'                 => 'required|string|max:255',
+            'gia_tien'            => 'required|numeric|min:0',
             'thoi_gian_thuc_hien' => 'nullable|integer|min:0',
-            'mo_ta' => 'nullable|string',
-            'ma_dich_vu' => 'nullable|string|max:100|unique:dich_vus,ma_dich_vu,' . $dichVu->id,
-            'huong_dan' => 'nullable|string',
-            'anh_dich_vu' => 'nullable|string',
-            'trang_thai' => 'required|in:kinh_doanh,ngung',
-            'danh_muc_id' => 'nullable|exists:danh_muc_dich_vus,id',
+            'mo_ta'               => 'nullable|string',
+            'ma_dich_vu'          => 'nullable|string|max:100|unique:dich_vus,ma_dich_vu,' . $dichVu->id,
+            'huong_dan'           => 'nullable|string',
+            'anh_dich_vu'         => 'nullable|string',
+            'trang_thai'          => 'required|in:kinh_doanh,ngung',
+            'danh_muc_id'         => 'nullable|exists:danh_muc_dich_vus,id',
         ]);
 
         try {
-            // If a file is uploaded in the request (field 'file'), store it and set anh_dich_vu
-            if ($request->hasFile('file')) {
+            // ✅ Hỗ trợ cả field 'file' (cũ) và 'anh_dich_vu_file' (mới)
+            $uploadField = $request->hasFile('anh_dich_vu_file')
+                ? 'anh_dich_vu_file'
+                : ($request->hasFile('file') ? 'file' : null);
+
+            if ($uploadField) {
                 $fileValidator = Validator::make($request->all(), [
-                    'file' => 'file|image|mimes:jpg,jpeg,png,gif|max:5120',
+                    $uploadField => 'file|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
                 ]);
+
                 if ($fileValidator->fails()) {
-                    return response()->json(['status' => false, 'message' => 'Ảnh không hợp lệ', 'errors' => $fileValidator->errors()], 422);
+                    return response()->json([
+                        'status'  => false,
+                        'message' => 'Ảnh không hợp lệ',
+                        'errors'  => $fileValidator->errors(),
+                    ], 422);
                 }
 
-                $file = $request->file('file');
+                $file = $request->file($uploadField);
                 if ($file && $file->isValid()) {
+                    // Xóa ảnh cũ nếu là file local
+                    if ($dichVu->anh_dich_vu) {
+                        $oldPath = $this->extractStoragePath($dichVu->anh_dich_vu);
+                        if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                            Storage::disk('public')->delete($oldPath);
+                        }
+                    }
+
                     try {
-                        $path = $file->store('dichvu/images', 'public');
-                        $publicUrl = url(Storage::url($path));
-                        $data['anh_dich_vu'] = $publicUrl;
+                        $path                = $file->store('dichvu/images', 'public');
+                        $data['anh_dich_vu'] = url(Storage::url($path));
                     } catch (\Throwable $ue) {
-                        Log::error('Service image store failed', ['message' => $ue->getMessage()]);
+                        Log::error('Service image store failed (update)', ['message' => $ue->getMessage()]);
                         return response()->json(['status' => false, 'message' => 'Lưu ảnh thất bại.'], 500);
                     }
                 }
             }
 
-            $dichVu->fill($data);
-            $dichVu->save();
-
+            $dichVu->fill($data)->save();
             $dichVu->load('danhMuc:id,ten_nhom');
-            $arr = $dichVu->toArray();
-            $arr['ten_nhom'] = $dichVu->danhMuc ? $dichVu->danhMuc->ten_nhom : null;
+
+            $arr                 = $dichVu->toArray();
+            $arr['ten_nhom']     = $dichVu->danhMuc ? $dichVu->danhMuc->ten_nhom : null;
+            $arr['anh_dich_vu']  = $this->resolveImageUrl($arr['anh_dich_vu'] ?? null);
 
             return response()->json([
-                'status' => true,
+                'status'  => true,
                 'message' => 'Cập nhật dịch vụ thành công.',
-                'data' => $arr,
+                'data'    => $arr,
             ]);
         } catch (\Throwable $e) {
             report($e);
@@ -187,12 +208,19 @@ class DichVuController extends Controller
     public function destroy(DichVu $dichVu)
     {
         try {
-            // Prevent deletion if linked to appointments
             if ($dichVu->lichHens()->exists()) {
                 return response()->json([
-                    'status' => false,
-                    'message' => 'Không thể xóa dịch vụ vì còn lịch hẹn liên quan.'
+                    'status'  => false,
+                    'message' => 'Không thể xóa dịch vụ vì còn lịch hẹn liên quan.',
                 ], 400);
+            }
+
+            // Xóa ảnh khi xóa dịch vụ
+            if ($dichVu->anh_dich_vu) {
+                $oldPath = $this->extractStoragePath($dichVu->anh_dich_vu);
+                if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
             }
 
             $dichVu->delete();
@@ -202,5 +230,32 @@ class DichVuController extends Controller
             report($e);
             return response()->json(['status' => false, 'message' => 'Có lỗi khi xóa dịch vụ.'], 500);
         }
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Đảm bảo trả về URL đầy đủ cho ảnh
+     */
+    private function resolveImageUrl(?string $path): ?string
+    {
+        if (!$path) return null;
+        if (preg_match('/^https?:\/\//i', $path)) return $path;
+        if (!str_starts_with($path, '/')) $path = '/' . $path;
+        return url($path);
+    }
+
+    /**
+     * Lấy relative path từ full URL để xóa file
+     */
+    private function extractStoragePath(?string $url): ?string
+    {
+        if (!$url) return null;
+        // URL dạng: http://example.com/storage/dichvu/images/abc.jpg
+        // → storage path: dichvu/images/abc.jpg
+        if (preg_match('/\/storage\/(.+)$/', $url, $matches)) {
+            return $matches[1];
+        }
+        return null;
     }
 }
