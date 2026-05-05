@@ -11,820 +11,586 @@
     <!-- Filter Card -->
     <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-6">
       <div class="flex items-center justify-between w-full gap-4">
-        <button
-          class="flex items-center justify-between px-4 py-2 bg-gray-100 rounded-[8px] flex-1"
-        >
-          <span
-            class="text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-          >
-            Tháng này
-          </span>
-          <ChevronDownIcon class="w-4 h-4" />
-        </button>
 
-        <button
-          class="flex items-center justify-between px-4 py-2 bg-gray-100 rounded-[8px] flex-1"
-        >
-          <span
-            class="text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
+        <!-- Period Filter -->
+        <div class="relative flex-1" ref="periodDropdownRef">
+          <button
+            @click="showPeriodDropdown = !showPeriodDropdown"
+            class="w-full flex items-center justify-between px-4 py-2 bg-gray-100 rounded-[8px]"
           >
-            Tất cả
-          </span>
-          <ChevronDownIcon class="w-4 h-4" />
-        </button>
+            <span class="text-[14px] leading-[20px] text-neutral-950">
+              {{ selectedPeriodLabel }}
+            </span>
+            <ChevronDownIcon class="w-4 h-4" />
+          </button>
+          <div
+            v-if="showPeriodDropdown"
+            class="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-[8px] shadow-lg z-20"
+          >
+            <button
+              v-for="opt in periodOptions"
+              :key="opt.value"
+              @click="selectPeriod(opt)"
+              class="w-full text-left px-4 py-2 text-[14px] hover:bg-gray-50 first:rounded-t-[8px] last:rounded-b-[8px]"
+              :class="selectedPeriod === opt.value ? 'text-teal-600 font-semibold' : 'text-neutral-950'"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
 
+        <!-- Custom date range (hiện khi chọn "Tùy chỉnh") -->
+        <template v-if="selectedPeriod === 'custom'">
+          <input
+            type="date"
+            v-model="customStart"
+            @change="fetchReport"
+            class="flex-1 px-4 py-2 bg-gray-100 rounded-[8px] text-[14px] border border-gray-200"
+          />
+          <span class="text-gray-400">–</span>
+          <input
+            type="date"
+            v-model="customEnd"
+            @change="fetchReport"
+            class="flex-1 px-4 py-2 bg-gray-100 rounded-[8px] text-[14px] border border-gray-200"
+          />
+        </template>
+
+        <!-- Service Filter -->
+        <div class="relative flex-1" ref="serviceDropdownRef">
+          <button
+            @click="showServiceDropdown = !showServiceDropdown"
+            class="w-full flex items-center justify-between px-4 py-2 bg-gray-100 rounded-[8px]"
+          >
+            <span class="text-[14px] leading-[20px] text-neutral-950 truncate">
+              {{ selectedServiceLabel }}
+            </span>
+            <ChevronDownIcon class="w-4 h-4 flex-shrink-0" />
+          </button>
+          <div
+            v-if="showServiceDropdown"
+            class="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-[8px] shadow-lg z-20 max-h-48 overflow-y-auto"
+          >
+            <button
+              @click="selectService({ id: 'all', ten: 'Tất cả dịch vụ' })"
+              class="w-full text-left px-4 py-2 text-[14px] hover:bg-gray-50 first:rounded-t-[8px]"
+              :class="selectedService === 'all' ? 'text-teal-600 font-semibold' : 'text-neutral-950'"
+            >
+              Tất cả dịch vụ
+            </button>
+            <button
+              v-for="svc in services"
+              :key="svc.id"
+              @click="selectService(svc)"
+              class="w-full text-left px-4 py-2 text-[14px] hover:bg-gray-50 last:rounded-b-[8px]"
+              :class="selectedService === svc.id ? 'text-teal-600 font-semibold' : 'text-neutral-950'"
+            >
+              {{ svc.ten }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Export Button -->
         <button
+          @click="exportExcel"
           class="flex items-center justify-center gap-[8px] px-4 py-2 bg-[#5a9690] rounded-[8px] min-w-[180px]"
         >
           <DownloadIcon class="w-4 h-4 text-white" />
-          <span
-            class="font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-white"
-          >
-            Xuất báo cáo Excel
-          </span>
+          <span class="font-medium text-[14px] text-white">Xuất báo cáo Excel</span>
         </button>
       </div>
+
+      <!-- Period info -->
+      <p v-if="reportData" class="text-[12px] text-gray-400 mt-3">
+        Dữ liệu từ {{ formatDate(reportData.period.start) }} đến {{ formatDate(reportData.period.end) }}
+      </p>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-4 gap-6">
-      <!-- Card 1: Tổng Doanh thu -->
+    <!-- Loading skeleton -->
+    <div v-if="isLoading" class="grid grid-cols-4 gap-6">
       <div
-        class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-[24px] flex flex-col gap-[16px]"
-      >
-        <div class="flex items-start justify-between">
-          <div class="flex flex-col gap-[4px]">
-            <p
-              class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#4a5565]"
-            >
-              Tổng Doanh thu
-            </p>
-            <p class="text-[12px] leading-[16px] text-[#6a7282]">
-              Gross Revenue
-            </p>
-          </div>
-          <!-- <div class="w-[48px] h-[48px] bg-green-100 rounded-[10px] flex items-center justify-center">
-            <img :src="iconRevenue" alt="" class="w-[24px] h-[24px]" />
-          </div> -->
-        </div>
-        <p
-          class="text-[30px] leading-[36px] tracking-[0.3955px] text-green-600"
-        >
-          315.1M
-        </p>
-        <!-- <div class="flex items-center gap-[4px]">
-          <img :src="iconUp" alt="" class="w-[16px] h-[16px]" />
-          <span
-            class="text-[14px] leading-[20px] tracking-[-0.1504px] text-green-600"
-          >
-            +15.3%
-          </span>
-          <span
-            class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#6a7282]"
-          >
-            so với tháng trước
-          </span>
-        </div> -->
-      </div>
-
-      <!-- Card 2: Lợi nhuận gộp -->
-      <div
-        class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-[24px] flex flex-col gap-[16px]"
-      >
-        <div class="flex items-start justify-between">
-          <div class="flex flex-col gap-[4px]">
-            <p
-              class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#4a5565]"
-            >
-              Lợi nhuận gộp
-            </p>
-            <p class="text-[12px] leading-[16px] text-[#6a7282]">
-              Gross Profit
-            </p>
-          </div>
-          <!-- <div class="w-[48px] h-[48px] bg-[#cbfbf1] rounded-[10px] flex items-center justify-center">
-            <img :src="iconProfit" alt="" class="w-[24px] h-[24px]" />
-          </div> -->
-        </div>
-        <p
-          class="text-[30px] leading-[36px] tracking-[0.3955px] text-[#009689]"
-        >
-          208.2M
-        </p>
-        <!-- <div class="flex items-center gap-[4px]">
-          <img :src="iconUp" alt="" class="w-[16px] h-[16px]" />
-          <span
-            class="text-[14px] leading-[20px] tracking-[-0.1504px] text-green-600"
-          >
-            +12.8%
-          </span>
-          <span
-            class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#6a7282]"
-          >
-            so với tháng trước
-          </span>
-        </div> -->
-      </div>
-
-      <!-- Card 3: Số lượng đơn hàng -->
-      <div
-        class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-[24px] flex flex-col gap-[16px]"
-      >
-        <div class="flex items-start justify-between">
-          <div class="flex flex-col gap-[4px]">
-            <p
-              class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#4a5565]"
-            >
-              Số lượng đơn hàng
-            </p>
-            <p class="text-[12px] leading-[16px] text-[#6a7282]">
-              Transactions
-            </p>
-          </div>
-          <!-- <div class="w-[48px] h-[48px] bg-blue-100 rounded-[10px] flex items-center justify-center">
-            <img :src="iconOrder" alt="" class="w-[24px] h-[24px]" />
-          </div> -->
-        </div>
-        <p class="text-[30px] leading-[36px] tracking-[0.3955px] text-blue-600">
-          918
-        </p>
-        <!-- <div class="flex items-center gap-[4px]">
-          <img :src="iconDown" alt="" class="w-[16px] h-[16px]" />
-          <span
-            class="text-[14px] leading-[20px] tracking-[-0.1504px] text-red-600"
-          >
-            -5.2%
-          </span>
-          <span
-            class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#6a7282]"
-          >
-            so với tháng trước
-          </span>
-        </div> -->
-      </div>
-
-      <!-- Card 4: Giá trị TB đơn -->
-      <div
-        class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-[24px] flex flex-col gap-[16px]"
-      >
-        <div class="flex items-start justify-between">
-          <div class="flex flex-col gap-[4px]">
-            <p
-              class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#4a5565]"
-            >
-              Giá trị TB đơn
-            </p>
-            <p class="text-[12px] leading-[16px] text-[#6a7282]">
-              AOV (Average Order Value)
-            </p>
-          </div>
-          <!-- <div class="w-[48px] h-[48px] bg-[#fef3c6] rounded-[10px] flex items-center justify-center">
-            <img :src="iconAOV" alt="" class="w-[24px] h-[24px]" />
-          </div> -->
-        </div>
-        <p
-          class="text-[30px] leading-[36px] tracking-[0.3955px] text-[#e17100]"
-        >
-          343.2K
-        </p>
-        <!-- <div class="flex items-center gap-[4px]">
-          <img :src="iconUp" alt="" class="w-[16px] h-[16px]" />
-          <span
-            class="text-[14px] leading-[20px] tracking-[-0.1504px] text-green-600"
-          >
-            +8.4%
-          </span>
-          <span
-            class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#6a7282]"
-          >
-            so với tháng trước
-          </span>
-        </div> -->
-      </div>
+        v-for="i in 4"
+        :key="i"
+        class="bg-white border border-gray-300 shadow-sm rounded-[14px] p-[24px] h-[120px] animate-pulse bg-gray-100"
+      />
     </div>
 
-    <!-- Chart and Donut Section -->
-    <div class="flex gap-6 h-[528px]">
-      <!-- Chart Card -->
-      <div
-        class="bg-white border !border-gray-300 shadow-sm rounded-[14px] flex-1 flex flex-col gap-[24px] p-[24px]"
-      >
-        <div class="flex flex-col gap-[6px]">
-          <h2
-            class="text-[16px] leading-[16px] tracking-[-0.3125px] text-neutral-950"
-          >
-            Xu hướng Doanh thu
-          </h2>
-          <p
-            class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#4a5565]"
-          >
-            Biểu đồ theo dõi doanh thu và lợi nhuận theo thời gian
+    <!-- Error state -->
+    <div
+      v-else-if="errorMessage"
+      class="bg-red-50 border border-red-200 rounded-[14px] p-6 text-red-700 text-sm"
+    >
+      ⚠️ {{ errorMessage }}
+    </div>
+
+    <template v-else-if="reportData">
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-4 gap-6">
+        <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-[24px] flex flex-col gap-[16px]">
+          <div class="flex flex-col gap-[4px]">
+            <p class="text-[14px] text-[#4a5565]">Tổng Doanh thu</p>
+            <p class="text-[12px] text-[#6a7282]">Gross Revenue</p>
+          </div>
+          <p class="text-[30px] leading-[36px] text-green-600">
+            {{ formatCurrency(reportData.summary.total_revenue) }}
           </p>
         </div>
 
-        <div class="flex-1 flex flex-col gap-[16px]">
-          <div class="h-[350px] w-full">
-            <apexchart
-              type="bar"
-              height="350"
-              :options="barChartOptions"
-              :series="barChartSeries"
-            ></apexchart>
+        <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-[24px] flex flex-col gap-[16px]">
+          <div class="flex flex-col gap-[4px]">
+            <p class="text-[14px] text-[#4a5565]">Lợi nhuận gộp</p>
+            <p class="text-[12px] text-[#6a7282]">Gross Profit</p>
+          </div>
+          <p class="text-[30px] leading-[36px] text-[#009689]">
+            {{ formatCurrency(reportData.summary.total_profit) }}
+          </p>
+        </div>
+
+        <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-[24px] flex flex-col gap-[16px]">
+          <div class="flex flex-col gap-[4px]">
+            <p class="text-[14px] text-[#4a5565]">Số lượng đơn hàng</p>
+            <p class="text-[12px] text-[#6a7282]">Transactions</p>
+          </div>
+          <p class="text-[30px] leading-[36px] text-blue-600">
+            {{ reportData.summary.total_orders.toLocaleString('vi-VN') }}
+          </p>
+        </div>
+
+        <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-[24px] flex flex-col gap-[16px]">
+          <div class="flex flex-col gap-[4px]">
+            <p class="text-[14px] text-[#4a5565]">Giá trị TB đơn</p>
+            <p class="text-[12px] text-[#6a7282]">AOV (Average Order Value)</p>
+          </div>
+          <p class="text-[30px] leading-[36px] text-[#e17100]">
+            {{ formatCurrency(reportData.summary.aov) }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Chart and Donut Section -->
+      <div class="flex gap-6 h-[528px]">
+        <!-- Bar Chart -->
+        <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] flex-1 flex flex-col gap-[24px] p-[24px]">
+          <div class="flex flex-col gap-[6px]">
+            <h2 class="text-[16px] leading-[16px] text-neutral-950">Xu hướng Doanh thu</h2>
+            <p class="text-[14px] text-[#4a5565]">Biểu đồ theo dõi doanh thu và lợi nhuận theo thời gian</p>
           </div>
 
-          <div
-            class="bg-blue-50 border !border-[#bedbff] rounded-[10px] p-[13px]"
-          >
-            <p
-              class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#193cb8]"
-            >
-              Nhấp vào cột để xem chi tiết hóa đơn của ngày đó
-            </p>
+          <div class="flex-1 flex flex-col gap-[16px]">
+            <div class="h-[350px] w-full">
+              <apexchart
+                type="bar"
+                height="350"
+                :options="barChartOptions"
+                :series="barChartSeries"
+              />
+            </div>
+            <div class="bg-blue-50 border !border-[#bedbff] rounded-[10px] p-[13px]">
+              <p class="text-[14px] text-[#193cb8]">
+                Nhấp vào cột để xem chi tiết hóa đơn của ngày đó
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Donut Chart -->
+        <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] w-[357px] flex flex-col gap-[24px]">
+          <div class="p-[24px] pb-0">
+            <h2 class="text-[16px] leading-[16px] text-neutral-950 mb-[16px]">Cơ cấu nguồn thu</h2>
+            <div class="flex items-center gap-[8px]">
+              <button
+                @click="revenueStructureType = 'department'"
+                :class="[
+                  'px-[12px] h-[32px] rounded-[8px] font-medium text-[14px] transition-colors',
+                  revenueStructureType === 'department'
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-white border !border-gray-300 text-neutral-950',
+                ]"
+              >
+                Theo Khoa
+              </button>
+              <button
+                @click="revenueStructureType = 'payment'"
+                :class="[
+                  'px-[13px] h-[32px] rounded-[8px] font-medium text-[14px] transition-colors',
+                  revenueStructureType === 'payment'
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-white border !border-gray-300 text-neutral-950',
+                ]"
+              >
+                Theo PT Thanh toán
+              </button>
+            </div>
+          </div>
+
+          <div class="px-[24px] flex flex-col gap-[16px]">
+            <div class="h-[250px] w-full flex items-center justify-center">
+              <apexchart
+                v-if="currentDonutSeries.length > 0"
+                type="donut"
+                height="250"
+                :options="donutChartOptions"
+                :series="currentDonutSeries"
+              />
+              <p v-else class="text-gray-400 text-sm">Không có dữ liệu</p>
+            </div>
+
+            <div class="flex flex-col gap-[8px] overflow-y-auto max-h-[120px]">
+              <div
+                v-for="(item, idx) in currentLegendData"
+                :key="idx"
+                class="flex items-center justify-between"
+              >
+                <div class="flex items-center gap-[8px]">
+                  <div class="w-[12px] h-[12px] rounded-full" :style="{ backgroundColor: item.color }" />
+                  <span class="text-[14px] text-[#364153]">{{ item.label }}</span>
+                </div>
+                <div class="flex flex-col items-end">
+                  <p class="text-[14px] text-[#101828]">{{ item.percentage }}%</p>
+                  <p class="text-[12px] text-[#6a7282]">{{ formatCurrencyShort(item.value) }}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Donut Card -->
-      <div
-        class="bg-white border !border-gray-300 shadow-sm rounded-[14px] w-[357px] flex flex-col gap-[24px]"
-      >
+      <!-- Table Card -->
+      <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] flex flex-col gap-[24px]">
         <div class="p-[24px] pb-0">
-          <h2
-            class="text-[16px] leading-[16px] tracking-[-0.3125px] text-neutral-950 mb-[16px]"
-          >
-            Cơ cấu nguồn thu
-          </h2>
-          <div class="flex items-center gap-[8px]">
-            <button
-              @click="revenueStructureType = 'department'"
-              :class="[
-                'px-[12px] h-[32px] rounded-[8px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] transition-colors',
-                revenueStructureType === 'department'
-                  ? 'bg-teal-600 text-white'
-                  : 'bg-white border !border-gray-300 text-neutral-950',
-              ]"
-            >
-              Theo Khoa
-            </button>
-            <button
-              @click="revenueStructureType = 'payment'"
-              :class="[
-                'px-[13px] h-[32px] rounded-[8px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] transition-colors',
-                revenueStructureType === 'payment'
-                  ? 'bg-teal-600 text-white'
-                  : 'bg-white border !border-gray-300 text-neutral-950',
-              ]"
-            >
-              Theo PT Thanh toán
-            </button>
-          </div>
+          <h2 class="text-[16px] leading-[16px] text-neutral-950">Chi tiết doanh thu theo ngày</h2>
+          <p class="text-[14px] text-[#4a5565] mt-[6px]">Bảng dữ liệu chi tiết để đối chiếu và phân tích</p>
         </div>
 
         <div class="px-[24px] flex flex-col gap-[16px]">
-          <div class="h-[250px] w-full flex items-center justify-center">
-            <apexchart
-              type="donut"
-              height="250"
-              :options="donutChartOptions"
-              :series="currentDonutSeries"
-            ></apexchart>
+          <!-- Empty state -->
+          <div v-if="reportData.table.length === 0" class="flex flex-col items-center py-12 gap-3">
+            <div class="text-gray-400 text-5xl">📊</div>
+            <p class="text-gray-500 text-sm">Không có dữ liệu trong khoảng thời gian này</p>
           </div>
 
-          <div class="flex flex-col gap-[8px]">
-            <div
-              v-for="(item, index) in currentLegendData"
-              :key="index"
-              class="flex items-center justify-between"
-            >
-              <div class="flex items-center gap-[8px]">
-                <div
-                  class="w-[12px] h-[12px] rounded-full"
-                  :style="{ backgroundColor: item.color }"
-                ></div>
-                <span
-                  class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#364153]"
+          <div v-else class="overflow-y-auto max-h-[420px]">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b border-gray-300 sticky top-0 bg-white">
+                  <th class="text-left px-[8px] py-[10px] text-[14px] font-medium text-neutral-950">Thời gian</th>
+                  <th class="text-right px-[8px] py-[10px] text-[14px] font-medium text-neutral-950">Số đơn hàng</th>
+                  <th class="text-right px-[8px] py-[10px] text-[14px] font-medium text-neutral-950">Doanh thu</th>
+                  <th class="text-right px-[8px] py-[10px] text-[14px] font-medium text-neutral-950">Giá vốn (COGS)</th>
+                  <th class="text-right px-[8px] py-[10px] text-[14px] font-medium text-neutral-950">Lợi nhuận gộp</th>
+                  <th class="text-right px-[8px] py-[10px] text-[14px] font-medium text-neutral-950">Thu tiền mặt</th>
+                  <th class="text-right px-[8px] py-[10px] text-[14px] font-medium text-neutral-950">Thu Online</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="row in reportData.table"
+                  :key="row.date"
+                  class="border-b border-gray-200 hover:bg-gray-50 transition-colors"
                 >
-                  {{ item.label }}
-                </span>
-              </div>
-              <div class="flex flex-col items-end">
-                <p
-                  class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#101828]"
-                >
-                  {{ item.percentage }}%
+                  <td class="px-[8px] py-[10px] text-[14px] text-[#101828]">{{ row.date }}</td>
+                  <td class="px-[8px] py-[10px] text-right text-[14px] text-[#101828]">{{ row.orders }} đơn</td>
+                  <td class="px-[8px] py-[10px] text-right text-[14px] text-[#101828]">{{ formatVND(row.revenue) }}</td>
+                  <td class="px-[8px] py-[10px] text-right text-[14px] text-[#4a5565]">{{ formatVND(row.cogs) }}</td>
+                  <td class="px-[8px] py-[10px] text-right text-[14px] text-green-600">{{ formatVND(row.profit) }}</td>
+                  <td class="px-[8px] py-[10px] text-right text-[14px] text-[#e17100]">{{ formatVND(row.cash) }}</td>
+                  <td class="px-[8px] py-[10px] text-right text-[14px] text-blue-600">{{ formatVND(row.online) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Summary footer -->
+          <div class="bg-gray-50 rounded-[10px] p-[16px]">
+            <div class="grid grid-cols-4 gap-[16px]">
+              <div class="flex flex-col gap-[4px]">
+                <p class="text-[12px] text-[#4a5565]">Tổng đơn hàng</p>
+                <p class="text-[18px] text-[#101828]">
+                  {{ reportData.summary.total_orders.toLocaleString('vi-VN') }} đơn
                 </p>
-                <p class="text-[12px] leading-[16px] text-[#6a7282]">
-                  {{ item.value }}
-                </p>
+              </div>
+              <div class="flex flex-col gap-[4px]">
+                <p class="text-[12px] text-[#4a5565]">Tổng doanh thu</p>
+                <p class="text-[18px] text-green-600">{{ formatCurrencyShort(reportData.summary.total_revenue) }}</p>
+              </div>
+              <div class="flex flex-col gap-[4px]">
+                <p class="text-[12px] text-[#4a5565]">Tổng lợi nhuận</p>
+                <p class="text-[18px] text-[#009689]">{{ formatCurrencyShort(reportData.summary.total_profit) }}</p>
+              </div>
+              <div class="flex flex-col gap-[4px]">
+                <p class="text-[12px] text-[#4a5565]">AOV trung bình</p>
+                <p class="text-[18px] text-[#e17100]">{{ formatCurrencyShort(reportData.summary.aov) }}</p>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- Table Card -->
-    <div
-      class="bg-white border !border-gray-300 shadow-sm rounded-[14px] flex flex-col gap-[24px] h-[621.5px]"
-    >
-      <div class="p-[24px] pb-0">
-        <h2
-          class="text-[16px] leading-[16px] tracking-[-0.3125px] text-neutral-950"
-        >
-          Chi tiết doanh thu theo ngày
-        </h2>
-        <p
-          class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#4a5565] mt-[6px]"
-        >
-          Bảng dữ liệu chi tiết để đối chiếu và phân tích
-        </p>
-      </div>
-
-      <div class="px-[24px] flex flex-col gap-[16px]">
-        <div class="overflow-y-auto h-[409.5px]">
-          <table class="w-full">
-            <thead>
-              <tr class="border-b border-gray-300">
-                <th
-                  class="text-left px-[8px] py-[10px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                >
-                  Thời gian
-                </th>
-                <th
-                  class="text-right px-[8px] py-[10px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                >
-                  Số đơn hàng
-                </th>
-                <th
-                  class="text-right px-[8px] py-[10px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                >
-                  Doanh thu
-                </th>
-                <th
-                  class="text-right px-[8px] py-[10px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                >
-                  Giá vốn (COGS)
-                </th>
-                <th
-                  class="text-right px-[8px] py-[10px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                >
-                  Lợi nhuận gộp
-                </th>
-                <th
-                  class="text-right px-[8px] py-[10px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                >
-                  Thu tiền mặt
-                </th>
-                <th
-                  class="text-right px-[8px] py-[10px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                >
-                  Thu Online
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="row in tableData"
-                :key="row.date"
-                class="border-b border-gray-300"
-              >
-                <td
-                  class="px-[8px] py-[10px] text-[14px] leading-[20px] tracking-[-0.1504px] text-[#101828]"
-                >
-                  {{ row.date }}
-                </td>
-                <td
-                  class="px-[8px] py-[10px] text-right text-[14px] leading-[20px] tracking-[-0.1504px] text-[#101828]"
-                >
-                  {{ row.orders }} đơn
-                </td>
-                <td
-                  class="px-[8px] py-[10px] text-right text-[14px] leading-[20px] tracking-[-0.1504px] text-[#101828]"
-                >
-                  {{ row.revenue }} ₫
-                </td>
-                <td
-                  class="px-[8px] py-[10px] text-right text-[14px] leading-[20px] tracking-[-0.1504px] text-[#4a5565]"
-                >
-                  {{ row.cogs }} ₫
-                </td>
-                <td
-                  class="px-[8px] py-[10px] text-right text-[14px] leading-[20px] tracking-[-0.1504px] text-green-600"
-                >
-                  {{ row.profit }} ₫
-                </td>
-                <td
-                  class="px-[8px] py-[10px] text-right text-[14px] leading-[20px] tracking-[-0.1504px] text-[#e17100]"
-                >
-                  {{ row.cash }} ₫
-                </td>
-                <td
-                  class="px-[8px] py-[10px] text-right text-[14px] leading-[20px] tracking-[-0.1504px] text-blue-600"
-                >
-                  {{ row.online }} ₫
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="bg-gray-50 rounded-[10px] p-[16px]">
-          <div class="grid grid-cols-4 gap-[16px]">
-            <div class="flex flex-col gap-[4px]">
-              <p class="text-[12px] leading-[16px] text-[#4a5565]">
-                Tổng đơn hàng
-              </p>
-              <p
-                class="text-[18px] leading-[28px] tracking-[-0.4395px] text-[#101828]"
-              >
-                918 đơn
-              </p>
-            </div>
-            <div class="flex flex-col gap-[4px]">
-              <p class="text-[12px] leading-[16px] text-[#4a5565]">
-                Tổng doanh thu
-              </p>
-              <p
-                class="text-[18px] leading-[28px] tracking-[-0.4395px] text-green-600"
-              >
-                315.1M
-              </p>
-            </div>
-            <div class="flex flex-col gap-[4px]">
-              <p class="text-[12px] leading-[16px] text-[#4a5565]">
-                Tổng lợi nhuận
-              </p>
-              <p
-                class="text-[18px] leading-[28px] tracking-[-0.4395px] text-[#009689]"
-              >
-                208.2M
-              </p>
-            </div>
-            <div class="flex flex-col gap-[4px]">
-              <p class="text-[12px] leading-[16px] text-[#4a5565]">
-                AOV trung bình
-              </p>
-              <p
-                class="text-[18px] leading-[28px] tracking-[-0.4395px] text-[#e17100]"
-              >
-                343.2K
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import VueApexCharts from "vue3-apexcharts";
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import axios from 'axios'
+import { getToken } from '@/utils/auth'
 
-// Icon SVG
-import ChevronDownIcon from "@/assets/svg/chevron-down.svg";
-import DownloadIcon from "@/assets/svg/download.svg";
+// Icons
+import ChevronDownIcon from '@/assets/svg/chevron-down.svg'
+import DownloadIcon    from '@/assets/svg/download.svg'
 
-// Icon URLs from Figma
-const iconRevenue =
-  "https://www.figma.com/api/mcp/asset/a0efef7c-7f90-48d0-b2f0-624304f9dccb";
-const iconProfit =
-  "https://www.figma.com/api/mcp/asset/46d3451b-7edf-464e-9a88-4997a6c92d8a";
-const iconOrder =
-  "https://www.figma.com/api/mcp/asset/c6535cbd-75a2-4f23-be79-e17cd6f10d12";
-const iconAOV =
-  "https://www.figma.com/api/mcp/asset/432c111c-d84a-46da-bf02-29650dcb795c";
-const iconUp =
-  "https://www.figma.com/api/mcp/asset/ebf04af6-a622-40b5-b79b-21e46325f07b";
-const iconDown =
-  "https://www.figma.com/api/mcp/asset/7b156a71-55e7-4946-8cfa-c0a23a081d4d";
+// ─── State ───────────────────────────────────────────────────────────────────
+const isLoading        = ref(false)
+const errorMessage     = ref('')
+const reportData       = ref(null)
+const services         = ref([])
 
-// Revenue structure type toggle
-const revenueStructureType = ref("department");
+const selectedPeriod      = ref('this_month')
+const selectedService     = ref('all')
+const customStart         = ref('')
+const customEnd           = ref('')
+const revenueStructureType = ref('department')
 
-// Bar Chart Configuration
-const barChartSeries = ref([
-  {
-    name: "Doanh thu",
-    data: [14.2, 12.6, 15.8, 17.2, 16.4, 14.8, 13.5, 15.6, 16.8, 15.0],
-  },
-  {
-    name: "Lợi nhuận",
-    data: [9.4, 8.4, 10.4, 11.4, 10.8, 9.8, 8.9, 10.3, 11.1, 9.9],
-  },
-]);
+const showPeriodDropdown  = ref(false)
+const showServiceDropdown = ref(false)
+const periodDropdownRef   = ref(null)
+const serviceDropdownRef  = ref(null)
 
-const barChartOptions = ref({
+const periodOptions = [
+  { value: 'today',      label: 'Hôm nay'   },
+  { value: '7days',      label: '7 ngày qua' },
+  { value: '30days',     label: '30 ngày qua' },
+  { value: 'this_month', label: 'Tháng này'  },
+  { value: 'this_year',  label: 'Năm nay'    },
+  { value: 'custom',     label: 'Tùy chỉnh'  },
+]
+
+// ─── Computed ─────────────────────────────────────────────────────────────────
+const selectedPeriodLabel = computed(
+  () => periodOptions.find(o => o.value === selectedPeriod.value)?.label ?? 'Tháng này'
+)
+
+const selectedServiceLabel = computed(() => {
+  if (selectedService.value === 'all') return 'Tất cả dịch vụ'
+  return services.value.find(s => s.id === selectedService.value)?.ten ?? 'Tất cả dịch vụ'
+})
+
+// Bar chart
+const barChartSeries = computed(() => {
+  if (!reportData.value) return []
+  return [
+    { name: 'Doanh thu', data: reportData.value.chart.revenue },
+    { name: 'Lợi nhuận', data: reportData.value.chart.profit  },
+  ]
+})
+
+const barChartOptions = computed(() => ({
   chart: {
-    type: "bar",
+    type: 'bar',
     height: 350,
-    toolbar: {
-      show: false,
-    },
+    toolbar: { show: false },
     events: {
-      dataPointSelection: (event, chartContext, config) => {
-        const date =
-          barChartOptions.value.xaxis.categories[config.dataPointIndex];
-        console.log(`Clicked on ${date}`);
-        // Handle click event - show invoice details for that day
+      dataPointSelection: (_event, _ctx, config) => {
+        const date = reportData.value?.chart.categories[config.dataPointIndex]
+        if (date) console.log('Clicked date:', date)
       },
     },
   },
   plotOptions: {
-    bar: {
-      horizontal: false,
-      columnWidth: "55%",
-      borderRadius: 4,
-    },
+    bar: { horizontal: false, columnWidth: '55%', borderRadius: 4 },
   },
-  dataLabels: {
-    enabled: false,
-  },
-  stroke: {
-    show: true,
-    width: 2,
-    colors: ["transparent"],
-  },
+  dataLabels: { enabled: false },
+  stroke: { show: true, width: 2, colors: ['transparent'] },
   xaxis: {
-    categories: [
-      "01/11",
-      "02/11",
-      "03/11",
-      "04/11",
-      "05/11",
-      "06/11",
-      "07/11",
-      "08/11",
-      "09/11",
-      "10/11",
-    ],
-    labels: {
-      style: {
-        fontSize: "12px",
-        colors: "#6a7282",
-      },
-    },
+    categories: reportData.value?.chart.categories ?? [],
+    labels: { style: { fontSize: '12px', colors: '#6a7282' } },
   },
   yaxis: {
-    title: {
-      text: "Triệu đồng (M)",
-      style: {
-        fontSize: "12px",
-        color: "#6a7282",
-      },
-    },
+    title: { text: 'Triệu đồng (M)', style: { fontSize: '12px', color: '#6a7282' } },
     labels: {
-      style: {
-        fontSize: "12px",
-        colors: "#6a7282",
-      },
-      formatter: function (val) {
-        return val.toFixed(1) + "M";
-      },
+      style: { fontSize: '12px', colors: '#6a7282' },
+      formatter: v => v.toFixed(1) + 'M',
     },
   },
-  fill: {
-    opacity: 1,
-  },
-  tooltip: {
-    y: {
-      formatter: function (val) {
-        return val.toFixed(1) + " triệu đồng";
-      },
-    },
-  },
-  colors: ["#16a34a", "#009689"],
+  fill: { opacity: 1 },
+  tooltip: { y: { formatter: v => v.toFixed(1) + ' triệu đồng' } },
+  colors: ['#16a34a', '#009689'],
   legend: {
-    position: "top",
-    horizontalAlign: "right",
-    fontSize: "14px",
-    fontFamily: "Nunito Sans, sans-serif",
-    markers: {
-      width: 12,
-      height: 12,
-      radius: 3,
-    },
+    position: 'top',
+    horizontalAlign: 'right',
+    fontSize: '14px',
+    markers: { width: 12, height: 12, radius: 3 },
   },
-  grid: {
-    borderColor: "#f1f1f1",
-    strokeDashArray: 4,
-  },
-});
+  grid: { borderColor: '#f1f1f1', strokeDashArray: 4 },
+}))
 
-// Donut Chart Data
-const departmentData = {
-  series: [40, 35, 25],
-  labels: ["Lâm sàng", "Spa", "Petshop"],
-  colors: ["#009689", "#f59e0b", "#3b82f6"],
-  legend: [
-    { label: "Lâm sàng", percentage: 40, value: "200.0M", color: "#009689" },
-    { label: "Spa", percentage: 35, value: "175.0M", color: "#f59e0b" },
-    { label: "Petshop", percentage: 25, value: "125.0M", color: "#3b82f6" },
-  ],
-};
-
-const paymentData = {
-  series: [60, 30, 10],
-  labels: ["Tiền mặt", "Chuyển khoản", "Thẻ"],
-  colors: ["#16a34a", "#3b82f6", "#8b5cf6"],
-  legend: [
-    { label: "Tiền mặt", percentage: 60, value: "189.0M", color: "#16a34a" },
-    { label: "Chuyển khoản", percentage: 30, value: "94.5M", color: "#3b82f6" },
-    { label: "Thẻ", percentage: 10, value: "31.5M", color: "#8b5cf6" },
-  ],
-};
-
-// Computed properties for donut chart
+// Donut
 const currentDonutSeries = computed(() => {
-  return revenueStructureType.value === "department"
-    ? departmentData.series
-    : paymentData.series;
-});
+  if (!reportData.value) return []
+  const source = revenueStructureType.value === 'department'
+    ? reportData.value.donut.by_service
+    : reportData.value.donut.by_payment
+  return source.map(item => item.percentage)
+})
 
 const currentLegendData = computed(() => {
-  return revenueStructureType.value === "department"
-    ? departmentData.legend
-    : paymentData.legend;
-});
+  if (!reportData.value) return []
+  return revenueStructureType.value === 'department'
+    ? reportData.value.donut.by_service
+    : reportData.value.donut.by_payment
+})
 
-const donutChartOptions = computed(() => ({
-  chart: {
-    type: "donut",
-    height: 250,
-  },
-  labels:
-    revenueStructureType.value === "department"
-      ? departmentData.labels
-      : paymentData.labels,
-  colors:
-    revenueStructureType.value === "department"
-      ? departmentData.colors
-      : paymentData.colors,
-  plotOptions: {
-    pie: {
-      donut: {
-        size: "70%",
-        labels: {
-          show: true,
-          name: {
+const donutChartOptions = computed(() => {
+  const source = currentLegendData.value
+  return {
+    chart: { type: 'donut', height: 250 },
+    labels:  source.map(i => i.label),
+    colors:  source.map(i => i.color),
+    plotOptions: {
+      pie: {
+        donut: {
+          size: '70%',
+          labels: {
             show: true,
-            fontSize: "14px",
-            fontFamily: "Nunito Sans, sans-serif",
-            color: "#364153",
-          },
-          value: {
-            show: true,
-            fontSize: "20px",
-            fontFamily: "Nunito Sans, sans-serif",
-            color: "#101828",
-            formatter: function (val) {
-              return val + "%";
-            },
-          },
-          total: {
-            show: true,
-            label: "Tổng",
-            fontSize: "14px",
-            color: "#6a7282",
-            formatter: function (w) {
-              return "315.1M";
+            total: {
+              show: true,
+              label: 'Tổng',
+              fontSize: '14px',
+              color: '#6a7282',
+              formatter: () => formatCurrencyShort(reportData.value?.summary.total_revenue ?? 0),
             },
           },
         },
       },
     },
-  },
-  dataLabels: {
-    enabled: false,
-  },
-  legend: {
-    show: false,
-  },
-  stroke: {
-    width: 2,
-    colors: ["#fff"],
-  },
-  tooltip: {
-    y: {
-      formatter: function (val) {
-        return val + "%";
-      },
-    },
-  },
-}));
+    dataLabels: { enabled: false },
+    legend: { show: false },
+    stroke: { width: 2, colors: ['#fff'] },
+    tooltip: { y: { formatter: v => v + '%' } },
+  }
+})
 
-// Table data
-const tableData = ref([
-  {
-    date: "01/11/2025",
-    orders: "42",
-    revenue: "14.200.000",
-    cogs: "4.800.000",
-    profit: "9.400.000",
-    cash: "2.800.000",
-    online: "11.400.000",
-  },
-  {
-    date: "02/11/2025",
-    orders: "38",
-    revenue: "12.600.000",
-    cogs: "4.200.000",
-    profit: "8.400.000",
-    cash: "2.500.000",
-    online: "10.100.000",
-  },
-  {
-    date: "03/11/2025",
-    orders: "45",
-    revenue: "15.800.000",
-    cogs: "5.400.000",
-    profit: "10.400.000",
-    cash: "3.200.000",
-    online: "12.600.000",
-  },
-  {
-    date: "04/11/2025",
-    orders: "51",
-    revenue: "17.200.000",
-    cogs: "5.800.000",
-    profit: "11.400.000",
-    cash: "3.400.000",
-    online: "13.800.000",
-  },
-  {
-    date: "05/11/2025",
-    orders: "48",
-    revenue: "16.400.000",
-    cogs: "5.600.000",
-    profit: "10.800.000",
-    cash: "3.300.000",
-    online: "13.100.000",
-  },
-  {
-    date: "06/11/2025",
-    orders: "43",
-    revenue: "14.800.000",
-    cogs: "5.000.000",
-    profit: "9.800.000",
-    cash: "3.000.000",
-    online: "11.800.000",
-  },
-  {
-    date: "07/11/2025",
-    orders: "40",
-    revenue: "13.500.000",
-    cogs: "4.600.000",
-    profit: "8.900.000",
-    cash: "2.700.000",
-    online: "10.800.000",
-  },
-  {
-    date: "08/11/2025",
-    orders: "46",
-    revenue: "15.600.000",
-    cogs: "5.300.000",
-    profit: "10.300.000",
-    cash: "3.100.000",
-    online: "12.500.000",
-  },
-  {
-    date: "09/11/2025",
-    orders: "49",
-    revenue: "16.800.000",
-    cogs: "5.700.000",
-    profit: "11.100.000",
-    cash: "3.400.000",
-    online: "13.400.000",
-  },
-  {
-    date: "10/11/2025",
-    orders: "44",
-    revenue: "15.000.000",
-    cogs: "5.100.000",
-    profit: "9.900.000",
-    cash: "3.000.000",
-    online: "12.000.000",
-  },
-]);
+// ─── API ──────────────────────────────────────────────────────────────────────
+const fetchReport = async () => {
+  isLoading.value   = true
+  errorMessage.value = ''
+
+  try {
+    const token  = getToken('admin') || getToken('staff')
+    const params = { period: selectedPeriod.value, service: selectedService.value }
+
+    if (selectedPeriod.value === 'custom') {
+      params.start = customStart.value
+      params.end   = customEnd.value
+    }
+
+    const { data } = await axios.get('/api/statistics/revenue', {
+      params,
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    if (data.status && data.data) {
+      reportData.value = data.data
+      services.value   = data.data.services ?? []
+    } else {
+      errorMessage.value = 'Không thể tải dữ liệu báo cáo.'
+    }
+  } catch (err) {
+    console.error('Revenue report error:', err)
+    errorMessage.value = err.response?.data?.message ?? 'Lỗi kết nối máy chủ.'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// ─── Filter handlers ──────────────────────────────────────────────────────────
+const selectPeriod = (opt) => {
+  selectedPeriod.value    = opt.value
+  showPeriodDropdown.value = false
+  if (opt.value !== 'custom') fetchReport()
+}
+
+const selectService = (svc) => {
+  selectedService.value    = svc.id
+  showServiceDropdown.value = false
+  fetchReport()
+}
+
+// Close dropdowns on outside click
+const handleOutsideClick = (e) => {
+  if (periodDropdownRef.value && !periodDropdownRef.value.contains(e.target)) {
+    showPeriodDropdown.value = false
+  }
+  if (serviceDropdownRef.value && !serviceDropdownRef.value.contains(e.target)) {
+    showServiceDropdown.value = false
+  }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const formatVND = (val) =>
+  new Intl.NumberFormat('vi-VN').format(Math.round(val)) + ' ₫'
+
+const formatCurrency = (val) => {
+  if (val >= 1_000_000_000) return (val / 1_000_000_000).toFixed(1) + ' tỷ'
+  if (val >= 1_000_000)     return (val / 1_000_000).toFixed(1) + 'M'
+  if (val >= 1_000)         return (val / 1_000).toFixed(1) + 'K'
+  return new Intl.NumberFormat('vi-VN').format(val) + ' ₫'
+}
+
+const formatCurrencyShort = formatCurrency
+
+const formatDate = (dateStr) => {
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+const exportExcel = async () => {
+  try {
+    const token  = getToken('admin') || getToken('staff')
+    const params = {
+      period:  selectedPeriod.value,
+      service: selectedService.value,
+      export:  'excel',
+    }
+    if (selectedPeriod.value === 'custom') {
+      params.start = customStart.value
+      params.end   = customEnd.value
+    }
+    const response = await axios.get('/api/statistics/revenue', {
+      params,
+      headers:      { Authorization: `Bearer ${token}` },
+      responseType: 'blob',
+    })
+    const url  = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href  = url
+    const period = selectedPeriod.value === 'custom'
+      ? `${customStart.value}-den-${customEnd.value}`
+      : selectedPeriod.value
+    link.download = `bao-cao-doanh-thu-${period}.xlsx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('Export error:', err)
+    alert('Xuất Excel thất bại. Vui lòng thử lại.')
+  }
+}
+
+// ─── Lifecycle ────────────────────────────────────────────────────────────────
+onMounted(() => {
+  fetchReport()
+  document.addEventListener('click', handleOutsideClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleOutsideClick)
+})
 </script>
 
 <style scoped>
-/* Custom scrollbar for table */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
 </style>

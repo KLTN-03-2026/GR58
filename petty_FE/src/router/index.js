@@ -110,6 +110,7 @@ const routes = [
     meta: { layout: "dangki_dangnhap" },
   },
 
+
   /********************** Staff ************************* */
   {
     path: "/staff/login",
@@ -162,6 +163,21 @@ const routes = [
           import("../views/admin/communication/post/add-new-post/index.vue"),
       },
       {
+  path: "bai-viet/them-moi",
+  component: () =>
+    import("../views/admin/communication/post/add-new-post/index.vue"),
+},
+{
+  path: "bai-viet/chinh-sua/:id",
+  component: () =>
+    import("../views/admin/communication/post/edit-post/index.vue"),
+},
+{
+  path: "bai-viet",
+  component: () =>
+    import("../views/admin/communication/post/index.vue"),
+},
+      {
         path: "posts/edit/:id",
         component: () =>
           import("../views/admin/communication/post/edit-post/index.vue"),
@@ -208,6 +224,10 @@ const routes = [
       {
         path: "profile",
         component: () => import("../views/admin/profile/index.vue"),
+      },
+      {
+      path: "trang-ca-nhan",
+      component: () => import("../views/admin/profile/index.vue"),
       },
     ],
   },
