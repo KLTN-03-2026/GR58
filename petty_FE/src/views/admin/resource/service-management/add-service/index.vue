@@ -36,7 +36,6 @@
                 >
                   {{ selectedCategory || "Vui lòng chọn danh mục dịch vụ" }}
                 </span>
-                <!-- small spinner when loading categories -->
                 <svg
                   v-if="loadingCats"
                   class="animate-spin h-4 w-4 text-gray-500 flex-shrink-0"
@@ -46,11 +45,8 @@
                 >
                   <circle
                     class="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
+                    cx="12" cy="12" r="10"
+                    stroke="currentColor" stroke-width="4"
                   ></circle>
                   <path
                     class="opacity-75"
@@ -88,7 +84,6 @@
                 </div>
               </div>
             </div>
-            <!-- inline category error -->
             <div v-if="errors.category" class="text-xs text-red-600 mt-1">
               {{ errors.category }}
             </div>
@@ -141,7 +136,7 @@
               v-model="formattedPrice"
               type="text"
               inputmode="numeric"
-              placeholder="200000"
+              placeholder="200,000 ₫"
               @input="onPriceInput"
               @keydown="priceKeydown"
               class="bg-[#f3f3f5] border-none rounded-lg h-9 px-3 py-1 font-nunito text-sm text-neutral-950 tracking-tight outline-none placeholder:text-[#717182]"
@@ -232,7 +227,7 @@
             </button>
           </div>
 
-          <!-- Image Upload -->
+          <!-- ✅ Image Upload với preview -->
           <div class="flex flex-col gap-2">
             <label
               class="font-medium text-sm leading-[14px] text-neutral-950 tracking-tight"
@@ -240,20 +235,55 @@
               Ảnh đại diện
             </label>
             <div
-              class="border-2 border-dashed border-[#d1d5dc] rounded-[10px] h-40 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-gray-400 transition-colors"
-              @click="triggerFileInput"
+              class="border-2 border-[#d1d5dc] border-solid rounded-[10px] h-40 relative overflow-hidden"
+              :class="!imagePreview ? 'border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-gray-400 transition-colors' : ''"
+              @click="!imagePreview && triggerFileInput()"
             >
-              <p class="text-sm leading-6 text-[#4a5565] tracking-tight">
-                Click để chọn ảnh
-              </p>
-              <p class="text-xs leading-4 text-[#99a1af]">
-                PNG, JPG, GIF (Max 5MB)
-              </p>
+              <!-- Preview ảnh đã chọn -->
+              <img
+                v-if="imagePreview"
+                :src="imagePreview"
+                alt="Preview"
+                class="w-full h-full object-cover"
+              />
+
+              <!-- Placeholder khi chưa chọn ảnh -->
+              <template v-if="!imagePreview">
+                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <p class="text-sm leading-6 text-[#4a5565] tracking-tight">Click để chọn ảnh</p>
+                <p class="text-xs leading-4 text-[#99a1af]">PNG, JPG, GIF (Max 5MB)</p>
+              </template>
+
+              <!-- Nút xóa ảnh -->
+              <button
+                v-if="imagePreview"
+                class="absolute top-[10px] right-[10px] bg-[#d4183d] rounded-lg w-9 h-8 flex items-center justify-center hover:bg-[#b01430] transition-colors"
+                type="button"
+                @click.stop="removeImage"
+              >
+                <TrashIcon class="w-4 h-4 text-white" />
+              </button>
+
+              <!-- Nút thay ảnh -->
+              <button
+                v-if="imagePreview"
+                class="absolute bottom-[10px] left-[10px] bg-[#009689] text-white rounded-md px-3 py-1 text-xs hover:bg-[#007d72] transition-colors"
+                type="button"
+                @click.stop="triggerFileInput"
+              >
+                Thay ảnh
+              </button>
             </div>
+
+            <!-- Hidden file input -->
             <input
               ref="fileInput"
               type="file"
-              accept="image/png,image/jpeg,image/gif"
+              accept="image/png,image/jpeg,image/gif,image/webp"
               class="hidden"
               @change="handleFileUpload"
             />
@@ -291,39 +321,37 @@
 <script setup>
 import { ref, reactive, computed } from "vue";
 import api, { attachToken } from "@/utils/api";
-// API origin (strip trailing /api) so we can build absolute URLs for uploaded files
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api";
-const API_ORIGIN = API_BASE.replace(/\/api\/?$/, "");
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
-// Icon SVG
 import ChevronDownIcon from "@/assets/svg/chevron-down.svg";
+import TrashIcon from "@/assets/svg/trash.svg";
+
 const emit = defineEmits(["close", "save"]);
 
-// State
-const selectedDepartment = ref("");
-const selectedCategory = ref("");
+// ─── State ────────────────────────────────────────────────────────────
+const selectedCategory   = ref("");
 const selectedCategoryId = ref(null);
 const showCategoryDropdown = ref(false);
-const categories = ref([]);
-const loadingCats = ref(false);
-// validation errors from server or client
-const errors = reactive({});
-const fileInput = ref(null);
+const categories   = ref([]);
+const loadingCats  = ref(false);
+const errors       = reactive({});
+const fileInput    = ref(null);
+const saving       = ref(false);
+
+// ✅ Tách preview URL và file object
+const imagePreview = ref("");   // base64 preview để hiển thị
+const imageFile    = ref(null); // File object thực để upload
 
 const formData = reactive({
-  name: "",
-  code: "",
-  price: null,
-  duration: null,
-  description: "",
+  name:         "",
+  code:         "",
+  price:        null,
+  duration:     null,
+  description:  "",
   instructions: "",
-  requireBooking: true,
-  isActive: true,
-  image: null,
+  isActive:     true,
 });
-const saving = ref(false);
 
-// formatted price (VND) shown in the input while storing numeric value in formData.price
+// ─── Formatted price ──────────────────────────────────────────────────
 const formattedPrice = computed({
   get() {
     const v = formData.price;
@@ -334,30 +362,29 @@ const formattedPrice = computed({
         currency: "VND",
         maximumFractionDigits: 0,
       }).format(Number(v));
-    } catch (e) {
+    } catch {
       return String(v);
     }
   },
   set(val) {
-    // remove non-digit characters
     const digits = String(val).replace(/[^0-9]/g, "");
-    if (digits === "") formData.price = null;
-    else formData.price = parseInt(digits, 10);
+    formData.price = digits === "" ? null : parseInt(digits, 10);
   },
 });
 
-// Icon URLs from Figma (expire in 7 days)
-const iconChevronDown =
-  "https://www.figma.com/api/mcp/asset/c1f4500a-976f-4d96-9aa9-7e5957c97728";
-const iconUpload =
-  "https://www.figma.com/api/mcp/asset/f875eb22-4532-4e8e-a61d-a50ba158caec";
-
-// Methods
-const toggleDepartmentDropdown = () => {
-  console.log("Toggle department dropdown");
-  // Implement department dropdown logic here
+const onPriceInput = (event) => {
+  const digits = (event.target.value || "").replace(/[^0-9]/g, "");
+  formData.price = digits === "" ? null : parseInt(digits, 10);
 };
 
+const priceKeydown = (e) => {
+  const allowed = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab", "Enter"];
+  if (allowed.includes(e.key) || e.ctrlKey || e.metaKey) return;
+  if (/^[0-9]$/.test(e.key)) return;
+  e.preventDefault();
+};
+
+// ─── Category ─────────────────────────────────────────────────────────
 const fetchCategories = async () => {
   loadingCats.value = true;
   try {
@@ -370,14 +397,13 @@ const fetchCategories = async () => {
     }));
   } catch (e) {
     console.error("fetchCategories error", e);
-    showErrorToast("Lỗi", "Không tải được danh mục dịch vụ. Vui lòng thử lại.");
+    showErrorToast("Lỗi", "Không tải được danh mục dịch vụ.");
   } finally {
     loadingCats.value = false;
   }
 };
 
 const toggleCategoryDropdown = async () => {
-  // Allow selecting category without requiring a department
   showCategoryDropdown.value = !showCategoryDropdown.value;
   if (showCategoryDropdown.value && categories.value.length === 0) {
     await fetchCategories();
@@ -385,190 +411,129 @@ const toggleCategoryDropdown = async () => {
 };
 
 const selectCategory = (c) => {
-  selectedCategory.value = c.ten_nhom;
+  selectedCategory.value   = c.ten_nhom;
   selectedCategoryId.value = c.id;
   showCategoryDropdown.value = false;
-  // clear prior category error
   if (errors.category) delete errors.category;
 };
 
+// ─── Image Upload ─────────────────────────────────────────────────────
 const triggerFileInput = () => {
   fileInput.value?.click();
 };
 
 const handleFileUpload = (event) => {
   const file = event.target.files?.[0];
-  if (file) {
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File size must be less than 5MB");
-      return;
-    }
+  if (!file) return;
 
-    // Validate file type
-    const validTypes = ["image/png", "image/jpeg", "image/gif"];
-    if (!validTypes.includes(file.type)) {
-      alert("File type must be PNG, JPG, or GIF");
-      return;
-    }
-
-    formData.image = file;
-    console.log("File uploaded:", file.name);
-  }
-};
-
-// Ensure price input only accepts digits. This will strip non-digits on paste/input
-const onPriceInput = (event) => {
-  const raw = event.target.value || "";
-  const digits = String(raw).replace(/[^0-9]/g, "");
-  // Update computed setter via its .value to normalize and store numeric value
-  try {
-    formattedPrice.value = digits;
-  } catch (e) {
-    // fallback: directly set formData.price
-    formData.price = digits === "" ? null : parseInt(digits, 10);
-  }
-};
-
-// Prevent non-numeric keys (allow navigation, editing, and clipboard shortcuts)
-const priceKeydown = (e) => {
-  const allowed = [
-    "Backspace",
-    "Delete",
-    "ArrowLeft",
-    "ArrowRight",
-    "Tab",
-    "Enter",
-  ];
-  if (allowed.includes(e.key)) return;
-  if (e.ctrlKey || e.metaKey) return; // allow copy/paste/select all
-  // allow digits
-  if (/^[0-9]$/.test(e.key)) return;
-  // otherwise prevent
-  e.preventDefault();
-};
-
-const handleCancel = () => {
-  emit("close");
-};
-
-const handleSave = async () => {
-  // clear prior errors
-  Object.keys(errors).forEach((k) => delete errors[k]);
-
-  // Client-side validation: set errors to show inline instead of alert
-  if (!selectedCategory.value) {
-    errors.category = "Vui lòng chọn danh mục dịch vụ";
-  }
-  if (!formData.name) errors.name = "Vui lòng nhập tên dịch vụ";
-  if (!formData.code) errors.code = "Vui lòng nhập mã dịch vụ";
-  if (!formData.price && formData.price !== 0)
-    errors.price = "Vui lòng nhập giá bán";
-  if (!formData.duration && formData.duration !== 0)
-    errors.duration = "Vui lòng nhập thời gian thực hiện";
-
-  if (Object.keys(errors).length > 0) {
-    // don't proceed if client-side errors
+  if (file.size > 5 * 1024 * 1024) {
+    showErrorToast("Lỗi", "Kích thước file phải nhỏ hơn 5MB");
     return;
   }
 
+  const validTypes = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+  if (!validTypes.includes(file.type)) {
+    showErrorToast("Lỗi", "Định dạng ảnh phải là PNG, JPG, GIF hoặc WEBP");
+    return;
+  }
+
+  // ✅ Tạo preview bằng FileReader
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    imagePreview.value = e.target.result;
+  };
+  reader.readAsDataURL(file);
+
+  // ✅ Lưu File object để upload
+  imageFile.value = file;
+};
+
+const removeImage = () => {
+  imagePreview.value = "";
+  imageFile.value    = null;
+  if (fileInput.value) fileInput.value.value = "";
+};
+
+// ─── Submit ───────────────────────────────────────────────────────────
+const handleCancel = () => emit("close");
+
+const handleSave = async () => {
+  Object.keys(errors).forEach((k) => delete errors[k]);
+
+  if (!selectedCategory.value) errors.category = "Vui lòng chọn danh mục dịch vụ";
+  if (!formData.name)          errors.name     = "Vui lòng nhập tên dịch vụ";
+  if (!formData.code)          errors.code     = "Vui lòng nhập mã dịch vụ";
+  if (formData.price === null || formData.price === undefined)
+    errors.price = "Vui lòng nhập giá bán";
+  if (!formData.duration)
+    errors.duration = "Vui lòng nhập thời gian thực hiện";
+
+  if (Object.keys(errors).length > 0) return;
+
   saving.value = true;
   try {
-    // attach token if present
-    try {
-      attachToken();
-    } catch (_) {}
+    try { attachToken(); } catch (_) {}
 
-    // If image selected, upload it first and get a path
-    let imagePath = null;
-    if (formData.image) {
-      try {
-        const fd = new FormData();
-        fd.append("file", formData.image);
-        const upRes = await api.post("/upload", fd, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        // support various response shapes
-        if (upRes && upRes.data) {
-          imagePath =
-            (upRes.data.data &&
-              (upRes.data.data.path || upRes.data.data.url)) ||
-            upRes.data.path ||
-            upRes.data.url ||
-            null;
-        }
-        if (!imagePath) {
-          // fallback: some APIs return the stored filename under data.file
-          if (upRes && upRes.data && upRes.data.data && upRes.data.data.file)
-            imagePath = upRes.data.data.file;
-        }
-        // normalize to absolute URL if backend returned a relative path
-        if (imagePath && !/^https?:\/\//i.test(imagePath)) {
-          if (!imagePath.startsWith("/")) imagePath = "/" + imagePath;
-          imagePath = API_ORIGIN + imagePath;
-        }
-      } catch (ue) {
-        console.error("upload error", ue);
-        // if upload fails, show message and abort
-        const msg =
-          ue && ue.response && ue.response.data && ue.response.data.message
-            ? ue.response.data.message
-            : "Không thể tải ảnh lên. Vui lòng thử lại.";
-        showErrorToast("Lỗi upload", msg);
-        saving.value = false;
-        return;
+    // ✅ Gửi thẳng file vào store() — không cần endpoint /upload riêng
+    if (imageFile.value) {
+      const fd = new FormData();
+      fd.append("anh_dich_vu_file", imageFile.value); // field BE đã hỗ trợ
+      fd.append("ten",                  formData.name);
+      fd.append("ma_dich_vu",           formData.code);
+      fd.append("gia_tien",             formData.price);
+      fd.append("thoi_gian_thuc_hien",  formData.duration);
+      fd.append("mo_ta",                formData.description  || "");
+      fd.append("huong_dan",            formData.instructions || "");
+      fd.append("trang_thai",           formData.isActive ? "kinh_doanh" : "ngung");
+      fd.append("danh_muc_id",          selectedCategoryId.value || "");
+
+      const res = await api.post("/dich-vu", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      if (res?.data?.status) {
+        showSuccessToast("Thành công", "Tạo dịch vụ thành công.");
+        emit("save", res.data.data);
+        emit("close");
+      } else {
+        showErrorToast("Lỗi", res?.data?.message || "Lỗi khi tạo dịch vụ.");
       }
-    }
-
-    // Build payload matching backend fields
-    const payload = {
-      ten: formData.name,
-      gia_tien: formData.price,
-      thoi_gian_thuc_hien: formData.duration,
-      mo_ta: formData.description || null,
-      ma_dich_vu: formData.code || null,
-      huong_dan: formData.instructions || null,
-      trang_thai: formData.isActive ? "kinh_doanh" : "ngung",
-      danh_muc_id: selectedCategoryId.value || null,
-      anh_dich_vu: imagePath || null,
-    };
-
-    const res = await api.post("/dich-vu", payload);
-    if (res && res.data && res.data.status) {
-      const created = res.data.data;
-      // emit created backend item so parent can update list
-      emit("save", created);
-      // show success and close modal
-      showSuccessToast("Thành công", "Tạo dịch vụ thành công.");
-      // auto-close modal
-      emit("close");
     } else {
-      const msg =
-        (res && res.data && res.data.message) || "Lỗi khi tạo dịch vụ.";
-      showErrorToast("Lỗi", msg);
+      // Không có ảnh → gửi JSON bình thường
+      const payload = {
+        ten:                 formData.name,
+        gia_tien:            formData.price,
+        thoi_gian_thuc_hien: formData.duration,
+        mo_ta:               formData.description  || null,
+        ma_dich_vu:          formData.code         || null,
+        huong_dan:           formData.instructions || null,
+        trang_thai:          formData.isActive ? "kinh_doanh" : "ngung",
+        danh_muc_id:         selectedCategoryId.value || null,
+      };
+
+      const res = await api.post("/dich-vu", payload);
+      if (res?.data?.status) {
+        showSuccessToast("Thành công", "Tạo dịch vụ thành công.");
+        emit("save", res.data.data);
+        emit("close");
+      } else {
+        showErrorToast("Lỗi", res?.data?.message || "Lỗi khi tạo dịch vụ.");
+      }
     }
   } catch (e) {
     console.error("create service error", e);
-    // show server-side validation errors inline when available
-    if (e && e.response && e.response.status === 422) {
-      const respErrors = (e.response.data && e.response.data.errors) || {};
+    if (e?.response?.status === 422) {
+      const respErrors = e.response.data?.errors || {};
       Object.keys(respErrors).forEach((k) => {
-        // map backend field names to our form keys if necessary
-        // backend may return 'ten', 'gia_tien', 'thoi_gian_thuc_hien', 'danh_muc_id', etc.
-        if (k === "ten") errors.name = respErrors[k].join(" ");
-        else if (k === "ma_dich_vu") errors.code = respErrors[k].join(" ");
-        else if (k === "gia_tien") errors.price = respErrors[k].join(" ");
-        else if (k === "thoi_gian_thuc_hien")
-          errors.duration = respErrors[k].join(" ");
-        else if (k === "danh_muc_id") errors.category = respErrors[k].join(" ");
+        if (k === "ten")                  errors.name     = respErrors[k].join(" ");
+        else if (k === "ma_dich_vu")      errors.code     = respErrors[k].join(" ");
+        else if (k === "gia_tien")        errors.price    = respErrors[k].join(" ");
+        else if (k === "thoi_gian_thuc_hien") errors.duration = respErrors[k].join(" ");
+        else if (k === "danh_muc_id")    errors.category = respErrors[k].join(" ");
         else errors[k] = respErrors[k].join(" ");
       });
-      // focus first error could be implemented by user if desired
     } else {
-      const msg =
-        e && e.response && e.response.data && e.response.data.message
-          ? e.response.data.message
-          : "Không thể tạo dịch vụ. Vui lòng kiểm tra quyền hoặc thử lại.";
+      const msg = e?.response?.data?.message || "Không thể tạo dịch vụ. Vui lòng thử lại.";
       showErrorToast("Lỗi", msg);
     }
   } finally {
@@ -578,14 +543,12 @@ const handleSave = async () => {
 </script>
 
 <style scoped>
-/* Remove number input arrows */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   appearance: none;
   margin: 0;
 }
-
 input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;

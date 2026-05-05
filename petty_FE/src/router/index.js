@@ -110,6 +110,7 @@ const routes = [
     meta: { layout: "dangki_dangnhap" },
   },
 
+
   /********************** Staff ************************* */
   {
     path: "/staff/login",
@@ -208,6 +209,10 @@ const routes = [
       {
         path: "profile",
         component: () => import("../views/admin/profile/index.vue"),
+      },
+      {
+      path: "trang-ca-nhan",
+      component: () => import("../views/admin/profile/index.vue"),
       },
     ],
   },
