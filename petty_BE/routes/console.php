@@ -43,3 +43,6 @@ Schedule::command('lich-lam-viec:generate', [
     now()->addMonth()->year,
     now()->addMonth()->month,
 ])->monthlyOn(25, '23:00');
+
+// Nhắc tiêm phòng hàng ngày lúc 8:00 sáng
+Schedule::command('thongbao:nhac-tiem-phong')->dailyAt('08:00');

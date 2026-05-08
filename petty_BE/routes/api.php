@@ -33,6 +33,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\LichNghiController;
 use App\Http\Controllers\ThanhToanController;
 use App\Http\Controllers\YeuCauHoTroController;
+use App\Http\Controllers\ThongBaoController;
 
 Route::post('/khach-hang/dang-ki', [KhachHangController::class, 'dangKi']);
 Route::post('/khach-hang/dang-nhap', [KhachHangController::class, 'dangNhap']);
@@ -103,6 +104,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/khach-hang/doi-mat-khau', [KhachHangController::class, 'doiMatKhau']);
     Route::put('/khach-hang/{id}', [KhachHangController::class, 'update']);
     Route::get('/khach-hang', [KhachHangController::class, 'index'])->middleware('staff.only');
+
+    // Thông báo khách hàng
+    Route::get('/thong-bao', [ThongBaoController::class, 'index']);
+    Route::get('/thong-bao/chua-doc/count', [ThongBaoController::class, 'unreadCount']);
+    Route::patch('/thong-bao/da-doc-tat-ca', [ThongBaoController::class, 'markAllAsRead']);
+    Route::patch('/thong-bao/{id}/da-doc', [ThongBaoController::class, 'markAsRead']);
 
     // Thu cưng routes (require authentication)
     Route::get('/thu-cung', [ThuCungController::class, 'index']);

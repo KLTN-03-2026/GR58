@@ -134,6 +134,14 @@
             </svg>
           </button>
 
+          <!-- Notification badge -->
+          <span
+            v-if="unreadCount > 0"
+            class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+          >
+            {{ unreadCount > 99 ? '99+' : unreadCount }}
+          </span>
+
           <!-- Notifications popup (hover) -->
           <div
             v-if="notificationsOpen"
@@ -141,30 +149,46 @@
             @mouseenter="clearHideNotificationsTimer()"
             @mouseleave="hideNotifications()"
             class="absolute right-0 mt-2 w-80 bg-white border !border-black/15 rounded-lg shadow-lg z-50 p-3"
-            style="max-height: 320px; overflow: auto"
+            style="max-height: 380px; overflow: auto"
           >
-            <ul class="space-y-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-bold text-gray-800">Thông báo</span>
+              <button
+                v-if="unreadCount > 0"
+                @click.stop="handleMarkAllRead"
+                class="text-xs text-teal-600 hover:underline"
+              >
+                Đánh dấu tất cả đã đọc
+              </button>
+            </div>
+            <ul v-if="notifications.length" class="space-y-3">
               <li
-                v-for="(n, idx) in notifications"
-                :key="idx"
-                class="flex gap-3 items-start"
+                v-for="n in notifications"
+                :key="n.id"
+                class="flex gap-3 items-start cursor-pointer rounded-md p-1.5 transition-colors"
+                :class="n.da_doc ? 'opacity-60' : 'bg-teal-50/40'"
+                @click="handleNotifClick(n)"
               >
                 <div
                   class="flex-shrink-0 w-8 h-8 rounded-md bg-gray-100 flex items-center justify-center text-teal-600"
                 >
                   <component
-                    :is="iconMap[n.icon] || CalendarDot"
+                    :is="getNotifIcon(n.loai)"
                     class="w-5 h-5"
                   />
                 </div>
-                <div class="flex-1">
-                  <div class="text-sm font-semibold text-gray-800">
-                    {{ n.title }}
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-semibold text-gray-800 truncate" :class="{ '!font-normal': n.da_doc }">
+                    {{ n.tieu_de }}
                   </div>
-                  <div class="text-xs text-gray-500">{{ n.message }}</div>
+                  <div class="text-xs text-gray-500 line-clamp-2">{{ n.noi_dung }}</div>
+                  <div class="text-[11px] text-gray-400 mt-0.5">{{ formatTimeAgo(n.created_at) }}</div>
                 </div>
               </li>
             </ul>
+            <div v-else class="text-center text-sm text-gray-400 py-4">
+              Không có thông báo mới
+            </div>
           </div>
         </div>
 
@@ -534,6 +558,7 @@ let hideNotificationsTimer = null;
 
 const showNotifications = () => {
   notificationsOpen.value = true;
+  if (user.value) fetchNotifications();
 };
 
 const hideNotifications = () => {
@@ -554,51 +579,103 @@ const clearHideNotificationsTimer = () => {
   }
 };
 
-// sample notifications (replace with real data from API later)
-const notifications = [
-  {
-    title: "Tiêm phòng",
-    message: "Đã đến lúc tiêm lại vaccine Care cho Bé Cún",
-    icon: "svg-needle",
-  },
-  {
-    title: "Lịch hẹn",
-    message: "Lịch hẹn tiêm vaccine cho Bé Miu đã được xác nhận",
-    icon: "svg-calendar",
-  },
-  {
-    title: "Ưu đãi",
-    message: "Khuyến mãi triệt sản 20% đến hết tháng này!",
-    icon: "svg-paw",
-  },
-  {
-    title: "Thanh toán & hóa đơn",
-    message: "Hóa đơn #INV203 đã được thanh toán thành công",
-    icon: "svg-receipt",
-  },
-  {
-    title: "Lịch hẹn",
-    message: "Bạn có lịch hẹn với Bác sĩ Minh vào 15:30 hôm nay",
-    icon: "svg-calendar",
-  },
-];
+// --- Notification data from API ---
+import { thongBaoService } from "@/services/thongBaoService";
 
-// small mapping to inline SVG components for icons — simple inline icons
+const notifications = ref([]);
+const unreadCount = ref(0);
+let pollingInterval = null;
+
+async function fetchUnreadCount() {
+  if (!user.value) return;
+  try {
+    const res = await thongBaoService.getUnreadCount();
+    unreadCount.value = res.count || 0;
+  } catch (e) {
+    // silent
+  }
+}
+
+async function fetchNotifications() {
+  if (!user.value) return;
+  try {
+    const res = await thongBaoService.getAll(1);
+    notifications.value = res.data || [];
+  } catch (e) {
+    // silent
+  }
+}
+
+async function handleNotifClick(n) {
+  if (!n.da_doc) {
+    try {
+      await thongBaoService.markAsRead(n.id);
+      n.da_doc = true;
+      unreadCount.value = Math.max(0, unreadCount.value - 1);
+    } catch (e) {
+      // silent
+    }
+  }
+}
+
+async function handleMarkAllRead() {
+  try {
+    await thongBaoService.markAllAsRead();
+    notifications.value.forEach((n) => (n.da_doc = true));
+    unreadCount.value = 0;
+  } catch (e) {
+    // silent
+  }
+}
+
+function startPolling() {
+  if (pollingInterval) return;
+  fetchUnreadCount();
+  pollingInterval = setInterval(fetchUnreadCount, 30000);
+}
+
+function stopPolling() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+}
+
+// Notification icon mapping
 const SvgNeedle = {
   template: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M20 7L7 20M17 4l3 3-2 2-3-3 2-2z' /></svg>`,
 };
-// header/menu icons are imported above from assets/svg (UserRound, InfoCircle, DogIcon, CalendarDot, CreditCardPay, HelpIcon, Logout2)
-
-const iconMap = {
-  "svg-needle": SvgNeedle,
-  "svg-calendar": CalendarDot,
-  "svg-paw": DogIcon,
-  "svg-receipt": CreditCardPay,
-  user: UserRound,
-  info: InfoCircle,
-  help: HelpIcon,
-  logout: Logout2,
+const SvgClipboard = {
+  template: `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' /></svg>`,
 };
+
+function getNotifIcon(loai) {
+  const map = {
+    lich_hen: CalendarDot,
+    tiem_phong: SvgNeedle,
+    thanh_toan: CreditCardPay,
+    ket_qua_kham: SvgClipboard,
+  };
+  return map[loai] || CalendarDot;
+}
+
+function formatTimeAgo(dateStr) {
+  if (!dateStr) return "";
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now - date;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  if (diffSec < 60) return "Vừa xong";
+  if (diffMin < 60) return `${diffMin} phút trước`;
+  if (diffHour < 24) return `${diffHour} giờ trước`;
+  if (diffDay === 1) return "Hôm qua";
+  if (diffDay <= 7) return `${diffDay} ngày trước`;
+  return date.toLocaleDateString("vi-VN");
+}
 
 const toggleDropdown = () => {
   dropdownOpen.value = !dropdownOpen.value;
@@ -630,9 +707,8 @@ const handleMobileLogout = () => {
 };
 
 const onBellClick = () => {
-  // placeholder: open notifications drawer or route
-  // for now toggle dropdown as well
-  dropdownOpen.value = !dropdownOpen.value;
+  notificationsOpen.value = !notificationsOpen.value;
+  if (notificationsOpen.value && user.value) fetchNotifications();
 };
 
 // close dropdown when clicking outside
@@ -649,10 +725,12 @@ const onClickOutside = (e) => {
 
 onMounted(() => {
   document.addEventListener("click", onClickOutside);
+  if (user.value) startPolling();
 });
 
 onUnmounted(() => {
   document.removeEventListener("click", onClickOutside);
+  stopPolling();
 });
 </script>
 

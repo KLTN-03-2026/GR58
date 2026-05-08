@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\MoMoService;
+use App\Services\ThongBaoService;
 use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
@@ -103,10 +104,37 @@ class PaymentController extends Controller
                     'thoi_gian_thanh_toan' => now(),
                 ]);
 
+                if ($lichHen->khach_hang_id) {
+                    app(ThongBaoService::class)->create(
+                        $lichHen->khach_hang_id,
+                        'thanh_toan',
+                        'Thanh toán thành công',
+                        "Hóa đơn {$baseOrderId} đã được thanh toán thành công qua MoMo.",
+                        'LichHen',
+                        $lichHen->id
+                    );
+                }
+
                 Log::info('Updated payment status for LichHen ID: ' . $lichHenId);
             }
 
             return response()->json(['message' => 'Đã nhận thông báo thành công'], 204);
+        }
+
+        if ($orderId) {
+            $baseOrderId = explode('_', $orderId)[0];
+            $lichHenId = (int) str_replace('HD', '', $baseOrderId);
+            $lichHen = \App\Models\LichHen::find($lichHenId);
+            if ($lichHen && $lichHen->khach_hang_id) {
+                app(ThongBaoService::class)->create(
+                    $lichHen->khach_hang_id,
+                    'thanh_toan',
+                    'Thanh toán thất bại',
+                    "Giao dịch thanh toán hóa đơn {$baseOrderId} không thành công.",
+                    'LichHen',
+                    $lichHen->id
+                );
+            }
         }
 
         return response()->json(['message' => 'Giao dịch thất bại'], 400);

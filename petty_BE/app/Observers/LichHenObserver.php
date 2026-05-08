@@ -3,46 +3,52 @@
 namespace App\Observers;
 
 use App\Models\LichHen;
+use App\Services\ThongBaoService;
 
 class LichHenObserver
 {
-    /**
-     * Handle the LichHen "created" event.
-     */
-    public function created(LichHen $lichHen): void
-    {
-        //
-    }
-
-    /**
-     * Handle the LichHen "updated" event.
-     */
     public function updated(LichHen $lichHen): void
     {
-        //
-    }
+        $service = app(ThongBaoService::class);
+        $khachHangId = $lichHen->khach_hang_id;
 
-    /**
-     * Handle the LichHen "deleted" event.
-     */
-    public function deleted(LichHen $lichHen): void
-    {
-        //
-    }
+        if (!$khachHangId) return;
 
-    /**
-     * Handle the LichHen "restored" event.
-     */
-    public function restored(LichHen $lichHen): void
-    {
-        //
-    }
+        if ($lichHen->wasChanged('trang_thai')) {
+            $trangThai = $lichHen->trang_thai;
+            $ngayGio = $lichHen->ngay_gio?->format('d/m/Y H:i') ?? '';
 
-    /**
-     * Handle the LichHen "force deleted" event.
-     */
-    public function forceDeleted(LichHen $lichHen): void
-    {
-        //
+            if ($trangThai === 'confirmed') {
+                $service->create(
+                    $khachHangId,
+                    'lich_hen',
+                    'Lịch hẹn đã được xác nhận',
+                    "Lịch hẹn của bạn vào {$ngayGio} đã được xác nhận.",
+                    'LichHen',
+                    $lichHen->id
+                );
+            } elseif ($trangThai === 'cancelled') {
+                $service->create(
+                    $khachHangId,
+                    'lich_hen',
+                    'Lịch hẹn đã bị hủy',
+                    "Lịch hẹn của bạn vào {$ngayGio} đã bị hủy.",
+                    'LichHen',
+                    $lichHen->id
+                );
+            }
+        }
+
+        if ($lichHen->wasChanged('ngay_gio') && !$lichHen->wasChanged('trang_thai')) {
+            $ngayGioMoi = $lichHen->ngay_gio?->format('d/m/Y H:i') ?? '';
+            $service->create(
+                $khachHangId,
+                'lich_hen',
+                'Lịch hẹn đã được đổi lịch',
+                "Lịch hẹn của bạn đã được đổi sang {$ngayGioMoi}.",
+                'LichHen',
+                $lichHen->id
+            );
+        }
     }
 }

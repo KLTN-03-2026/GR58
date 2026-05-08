@@ -281,10 +281,13 @@ class KhachHangController extends Controller
 
         if ($request->hasFile('anh_dai_dien')) {
             $fileValidator = Validator::make($request->all(), [
-                'anh_dai_dien' => 'file|image|mimes:jpg,jpeg,png,gif|max:5120',
+                'anh_dai_dien' => 'file|image|mimes:jpg,jpeg,png|max:2048',
+            ], [
+                'anh_dai_dien.mimes' => 'Chỉ chấp nhận file ảnh định dạng PNG hoặc JPEG.',
+                'anh_dai_dien.max' => 'Dung lượng ảnh tối đa là 2MB.',
             ]);
             if ($fileValidator->fails()) {
-                return response()->json(['status' => false, 'message' => Lang::get('messages.validation_failed'), 'errors' => $fileValidator->errors()], 422);
+                return response()->json(['status' => false, 'message' => $fileValidator->errors()->first('anh_dai_dien'), 'errors' => $fileValidator->errors()], 422);
             }
         }
 
@@ -343,10 +346,13 @@ class KhachHangController extends Controller
 
         if ($request->hasFile('anh_dai_dien')) {
             $fileValidator = Validator::make($request->all(), [
-                'anh_dai_dien' => 'file|image|mimes:jpg,jpeg,png,gif|max:5120',
+                'anh_dai_dien' => 'file|image|mimes:jpg,jpeg,png|max:2048',
+            ], [
+                'anh_dai_dien.mimes' => 'Chỉ chấp nhận file ảnh định dạng PNG hoặc JPEG.',
+                'anh_dai_dien.max' => 'Dung lượng ảnh tối đa là 2MB.',
             ]);
             if ($fileValidator->fails()) {
-                return response()->json(['status' => false, 'message' => Lang::get('messages.validation_failed'), 'errors' => $fileValidator->errors()], 422);
+                return response()->json(['status' => false, 'message' => $fileValidator->errors()->first('anh_dai_dien'), 'errors' => $fileValidator->errors()], 422);
             }
         }
 

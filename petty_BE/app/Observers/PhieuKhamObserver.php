@@ -3,46 +3,36 @@
 namespace App\Observers;
 
 use App\Models\PhieuKham;
+use App\Services\ThongBaoService;
 
 class PhieuKhamObserver
 {
-    /**
-     * Handle the PhieuKham "created" event.
-     */
-    public function created(PhieuKham $phieuKham): void
-    {
-        //
-    }
-
-    /**
-     * Handle the PhieuKham "updated" event.
-     */
     public function updated(PhieuKham $phieuKham): void
     {
-        //
-    }
+        $chanDoanChanged = $phieuKham->wasChanged('chan_doan')
+            && $phieuKham->getOriginal('chan_doan') === null
+            && $phieuKham->chan_doan !== null;
 
-    /**
-     * Handle the PhieuKham "deleted" event.
-     */
-    public function deleted(PhieuKham $phieuKham): void
-    {
-        //
-    }
+        $ketQuaChanged = $phieuKham->wasChanged('ket_qua_can_lam_sang')
+            && $phieuKham->getOriginal('ket_qua_can_lam_sang') === null
+            && $phieuKham->ket_qua_can_lam_sang !== null;
 
-    /**
-     * Handle the PhieuKham "restored" event.
-     */
-    public function restored(PhieuKham $phieuKham): void
-    {
-        //
-    }
+        if (!$chanDoanChanged && !$ketQuaChanged) return;
 
-    /**
-     * Handle the PhieuKham "force deleted" event.
-     */
-    public function forceDeleted(PhieuKham $phieuKham): void
-    {
-        //
+        $lichHen = $phieuKham->lichHen;
+        if (!$lichHen) return;
+
+        $khachHangId = $lichHen->khach_hang_id;
+        if (!$khachHangId) return;
+
+        $service = app(ThongBaoService::class);
+        $service->create(
+            $khachHangId,
+            'ket_qua_kham',
+            'Kết quả khám đã sẵn sàng',
+            'Bác sĩ đã hoàn tất ghi kết quả khám cho thú cưng của bạn.',
+            'PhieuKham',
+            $phieuKham->id
+        );
     }
 }

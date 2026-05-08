@@ -26,7 +26,7 @@
               <input
                 ref="fileInputRef"
                 type="file"
-                accept="image/*"
+                accept="image/png, image/jpeg"
                 class="hidden"
                 @change="handleFileChange"
               />
@@ -532,13 +532,27 @@ function handleFileChange(e) {
   const input = e.target;
   const file = input?.files?.[0] || null;
   if (!file) return;
-  if (!file.type.startsWith("image/")) {
+
+  const allowedTypes = ["image/png", "image/jpeg"];
+  if (!allowedTypes.includes(file.type)) {
     showErrorToast(
       "Định dạng không hợp lệ",
-      "Vui lòng chọn tệp ảnh (jpg, png, ...)"
+      "Chỉ chấp nhận file ảnh định dạng PNG hoặc JPEG."
     );
+    input.value = "";
     return;
   }
+
+  const maxSize = 2 * 1024 * 1024; // 2MB
+  if (file.size > maxSize) {
+    showErrorToast(
+      "Dung lượng quá lớn",
+      "Dung lượng ảnh tối đa là 2MB."
+    );
+    input.value = "";
+    return;
+  }
+
   avatarFile.value = file;
   if (avatarLocalUrl.value) {
     try {
