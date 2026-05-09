@@ -14,12 +14,19 @@ class UploadController extends Controller
      */
     public function store(Request $request)
     {
+        Log::info('Upload request received', [
+            'has_image' => $request->hasFile('image'),
+            'has_file' => $request->hasFile('file'),
+            'all_files' => array_keys($request->allFiles()),
+        ]);
+
         $validator = Validator::make($request->all(), [
             'image' => 'sometimes|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
             'file'  => 'sometimes|mimes:jpg,jpeg,png,gif,webp,pdf|max:10240',
         ]);
 
         if ($validator->fails()) {
+            Log::error('Upload validation failed', ['errors' => $validator->errors()]);
             return response()->json([
                 'status' => false,
                 'message' => 'Validation failed',
@@ -32,6 +39,7 @@ class UploadController extends Controller
             $file = $request->file('image') ?? $request->file('file');
 
             if (!$file) {
+                Log::error('No file found in request');
                 return response()->json([
                     'status' => false,
                     'message' => 'No file found'
@@ -41,8 +49,15 @@ class UploadController extends Controller
             $folder = ($file->getMimeType() === 'application/pdf') ? 'staff/documents' : 'staff/images';
             $path = $file->store($folder, 'public');
 
+            Log::info('File stored successfully', [
+                'path' => $path,
+                'folder' => $folder,
+            ]);
+
             // Get full URL
             $publicUrl = url(Storage::url($path));
+
+            Log::info('Upload successful', ['url' => $publicUrl]);
 
             return response()->json([
                 'status' => true,

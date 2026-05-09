@@ -50,6 +50,7 @@ class LichHenResource extends JsonResource
                         : null,
                     'can_nang'       => $this->thuCung->can_nang,
                     'anh_dai_dien'   => $this->thuCung->anh_dai_dien,
+                    'anh_dai_dien_url' => $this->thuCung->anh_dai_dien_url,
                 ];
             }),
             'dich_vu' => $this->whenLoaded('dichVu', function () {

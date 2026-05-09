@@ -30,6 +30,29 @@ class ThuCung extends Model
         'tuoi_thu_cung' => 'date',
     ];
 
+    /**
+     * Accessor to get full URL for pet avatar
+     */
+    protected $appends = ['anh_dai_dien_url'];
+
+    public function getAnhDaiDienUrlAttribute()
+    {
+        if (!$this->anh_dai_dien) {
+            return \App\Helpers\PetImageHelper::getDefaultImage(
+                $this->loai_thu_cung ?? 'khac',
+                $this->gioi_tinh
+            );
+        }
+
+        // If it's already a full URL, return as is
+        if (str_starts_with($this->anh_dai_dien, 'http')) {
+            return $this->anh_dai_dien;
+        }
+
+        // Otherwise, prepend storage URL
+        return url('storage/' . $this->anh_dai_dien);
+    }
+
     public function khachHang()
     {
         return $this->belongsTo(KhachHang::class, 'khach_hang_id');

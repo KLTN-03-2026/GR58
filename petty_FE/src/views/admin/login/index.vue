@@ -45,7 +45,7 @@
                     id="email"
                     v-model="form.email"
                     type="email"
-                    placeholder="admin@pettyvcms.com"
+                    placeholder="admin1@example.com"
                     class="w-full h-12 bg-gray-50 border !border-gray-300 rounded-lg pl-12 pr-4 text-sm font-medium text-gray-600 focus:outline-none focus:border-teal-600 focus:ring-4 focus:ring-teal-100 transition-all duration-200 group-hover/input:border-teal-400 group-hover/input:shadow-md"
                     required
                   />

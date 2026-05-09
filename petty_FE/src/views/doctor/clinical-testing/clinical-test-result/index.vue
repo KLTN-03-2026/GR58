@@ -245,10 +245,11 @@
         </button>
         <button
           class="bg-[#155dfc] rounded-lg px-4 py-2 h-10 flex items-center gap-2 text-sm font-medium text-white hover:bg-[#1350e0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          :disabled="uploadedFiles.length === 0"
+          :disabled="uploadedFiles.length === 0 || saving"
           @click="handleSave"
         >
-          <span>Lưu & Hoàn tất</span>
+          <span v-if="saving">Đang lưu...</span>
+          <span v-else>Lưu & Hoàn tất</span>
         </button>
       </div>
     </div>
@@ -485,6 +486,8 @@
 </template>
 
 <script>
+import api from "@/utils/api";
+
 export default {
   name: "KetQuaCanLamSang",
   props: {
@@ -558,6 +561,7 @@ export default {
       uploadedFiles: [],
       isDragging: false,
       conclusion: "",
+      saving: false,
     };
   },
   methods: {
@@ -620,24 +624,52 @@ export default {
     removeFile(index) {
       this.uploadedFiles.splice(index, 1);
     },
-    handleSave() {
+    async handleSave() {
       if (this.uploadedFiles.length === 0) {
+        alert("Vui lòng tải lên ít nhất 1 file");
         return;
       }
 
-      // TODO: Upload files to server
-      console.log("Uploading files:", this.uploadedFiles);
-      console.log("Conclusion:", this.conclusion);
+      if (!this.recordData?.id) {
+        alert("Không tìm thấy ID phiếu khám");
+        return;
+      }
 
-      // Emit save event with file data
-      this.$emit("save", {
-        files: this.uploadedFiles,
-        conclusion: this.conclusion,
-        recordId: this.recordId,
-      });
+      this.saving = true;
 
-      // Close modal
-      this.$emit("close");
+      try {
+        // Prepare files data
+        const files = this.uploadedFiles.map((file) => ({
+          name: file.name,
+          url: file.preview || "",
+          type: file.file?.type || "",
+        }));
+
+        // Call API to save result
+        await api.patch(`/phieu-kham/${this.recordData.id}`, {
+          ket_qua_can_lam_sang: this.conclusion || "Đã có kết quả",
+          tep_dinh_kem_can_lam_sang: files,
+          thoi_gian_tra_ket_qua: new Date().toISOString(),
+        });
+
+        // Emit save event to parent to reload data
+        this.$emit("save", {
+          files: this.uploadedFiles,
+          conclusion: this.conclusion,
+          recordId: this.recordId,
+        });
+
+        // Close modal
+        this.$emit("close");
+      } catch (error) {
+        console.error("Save clinical result error:", error);
+        alert(
+          error.response?.data?.message ||
+            "Không thể lưu kết quả cận lâm sàng. Vui lòng thử lại."
+        );
+      } finally {
+        this.saving = false;
+      }
     },
     previewImage(index) {
       // TODO: Open image in fullscreen preview
