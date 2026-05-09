@@ -173,8 +173,8 @@
               class="w-28 h-28 border-2 !border-gray-300 rounded-2xl overflow-hidden flex-shrink-0"
             >
               <img
-                v-if="appt.thu_cung?.anh_dai_dien"
-                :src="appt.thu_cung.anh_dai_dien"
+                v-if="appt.thu_cung?.anh_dai_dien_url"
+                :src="appt.thu_cung.anh_dai_dien_url"
                 class="w-full h-full object-cover"
               />
               <div

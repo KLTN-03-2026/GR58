@@ -11,8 +11,29 @@
       </span>
     </button>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center h-64">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p class="text-gray-600">Đang tải dữ liệu bệnh án...</p>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="flex items-center justify-center h-64">
+      <div class="text-center">
+        <p class="text-red-600 mb-4">{{ error }}</p>
+        <button
+          @click="loadPatientData"
+          class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+        >
+          Thử lại
+        </button>
+      </div>
+    </div>
+
     <!-- Main Content -->
-    <div class="flex gap-6">
+    <div v-else class="flex gap-6">
       <!-- Left Sidebar - Patient Info -->
       <div class="w-[357.664px] flex-shrink-0">
         <div
@@ -551,14 +572,19 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-
-import { useRouter } from "vue-router";
+import { ref, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import api from "@/utils/api";
 import XemChiTiet from "./view-detail/index.vue";
 //Icon SVG
 import ArrowLeftIcon from "@/assets/svg/arrow-left.svg";
 
 const router = useRouter();
+const route = useRoute();
+
+// Loading state
+const loading = ref(true);
+const error = ref(null);
 
 // Icons
 const icons = {
@@ -766,4 +792,125 @@ const openDetailModal = (record) => {
   selectedRecord.value = record;
   isDetailModalOpen.value = true;
 };
+
+// Load patient data from API
+const loadPatientData = async () => {
+  const thuCungId = route.query.thu_cung_id;
+  const khachHangId = route.query.khach_hang_id;
+
+  if (!thuCungId) {
+    error.value = "Không tìm thấy ID thú cưng";
+    loading.value = false;
+    return;
+  }
+
+  loading.value = true;
+  error.value = null;
+
+  try {
+    // Load thông tin thú cưng
+    const { data: petRes } = await api.get(`/thu-cung/${thuCungId}`);
+    const pet = petRes.data;
+
+    // Load lịch sử khám
+    const { data: historyRes } = await api.get(`/phieu-kham/thu-cung/${thuCungId}`);
+    const history = historyRes.data || [];
+
+    // Map patient data
+    patientData.value = {
+      image: pet.anh_dai_dien || "https://www.figma.com/api/mcp/asset/bcbdd3c0-05cd-4022-95d5-0219bc3ca3b9",
+      name: pet.ten_thu_cung || "Chưa có tên",
+      species: `${pet.loai_thu_cung || ""} ${pet.giong_thu_cung || ""}`.trim(),
+      type: pet.khach_hang?.la_thanh_vien ? "member" : "khach_vang_lai",
+      note: pet.ghi_chu || "Không có ghi chú",
+      breed: pet.giong_thu_cung || "Chưa rõ giống",
+      age: pet.tuoi_thu_cung ? calculateAge(pet.tuoi_thu_cung) : "Chưa rõ tuổi",
+      gender: pet.gioi_tinh === "male" ? "Đực" : pet.gioi_tinh === "female" ? "Cái" : "Không xác định",
+      weight: pet.can_nang ? `${pet.can_nang} kg` : "Chưa cân",
+      ownerName: pet.khach_hang?.ho_ten || pet.khach_hang?.ten || "Chưa có chủ nuôi",
+      ownerPhone: pet.khach_hang?.so_dien_thoai || "Chưa có SĐT",
+      ownerAddress: pet.khach_hang?.dia_chi || "Chưa có địa chỉ",
+    };
+
+    // Map medical history
+    medicalHistory.value = history.map((record) => ({
+      date: formatDate(record.created_at),
+      time: formatTime(record.created_at),
+      title: record.ly_do_den_kham || "Khám bệnh",
+      doctor: record.nhan_vien?.full_name || "Chưa xác định",
+      diagnosis: record.chan_doan || "Chưa có chẩn đoán",
+      treatment: record.ghi_chu || "Không có ghi chú điều trị",
+      raw: record,
+    }));
+
+    // Map weight history from medical records
+    const weightRecords = history
+      .filter((r) => r.can_nang)
+      .map((r) => ({
+        date: formatDate(r.created_at),
+        weight: parseFloat(r.can_nang),
+      }))
+      .reverse();
+
+    if (weightRecords.length > 0) {
+      const minWeight = Math.min(...weightRecords.map((d) => d.weight));
+      const maxWeight = Math.max(...weightRecords.map((d) => d.weight));
+      const maxHeight = 256;
+
+      weightChart.value = weightRecords.map((item) => ({
+        weight: `${item.weight}kg`,
+        height: `${((item.weight - minWeight) / (maxWeight - minWeight || 1)) * maxHeight}px`,
+        date: item.date,
+      }));
+
+      weightHistory.value = weightRecords.map((item, index) => {
+        const change = index > 0 ? item.weight - weightRecords[index - 1].weight : 0;
+        return {
+          date: item.date,
+          weight: `${item.weight} kg`,
+          change: change !== 0 ? `${change > 0 ? "+" : ""}${change.toFixed(1)} kg` : "",
+        };
+      }).reverse();
+    }
+
+  } catch (err) {
+    console.error("Load patient data error:", err);
+    error.value = err.response?.data?.message || "Không thể tải dữ liệu bệnh án";
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Helper functions
+const calculateAge = (birthDate) => {
+  const birth = new Date(birthDate);
+  const now = new Date();
+  const years = now.getFullYear() - birth.getFullYear();
+  const months = now.getMonth() - birth.getMonth();
+
+  if (years > 0) {
+    return `${years} tuổi`;
+  } else if (months > 0) {
+    return `${months} tháng`;
+  } else {
+    return "Dưới 1 tháng";
+  }
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("vi-VN");
+};
+
+const formatTime = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+};
+
+// Load data on mount
+onMounted(() => {
+  loadPatientData();
+});
 </script>

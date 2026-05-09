@@ -644,7 +644,7 @@ const loadAppointmentData = async () => {
       // Update patient info: lấy trực tiếp các trường đã được BE chuẩn hóa
       patientInfo.value = {
         petName: petData?.ten || petData?.ten_thu_cung || "Chưa có tên",
-        petImage: petData?.anh_dai_dien || "https://via.placeholder.com/150",
+        petImage: petData?.anh_dai_dien_url || petData?.anh_dai_dien || "https://via.placeholder.com/150",
         badge: data.la_khach_vang_lai ? "Vãng lai" : "Đặt trước",
         species: petData?.loai || petData?.species || "Chưa rõ loài",
         breed:
@@ -703,7 +703,7 @@ const loadAppointmentData = async () => {
 
 // Methods
 const handleBack = () => {
-  router.push("/doctor/lich-kham");
+  router.push("/doctor/appointments");
 };
 
 const handleSave = async () => {

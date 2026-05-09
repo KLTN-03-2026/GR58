@@ -398,9 +398,14 @@ const degreeInput = ref(null);
 const degreeFileName = ref("");
 
 const toggleRole = (role) => {
-  const idx = formData.value.selectedRoles.indexOf(role);
-  if (idx === -1) formData.value.selectedRoles.push(role);
-  else formData.value.selectedRoles.splice(idx, 1);
+  // Chỉ cho phép chọn 1 vai trò duy nhất (Bác sĩ hoặc Y tá)
+  if (formData.value.selectedRoles.includes(role)) {
+    // Nếu đã chọn vai trò này thì bỏ chọn
+    formData.value.selectedRoles = [];
+  } else {
+    // Chọn vai trò mới và xóa vai trò cũ
+    formData.value.selectedRoles = [role];
+  }
 };
 const removeRole = (index) => {
   formData.value.selectedRoles.splice(index, 1);
@@ -483,7 +488,9 @@ const handleSubmit = async () => {
         }
         formData.value.avatar = avatarPath;
       } catch (ue) {
-        showErrorToast("Lỗi upload", "Không thể tải ảnh đại diện lên.");
+        console.error("Avatar upload error:", ue);
+        const msg = ue.response?.data?.message || ue.message || "Không thể tải ảnh đại diện lên.";
+        showErrorToast("Lỗi upload", msg);
         isSubmitting.value = false;
         return;
       }
@@ -514,7 +521,9 @@ const handleSubmit = async () => {
         }
         formData.value.practiceCertificate = pPath;
       } catch (ue) {
-        showErrorToast("Lỗi upload", "Không thể tải chứng chỉ hành nghề lên.");
+        console.error("Practice certificate upload error:", ue);
+        const msg = ue.response?.data?.message || ue.message || "Không thể tải chứng chỉ hành nghề lên.";
+        showErrorToast("Lỗi upload", msg);
         isSubmitting.value = false;
         return;
       }
@@ -545,7 +554,9 @@ const handleSubmit = async () => {
         }
         formData.value.professionalDegree = dPath;
       } catch (ue) {
-        showErrorToast("Lỗi upload", "Không thể tải bằng cấp lên.");
+        console.error("Professional degree upload error:", ue);
+        const msg = ue.response?.data?.message || ue.message || "Không thể tải bằng cấp lên.";
+        showErrorToast("Lỗi upload", msg);
         isSubmitting.value = false;
         return;
       }
