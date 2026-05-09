@@ -1,618 +1,477 @@
 <template>
   <div class="w-full min-h-screen px-8 py-6 flex flex-col gap-6">
-    <!-- Page Header -->
+    <!-- Header -->
     <div class="flex flex-col gap-2">
       <h1 class="text-2xl font-semibold text-black">Báo cáo Hiệu suất</h1>
-      <p class="text-gray-500 font-medium text-base">
-        Đánh giá hiệu quả làm việc của nhân sự và dịch vụ
+      <p class="text-gray-500 font-medium text-base">Đánh giá hiệu quả làm việc của nhân sự và dịch vụ</p>
+    </div>
+
+    <!-- Filter Card -->
+    <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-6">
+      <div class="flex items-center justify-between w-full gap-4">
+
+        <!-- Period -->
+        <div class="relative flex-1" ref="periodRef">
+          <button @click="showPeriod = !showPeriod"
+            class="w-full flex items-center justify-between px-4 py-2 bg-gray-100 rounded-[8px]">
+            <span class="text-[14px] text-neutral-950">{{ selectedPeriodLabel }}</span>
+            <ChevronDownIcon class="w-4 h-4" />
+          </button>
+          <div v-if="showPeriod"
+            class="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-[8px] shadow-lg z-20">
+            <button v-for="opt in periodOptions" :key="opt.value" @click="selectPeriod(opt)"
+              class="w-full text-left px-4 py-2 text-[14px] hover:bg-gray-50 first:rounded-t-[8px] last:rounded-b-[8px]"
+              :class="selectedPeriod === opt.value ? 'text-teal-600 font-semibold' : 'text-neutral-950'">
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Custom date -->
+        <template v-if="selectedPeriod === 'custom'">
+          <input type="date" v-model="customStart" @change="fetchData"
+            class="flex-1 px-4 py-2 bg-gray-100 rounded-[8px] text-[14px] border border-gray-200" />
+          <span class="text-gray-400">–</span>
+          <input type="date" v-model="customEnd" @change="fetchData"
+            class="flex-1 px-4 py-2 bg-gray-100 rounded-[8px] text-[14px] border border-gray-200" />
+        </template>
+
+        <!-- Vai trò -->
+        <div class="relative flex-1" ref="roleRef">
+          <button @click="showRole = !showRole"
+            class="w-full flex items-center justify-between px-4 py-2 bg-gray-100 rounded-[8px]">
+            <span class="text-[14px] text-neutral-950">{{ selectedRoleLabel }}</span>
+            <ChevronDownIcon class="w-4 h-4" />
+          </button>
+          <div v-if="showRole"
+            class="absolute top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-[8px] shadow-lg z-20">
+            <button v-for="r in roles" :key="r.value" @click="selectRole(r)"
+              class="w-full text-left px-4 py-2 text-[14px] hover:bg-gray-50 first:rounded-t-[8px] last:rounded-b-[8px]"
+              :class="selectedRole === r.value ? 'text-teal-600 font-semibold' : 'text-neutral-950'">
+              {{ r.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Export -->
+        <button @click="exportExcel"
+          class="flex items-center justify-center gap-2 px-4 py-2 bg-[#5a9690] rounded-[8px] min-w-[192px]">
+          <DownloadIcon class="w-4 h-4 text-white" />
+          <span class="font-medium text-[14px] text-white">Xuất bảng tính lương</span>
+        </button>
+      </div>
+
+      <p v-if="reportData" class="text-[12px] text-gray-400 mt-3">
+        Dữ liệu từ {{ formatDate(reportData.period.start) }} đến {{ formatDate(reportData.period.end) }}
       </p>
     </div>
 
-    <!-- Main Content -->
-    <div class="flex flex-col gap-6">
-      <!-- Tabs -->
-      <!-- <div
-        class="bg-gray-200 rounded-[14px] h-[36px] w-[337.852px] flex items-center justify-center p-[3.5px]"
-      >
-        <button
-          :class="[
-            'flex-1 h-[29px] rounded-[14px] flex items-center justify-center gap-[8px] transition-colors',
-            activeTab === 'staff'
-              ? 'bg-white border border-transparent'
-              : 'border border-transparent',
-          ]"
-          @click="activeTab = 'staff'"
-        >
-          <img :src="iconStaff" alt="" class="w-[16px] h-[16px]" />
-          <span
-            class="font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-          >
-            Hiệu suất Nhân sự
-          </span>
-        </button>
-        <button
-          :class="[
-            'flex-1 h-[29px] rounded-[14px] flex items-center justify-center gap-[8px] transition-colors',
-            activeTab === 'service'
-              ? 'bg-white border border-transparent'
-              : 'border border-transparent',
-          ]"
-          @click="activeTab = 'service'"
-        >
-          <img :src="iconService" alt="" class="w-[16px] h-[16px]" />
-          <span
-            class="font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-          >
-            Dịch vụ & Vận hành
-          </span>
-        </button>
-      </div> -->
+    <!-- Loading -->
+    <div v-if="isLoading" class="grid grid-cols-4 gap-6">
+      <div v-for="i in 4" :key="i" class="bg-gray-100 rounded-[14px] h-[100px] animate-pulse" />
+    </div>
 
-      <!-- Tab Content -->
-      <div v-if="activeTab === 'staff'" class="flex flex-col gap-[24px]">
-        <!-- Filter Card -->
-        <div
-          class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-6"
-        >
-          <div class="flex items-center justify-between w-full">
-            <button
-              class="flex items-center justify-between px-[13px] py-px h-[36px] w-[423.18px] bg-gray-100 rounded-[8px]"
-            >
-              <span
-                class="text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-              >
-                Tháng này
-              </span>
-              <ChevronDownIcon class="w-4 h-4" />
-            </button>
+    <!-- Error -->
+    <div v-else-if="errorMsg" class="bg-red-50 border border-red-200 rounded-[14px] p-6 text-red-700 text-sm">
+      ⚠️ {{ errorMsg }}
+    </div>
 
-            <button
-              class="flex items-center justify-between px-[13px] py-px h-[36px] w-[423.18px] bg-gray-100 rounded-[8px]"
-            >
-              <span
-                class="text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-              >
-                Tất cả
-              </span>
-              <ChevronDownIcon class="w-4 h-4" />
-            </button>
-
-            <button
-              class="flex items-center justify-center gap-[8px] h-[36px] w-[192.641px] bg-[#5a9690] rounded-[8px]"
-            >
-              <DownloadIcon class="w-4 h-4 text-white" />
-              <span
-                class="font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-white"
-              >
-                Xuất bảng tính lương
-              </span>
-            </button>
-          </div>
+    <template v-else-if="reportData">
+      <!-- KPI Cards -->
+      <div class="grid grid-cols-4 gap-6">
+        <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-6 flex flex-col gap-4">
+          <div><p class="text-[14px] text-[#4a5565]">Tổng Doanh thu</p><p class="text-[12px] text-[#6a7282]">Gross Revenue</p></div>
+          <p class="text-[28px] text-green-600">{{ formatCurrency(reportData.summary.total_revenue) }}</p>
         </div>
+        <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-6 flex flex-col gap-4">
+          <div><p class="text-[14px] text-[#4a5565]">Tổng ca làm việc</p><p class="text-[12px] text-[#6a7282]">Total Shifts</p></div>
+          <p class="text-[28px] text-blue-600">{{ reportData.summary.total_ca.toLocaleString('vi-VN') }}</p>
+        </div>
+        <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-6 flex flex-col gap-4">
+          <div><p class="text-[14px] text-[#4a5565]">Lịch hẹn hoàn thành</p><p class="text-[12px] text-[#6a7282]">Completion Rate</p></div>
+          <p class="text-[28px] text-[#009689]">{{ reportData.summary.ty_le_ht }}%</p>
+        </div>
+        <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-6 flex flex-col gap-4">
+          <div><p class="text-[14px] text-[#4a5565]">Số nhân viên</p><p class="text-[12px] text-[#6a7282]">Active Staff</p></div>
+          <p class="text-[28px] text-[#e17100]">{{ reportData.summary.total_staff }}</p>
+        </div>
+      </div>
 
-        <!-- Top 3 Card -->
-        <div
-          class="bg-white border !border-gray-300 shadow-sm rounded-[14px] h-[400.5px] relative"
-        >
-          <div class="p-[24px] pb-0">
-            <!-- <div class="flex items-center gap-[8px] mb-[6px]">
-              <img :src="iconTrophy" alt="" class="w-[20px] h-[20px]" />
-              <h2
-                class="text-[16px] leading-[16px] tracking-[-0.3125px] text-neutral-950"
-              >
-                Bảng Vàng - Top 3 Xuất sắc nhất
-              </h2>
-            </div> -->
-            <h2
-              class="text-[16px] leading-[16px] tracking-[-0.3125px] text-neutral-950 mb-[6px]"
-            >
-              Bảng Vàng - Top 3 Xuất sắc nhất
-            </h2>
-            <p
-              class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#4a5565]"
-            >
-              Xếp hạng dựa trên tổng doanh thu mang về trong kỳ
-            </p>
+      <!-- Top 3 + Bar Chart -->
+      <div class="flex gap-6">
+        <!-- Top 3 Bảng Vàng -->
+        <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] flex-1 p-6">
+          <h2 class="text-[16px] text-neutral-950 mb-1">Bảng Vàng - Top 3 Xuất sắc nhất</h2>
+          <p class="text-[14px] text-[#4a5565] mb-6">Xếp hạng dựa trên tổng doanh thu mang về trong kỳ</p>
+
+          <div v-if="reportData.top3.length === 0" class="flex flex-col items-center py-8 text-gray-400">
+            <p>Không có dữ liệu</p>
           </div>
 
-          <div
-            class="absolute left-[25px] top-[95px] w-[1071px] h-[280.5px] flex items-end justify-center gap-[32px]"
-          >
-            <!-- Second Place -->
-            <div
-              class="flex flex-col items-center gap-[8px] w-[192px] h-[240.5px]"
-            >
-              <div
-                class="text-[36px] leading-[40px] tracking-[0.3691px] h-[40px]"
-              >
-                🥈
-              </div>
-              <div class="flex-1 bg-gray-100 rounded-[10px] w-full relative">
-                <div
-                  class="absolute left-1/2 -translate-x-1/2 -top-[20px] w-[64px] h-[64px] border-4 border-gray-300 rounded-full overflow-hidden"
-                >
-                  <img
-                    :src="staffImages[1]"
-                    alt=""
-                    class="w-full h-full object-cover"
-                  />
+          <div v-else class="flex items-end justify-center gap-8 h-[240px]">
+            <!-- #2 -->
+            <div v-if="reportData.top3[1]" class="flex flex-col items-center gap-2 w-[180px] h-[220px]">
+              <div class="text-[32px]">🥈</div>
+              <div class="flex-1 bg-gray-100 rounded-[10px] w-full relative pt-12 flex flex-col items-center pb-4">
+                <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-[56px] h-[56px] border-4 border-gray-300 rounded-full overflow-hidden bg-gray-200">
+                  <img v-if="reportData.top3[1].anh_dai_dien" :src="avatarUrl(reportData.top3[1].anh_dai_dien)"
+                    class="w-full h-full object-cover" />
+                  <div v-else class="w-full h-full flex items-center justify-center text-gray-500 text-lg font-bold">
+                    {{ reportData.top3[1].full_name?.charAt(0) }}
+                  </div>
                 </div>
-                <p
-                  class="absolute left-1/2 -translate-x-1/2 top-[56px] text-[16px] leading-[24px] tracking-[-0.3125px] text-[#101828] text-center whitespace-nowrap"
-                >
-                  BS. Trần Thị B
-                </p>
-                <p
-                  class="absolute left-1/2 -translate-x-1/2 top-[84px] text-[12px] leading-[16px] text-[#4a5565]"
-                >
-                  Bác sĩ
-                </p>
-                <p
-                  class="absolute left-1/2 -translate-x-1/2 top-[108px] text-[18px] leading-[28px] tracking-[-0.4395px] text-[#009689]"
-                >
-                  132.0M
-                </p>
+                <p class="text-[14px] text-[#101828] text-center font-medium">{{ reportData.top3[1].full_name }}</p>
+                <p class="text-[12px] text-[#4a5565]">{{ reportData.top3[1].chuc_danh || reportData.top3[1].vai_tro_label }}</p>
+                <p class="text-[16px] text-[#009689] mt-1">{{ formatCurrency(reportData.top3[1].doanh_thu) }}</p>
               </div>
-              <div
-                class="bg-gray-100 border border-gray-300 rounded-[8px] h-[22px] px-[8px] flex items-center justify-center"
-              >
-                <span
-                  class="font-medium text-[12px] leading-[16px] text-[#364153]"
-                  >#2</span
-                >
-              </div>
+              <div class="bg-gray-100 border border-gray-300 rounded-[8px] px-3 py-0.5 text-[12px] text-[#364153] font-medium">#2</div>
             </div>
 
-            <!-- First Place -->
-            <div
-              class="flex flex-col items-center gap-[8px] w-[208px] h-[280.5px]"
-            >
-              <div
-                class="text-[48px] leading-[48px] tracking-[0.3516px] h-[48px]"
-              >
-                🥇
-              </div>
-              <div
-                class="flex-1 border-2 border-[#ffb900] rounded-[10px] w-full relative"
-              >
-                <div
-                  class="absolute left-1/2 -translate-x-1/2 top-[17.77px] w-[80px] h-[56.234px] border-4 border-[#ffb900] rounded-full overflow-hidden"
-                >
-                  <img
-                    :src="staffImages[0]"
-                    alt=""
-                    class="w-full h-full object-cover"
-                  />
+            <!-- #1 -->
+            <div v-if="reportData.top3[0]" class="flex flex-col items-center gap-2 w-[200px] h-[260px]">
+              <div class="text-[40px]">🥇</div>
+              <div class="flex-1 border-2 border-[#ffb900] rounded-[10px] w-full relative pt-14 flex flex-col items-center pb-4">
+                <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-[64px] h-[64px] border-4 border-[#ffb900] rounded-full overflow-hidden bg-gray-200">
+                  <img v-if="reportData.top3[0].anh_dai_dien" :src="avatarUrl(reportData.top3[0].anh_dai_dien)"
+                    class="w-full h-full object-cover" />
+                  <div v-else class="w-full h-full flex items-center justify-center text-gray-500 text-xl font-bold">
+                    {{ reportData.top3[0].full_name?.charAt(0) }}
+                  </div>
                 </div>
-                <p
-                  class="absolute left-1/2 -translate-x-1/2 top-[86px] text-[16px] leading-[24px] tracking-[-0.3125px] text-[#101828] text-center whitespace-nowrap"
-                >
-                  BS. Nguyễn Văn A
-                </p>
-                <p
-                  class="absolute left-1/2 -translate-x-1/2 top-[114px] text-[12px] leading-[16px] text-[#4a5565]"
-                >
-                  Bác sĩ Trưởng khoa
-                </p>
-                <p
-                  class="absolute left-1/2 -translate-x-1/2 top-[138px] text-[20px] leading-[28px] tracking-[-0.4492px] text-[#e17100]"
-                >
-                  150.0M
-                </p>
+                <p class="text-[15px] text-[#101828] text-center font-semibold">{{ reportData.top3[0].full_name }}</p>
+                <p class="text-[12px] text-[#4a5565]">{{ reportData.top3[0].chuc_danh || reportData.top3[0].vai_tro_label }}</p>
+                <p class="text-[20px] text-[#e17100] mt-1">{{ formatCurrency(reportData.top3[0].doanh_thu) }}</p>
               </div>
-              <div
-                class="bg-[#fe9a00] rounded-[8px] h-[22px] px-[12px] flex items-center justify-center"
-              >
-                <span class="font-medium text-[12px] leading-[16px] text-white"
-                  >👑 Quán quân</span
-                >
-              </div>
+              <div class="bg-[#fe9a00] rounded-[8px] px-3 py-0.5 text-[12px] text-white font-medium">👑 Quán quân</div>
             </div>
 
-            <!-- Third Place -->
-            <div
-              class="flex flex-col items-center gap-[8px] w-[192px] h-[240.5px]"
-            >
-              <div
-                class="text-[36px] leading-[40px] tracking-[0.3691px] h-[40px]"
-              >
-                🥉
-              </div>
-              <div class="flex-1 bg-gray-100 rounded-[10px] w-full relative">
-                <div
-                  class="absolute left-1/2 -translate-x-1/2 -top-[20px] w-[64px] h-[64px] border-4 border-[#ffb86a] rounded-full overflow-hidden"
-                >
-                  <img
-                    :src="staffImages[2]"
-                    alt=""
-                    class="w-full h-full object-cover"
-                  />
+            <!-- #3 -->
+            <div v-if="reportData.top3[2]" class="flex flex-col items-center gap-2 w-[180px] h-[220px]">
+              <div class="text-[32px]">🥉</div>
+              <div class="flex-1 bg-gray-100 rounded-[10px] w-full relative pt-12 flex flex-col items-center pb-4">
+                <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-[56px] h-[56px] border-4 border-[#ffb86a] rounded-full overflow-hidden bg-gray-200">
+                  <img v-if="reportData.top3[2].anh_dai_dien" :src="avatarUrl(reportData.top3[2].anh_dai_dien)"
+                    class="w-full h-full object-cover" />
+                  <div v-else class="w-full h-full flex items-center justify-center text-gray-500 text-lg font-bold">
+                    {{ reportData.top3[2].full_name?.charAt(0) }}
+                  </div>
                 </div>
-                <p
-                  class="absolute left-1/2 -translate-x-1/2 top-[56px] text-[16px] leading-[24px] tracking-[-0.3125px] text-[#101828] text-center whitespace-nowrap"
-                >
-                  Y tá Lê Văn C
-                </p>
-                <p
-                  class="absolute left-1/2 -translate-x-1/2 top-[84px] text-[12px] leading-[16px] text-[#4a5565]"
-                >
-                  Y tá
-                </p>
-                <p
-                  class="absolute left-1/2 -translate-x-1/2 top-[108px] text-[18px] leading-[28px] tracking-[-0.4395px] text-[#009689]"
-                >
-                  95.0M
-                </p>
+                <p class="text-[14px] text-[#101828] text-center font-medium">{{ reportData.top3[2].full_name }}</p>
+                <p class="text-[12px] text-[#4a5565]">{{ reportData.top3[2].chuc_danh || reportData.top3[2].vai_tro_label }}</p>
+                <p class="text-[16px] text-[#009689] mt-1">{{ formatCurrency(reportData.top3[2].doanh_thu) }}</p>
               </div>
-              <div
-                class="bg-[#ffedd4] border border-gray-300 rounded-[8px] h-[22px] px-[8px] flex items-center justify-center"
-              >
-                <span
-                  class="font-medium text-[12px] leading-[16px] text-[#ca3500]"
-                  >#3</span
-                >
-              </div>
+              <div class="bg-gray-100 border border-gray-300 rounded-[8px] px-3 py-0.5 text-[12px] text-[#364153] font-medium">#3</div>
             </div>
           </div>
         </div>
 
-        <!-- Detail Table Card -->
-        <div
-          class="bg-white border !border-gray-300 shadow-sm rounded-[14px] flex flex-col gap-[24px] h-[620px]"
-        >
-          <div class="p-[24px] pb-0">
-            <h2
-              class="text-[16px] leading-[16px] tracking-[-0.3125px] text-neutral-950 mb-[6px]"
-            >
-              Chi tiết Hiệu suất Nhân viên
-            </h2>
-            <p
-              class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#4a5565]"
-            >
-              Bảng dữ liệu đầy đủ để tính lương thưởng (KPI) và đánh giá năng
-              lực
-            </p>
-          </div>
-
-          <div class="px-[24px] flex flex-col gap-[24px]">
-            <div class="overflow-y-auto h-[381.5px]">
-              <table class="w-full">
-                <thead>
-                  <tr class="border-b border-gray-300">
-                    <th
-                      class="text-left px-[8px] py-[10px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                    >
-                      Nhân viên
-                    </th>
-                    <th
-                      class="text-right px-[8px] py-[10px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                    >
-                      Số ca phục vụ
-                    </th>
-                    <th
-                      class="text-right px-[8px] py-[10px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                    >
-                      Tổng Doanh thu
-                    </th>
-                    <th
-                      class="text-right px-[8px] py-[10px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                    >
-                      Trung bình/Ca
-                    </th>
-                    <th
-                      class="text-right px-[8px] py-[10px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                    >
-                      Số giờ làm
-                    </th>
-                    <th
-                      class="text-center px-[8px] py-[10px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                    >
-                      Đánh giá
-                    </th>
-                    <th
-                      class="text-right px-[8px] py-[10px] font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                    >
-                      Thao tác
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="staff in staffData"
-                    :key="staff.id"
-                    class="border-b border-gray-300"
-                  >
-                    <td class="px-[8px] py-[8.5px]">
-                      <div class="flex items-center gap-[12px]">
-                        <div
-                          class="w-[40px] h-[40px] rounded-full overflow-hidden"
-                        >
-                          <img
-                            :src="staff.avatar"
-                            alt=""
-                            class="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div class="flex flex-col">
-                          <p
-                            class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#101828]"
-                          >
-                            {{ staff.name }}
-                          </p>
-                          <p class="text-[12px] leading-[16px] text-[#6a7282]">
-                            {{ staff.position }}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td class="px-[8px] py-[12px] text-right">
-                      <p
-                        class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#101828]"
-                      >
-                        {{ staff.shifts }} ca
-                      </p>
-                      <p class="text-[12px] leading-[16px] text-[#6a7282]">
-                        Volume
-                      </p>
-                    </td>
-                    <td class="px-[8px] py-[12px] text-right">
-                      <p
-                        class="text-[14px] leading-[20px] tracking-[-0.1504px] text-green-600"
-                      >
-                        {{ staff.revenue }}
-                      </p>
-                      <p class="text-[12px] leading-[16px] text-[#6a7282]">
-                        Cơ sở hoa hồng
-                      </p>
-                    </td>
-                    <td class="px-[8px] py-[12px] text-right">
-                      <p
-                        class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#009689]"
-                      >
-                        {{ staff.avgPerShift }}
-                      </p>
-                      <p class="text-[12px] leading-[16px] text-[#6a7282]">
-                        Khả năng upsell
-                      </p>
-                    </td>
-                    <td class="px-[8px] py-[10.5px] text-right">
-                      <!-- <div class="flex items-center justify-end gap-[4px]">
-                        <img
-                          :src="iconClock"
-                          alt=""
-                          class="w-[16px] h-[16px]"
-                        />
-                        <p
-                          class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#101828]"
-                        >
-                          {{ staff.hours }}h
-                        </p>
-                      </div> -->
-                      <p
-                        class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#101828]"
-                      >
-                        {{ staff.hours }}h
-                      </p>
-                      <p class="text-[12px] leading-[16px] text-[#6a7282]">
-                        Attendance
-                      </p>
-                    </td>
-                    <td class="px-[8px] py-[10.5px]">
-                      <!-- <div class="flex items-center justify-center gap-[4px]">
-                        <img :src="iconStar" alt="" class="w-[16px] h-[16px]" />
-                        <span
-                          class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#101828]"
-                        >
-                          {{ staff.rating }}
-                        </span>
-                        <span
-                          class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#6a7282]"
-                        >
-                          /5.0
-                        </span>
-                      </div> -->
-                      <p
-                        class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#101828] text-center"
-                      >
-                        {{ staff.rating }}/5.0
-                      </p>
-                      <p
-                        class="text-[12px] leading-[16px] text-[#6a7282] text-center"
-                      >
-                        Customer feedback
-                      </p>
-                    </td>
-                    <td class="px-[8px] py-[12.5px] text-right">
-                      <!-- <button
-                        class="h-[32px] px-[12px] rounded-[8px] flex items-center gap-[8px] hover:bg-gray-100"
-                      >
-                        <img :src="iconEye" alt="" class="w-[16px] h-[16px]" />
-                        <span
-                          class="font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                        >
-                          Xem chi tiết
-                        </span>
-                      </button> -->
-                      <span
-                        class="font-medium text-[14px] leading-[20px] tracking-[-0.1504px] text-neutral-950"
-                      >
-                        Xem chi tiết
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div
-              class="bg-blue-50 border !border-[#bedbff] rounded-[10px] p-[17px]"
-            >
-              <div class="flex gap-[8px]">
-                <!-- <img
-                  :src="iconInfo"
-                  alt=""
-                  class="w-[20px] h-[20px] mt-[2px]"
-                /> -->
-                <div class="flex flex-col gap-[4px]">
-                  <p
-                    class="text-[14px] leading-[20px] tracking-[-0.1504px] text-[#1c398e]"
-                  >
-                    Logic tính Doanh thu Nhân viên
-                  </p>
-                  <p class="text-[12px] leading-[16px] text-[#193cb8]">
-                    Trong mỗi hóa đơn, từng dòng dịch vụ có trường
-                    <span
-                      class="bg-blue-100 px-[4px] py-[2px] rounded-[4px] text-[#193cb8]"
-                      >assigned_to</span
-                    >
-                    (Người thực hiện). Hệ thống cộng tổng tiền của các dòng được
-                    gắn tên nhân viên đó.
-                  </p>
-                  <p class="text-[12px] leading-[16px] text-[#1447e6]">
-                    VD: Hóa đơn 500k → Tiêm phòng (100k) gắn Y tá B | Khám bệnh
-                    (200k) gắn BS A | Thuốc (200k) tính chung
-                  </p>
-                </div>
-              </div>
-            </div>
+        <!-- Bar chart doanh thu top 10 -->
+        <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] w-[480px] p-6">
+          <h2 class="text-[16px] text-neutral-950 mb-1">Doanh thu theo Nhân viên</h2>
+          <p class="text-[14px] text-[#4a5565] mb-4">Top 10 nhân viên theo doanh thu</p>
+          <div class="h-[280px]">
+            <apexchart v-if="barChartSeries[0]?.data.length > 0"
+              type="bar" height="280"
+              :options="barChartOptions"
+              :series="barChartSeries"
+            />
+            <div v-else class="flex items-center justify-center h-full text-gray-400 text-sm">Không có dữ liệu</div>
           </div>
         </div>
       </div>
-    </div>
+
+      <!-- Bảng nhân viên -->
+      <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] flex flex-col gap-6">
+        <div class="p-6 pb-0">
+          <h2 class="text-[16px] text-neutral-950">Bảng hiệu suất nhân viên</h2>
+          <p class="text-[14px] text-[#4a5565] mt-1">Chi tiết hiệu suất và doanh thu từng nhân viên</p>
+        </div>
+
+        <div class="px-6 pb-6">
+          <div v-if="reportData.staff.length === 0" class="flex flex-col items-center py-12 text-gray-400">
+            <p>Không có dữ liệu trong kỳ này</p>
+          </div>
+
+          <div v-else class="overflow-x-auto">
+            <table class="w-full min-w-[1100px]">
+              <thead>
+                <tr class="border-b border-gray-300 bg-gray-50">
+                  <th class="text-left px-2 py-3 text-[13px] font-medium text-neutral-950 w-8">#</th>
+                  <th class="text-left px-2 py-3 text-[13px] font-medium text-neutral-950">Nhân viên</th>
+                  <th class="text-right px-2 py-3 text-[13px] font-medium text-neutral-950">Doanh thu</th>
+                  <th class="text-right px-2 py-3 text-[13px] font-medium text-neutral-950">Số ca</th>
+                  <th class="text-right px-2 py-3 text-[13px] font-medium text-neutral-950">Tỉ lệ HT</th>
+                  <th class="text-right px-2 py-3 text-[13px] font-medium text-[#009689] border-l-2 border-teal-200">Lương cứng</th>
+                  <th class="text-right px-2 py-3 text-[13px] font-medium text-[#009689]">Hoa hồng</th>
+                  <th class="text-right px-2 py-3 text-[13px] font-medium text-[#009689]">Thưởng DT</th>
+                  <th class="text-right px-2 py-3 text-[13px] font-bold text-white bg-[#0f766e]">TỔNG LƯƠNG</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(staff, idx) in reportData.staff" :key="staff.id"
+                  class="border-b border-gray-200 hover:bg-teal-50 transition-colors">
+                  <td class="px-2 py-3 text-[13px] text-[#6a7282]">{{ idx + 1 }}</td>
+                  <td class="px-2 py-3">
+                    <div class="flex items-center gap-2">
+                      <div class="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 flex items-center justify-center text-sm font-bold text-gray-500">
+                        <img v-if="staff.anh_dai_dien" :src="avatarUrl(staff.anh_dai_dien)" class="w-full h-full object-cover" />
+                        <span v-else>{{ staff.full_name?.charAt(0) }}</span>
+                      </div>
+                      <div>
+                        <p class="text-[13px] text-[#101828] font-medium">{{ staff.full_name }}</p>
+                        <span class="text-[11px] px-1.5 py-0.5 rounded-full" :class="staff.vai_tro === 'bac_si' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'">
+                          {{ staff.vai_tro_label }}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-2 py-3 text-right text-[13px] text-green-600 font-medium">{{ formatCurrency(staff.doanh_thu) }}</td>
+                  <td class="px-2 py-3 text-right text-[13px] text-[#101828]">{{ staff.so_ca }} ca</td>
+                  <td class="px-2 py-3 text-right">
+                    <span class="text-[13px] font-medium px-2 py-0.5 rounded-full"
+                      :class="staff.ty_le_ht >= 80 ? 'bg-green-100 text-green-700' : staff.ty_le_ht >= 50 ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-600'">
+                      {{ staff.ty_le_ht }}%
+                    </span>
+                  </td>
+                  <td class="px-2 py-3 text-right text-[13px] text-[#4a5565] border-l-2 border-teal-100">{{ formatVND(staff.luong_co_dinh) }}</td>
+                  <td class="px-2 py-3 text-right text-[13px] text-blue-600">{{ formatVND(staff.hoa_hong) }}</td>
+                  <td class="px-2 py-3 text-right text-[13px]">
+                    <span :class="staff.thuong_dt > 0 ? 'text-[#e17100] font-medium' : 'text-gray-400'">
+                      {{ staff.thuong_dt > 0 ? '+' + formatVND(staff.thuong_dt) : '—' }}
+                    </span>
+                  </td>
+                  <td class="px-2 py-3 text-right">
+                    <span class="text-[14px] font-bold text-[#065F46] bg-teal-50 px-2 py-1 rounded-[6px]">
+                      {{ formatVND(staff.tong_luong) }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr class="bg-[#134E4A]">
+                  <td colspan="5" class="px-2 py-3 text-[13px] font-bold text-white">TỔNG CỘNG ({{ reportData.staff.length }} nhân viên)</td>
+                  <td class="px-2 py-3 text-right text-[13px] font-bold text-white border-l-2 border-teal-700">
+                    {{ formatVND(reportData.staff.reduce((s,r) => s + r.luong_co_dinh, 0)) }}
+                  </td>
+                  <td class="px-2 py-3 text-right text-[13px] font-bold text-white">
+                    {{ formatVND(reportData.staff.reduce((s,r) => s + r.hoa_hong, 0)) }}
+                  </td>
+                  <td class="px-2 py-3 text-right text-[13px] font-bold text-white">
+                    {{ formatVND(reportData.staff.reduce((s,r) => s + r.thuong_dt, 0)) }}
+                  </td>
+                  <td class="px-2 py-3 text-right">
+                    <span class="text-[15px] font-bold text-[#6EE7B7]">
+                      {{ formatVND(reportData.staff.reduce((s,r) => s + r.tong_luong, 0)) }}
+                    </span>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- Công thức lương -->
+          <div class="bg-teal-50 border border-teal-200 rounded-[10px] p-4 mt-4">
+            <p class="text-[14px] text-[#0f766e] font-semibold mb-3">📐 Công thức tính lương</p>
+            <div class="grid grid-cols-3 gap-4 text-[12px] text-[#134e4a]">
+              <div class="bg-white rounded-[8px] p-3 border border-teal-100">
+                <p class="font-semibold mb-2">💼 Lương cứng (tính theo kỳ)</p>
+                <p>Bác sĩ: <strong class="text-blue-700">15,000,000đ</strong>/tháng</p>
+                <p>Y tá: <strong class="text-purple-700">8,000,000đ</strong>/tháng</p>
+                <p class="mt-1 text-gray-500 italic">× (số ngày kỳ / ngày trong tháng)</p>
+              </div>
+              <div class="bg-white rounded-[8px] p-3 border border-teal-100">
+                <p class="font-semibold mb-2">💰 Hoa hồng doanh thu</p>
+                <p>Bác sĩ: <strong class="text-blue-700">3%</strong> × Doanh thu</p>
+                <p>Y tá: <strong class="text-purple-700">1.5%</strong> × Doanh thu</p>
+              </div>
+              <div class="bg-white rounded-[8px] p-3 border border-teal-100">
+                <p class="font-semibold mb-2">🏆 Thưởng doanh thu</p>
+                <p>DT ≥ 100M: <strong class="text-green-700">+5,000,000đ</strong></p>
+                <p>DT ≥ 50M: <strong class="text-blue-700">+2,000,000đ</strong></p>
+                <p>DT ≥ 20M: <strong class="text-orange-700">+500,000đ</strong></p>
+              </div>
+            </div>
+            <p class="mt-3 text-[12px] text-[#0f766e] font-medium">
+              TỔNG = Lương cứng theo kỳ + Hoa hồng + Thưởng doanh thu
+            </p>
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import axios from 'axios'
+import { getToken } from '@/utils/auth'
 
-// Icon SVG
-import ChevronDownIcon from "@/assets/svg/chevron-down.svg";
-import DownloadIcon from "@/assets/svg/download.svg";
+import ChevronDownIcon from '@/assets/svg/chevron-down.svg'
+import DownloadIcon    from '@/assets/svg/download.svg'
 
-// Active tab state
-const activeTab = ref("staff");
+// ─── State ───────────────────────────────────────────────────────────────────
+const isLoading  = ref(false)
+const errorMsg   = ref('')
+const reportData = ref(null)
 
-// Icon URLs from Figma
-const iconStaff =
-  "https://www.figma.com/api/mcp/asset/3bee3200-9445-44e8-b322-96e63babfe0a";
-const iconService =
-  "https://www.figma.com/api/mcp/asset/7de0ede5-6651-4da3-8d58-59b0d7a96b50";
-const iconChevron =
-  "https://www.figma.com/api/mcp/asset/5f813f2c-3637-4cd5-8115-518b0ed58d31";
-const iconDownload =
-  "https://www.figma.com/api/mcp/asset/81237080-3497-4e88-9ca8-bb5147f52528";
-const iconTrophy =
-  "https://www.figma.com/api/mcp/asset/4eaaa2f6-5ebf-41cf-8cec-204e207b523c";
-const iconClock =
-  "https://www.figma.com/api/mcp/asset/8c15b74b-a192-42a2-a3c4-ccad385f0cc4";
-const iconStar =
-  "https://www.figma.com/api/mcp/asset/404b356b-10fc-4496-a4a1-ad2547c80c3f";
-const iconEye =
-  "https://www.figma.com/api/mcp/asset/4c954846-fefd-432d-b146-cb0e2d3614ec";
-const iconInfo =
-  "https://www.figma.com/api/mcp/asset/53bdc53e-7b81-49da-9bc5-ba9df9b0922c";
+const selectedPeriod = ref('this_month')
+const selectedRole   = ref('all')
+const customStart    = ref('')
+const customEnd      = ref('')
 
-// Staff images
-const staffImages = [
-  "https://www.figma.com/api/mcp/asset/6515534a-a05c-43a3-92c7-023d99d4eba7",
-  "https://www.figma.com/api/mcp/asset/25655962-5529-4d68-b3e0-34e610c42124",
-  "https://www.figma.com/api/mcp/asset/70431c94-1ac5-4b4a-a0f9-edce60dd1a2d",
-];
+const showPeriod = ref(false)
+const showRole   = ref(false)
+const periodRef  = ref(null)
+const roleRef    = ref(null)
 
-// Staff data for table
-const staffData = ref([
-  {
-    id: 1,
-    name: "BS. Nguyễn Văn A",
-    position: "Bác sĩ Trưởng khoa",
-    avatar:
-      "https://www.figma.com/api/mcp/asset/6515534a-a05c-43a3-92c7-023d99d4eba7",
-    shifts: "120",
-    revenue: "150.0M",
-    avgPerShift: "1.3M",
-    hours: "160",
-    rating: "4.8",
+const roles = [
+  { value: 'all',    label: 'Tất cả' },
+  { value: 'bac_si', label: 'Bác sĩ' },
+  { value: 'y_ta',   label: 'Y tá'   },
+]
+
+const periodOptions = [
+  { value: 'today',      label: 'Hôm nay'    },
+  { value: '7days',      label: '7 ngày qua'  },
+  { value: '30days',     label: '30 ngày qua' },
+  { value: 'this_month', label: 'Tháng này'   },
+  { value: 'this_year',  label: 'Năm nay'     },
+  { value: 'custom',     label: 'Tùy chỉnh'   },
+]
+
+// ─── Computed ─────────────────────────────────────────────────────────────────
+const selectedPeriodLabel = computed(() =>
+  periodOptions.find(o => o.value === selectedPeriod.value)?.label ?? 'Tháng này'
+)
+const selectedRoleLabel = computed(() =>
+  roles.find(r => r.value === selectedRole.value)?.label ?? 'Tất cả'
+)
+
+const barChartSeries = computed(() => {
+  if (!reportData.value) return [{ name: 'Doanh thu (M)', data: [] }]
+  return [{
+    name: 'Doanh thu (M)',
+    data: reportData.value.bar_chart.map(s => s.doanh_thu),
+  }]
+})
+
+const barChartOptions = computed(() => ({
+  chart: { type: 'bar', height: 280, toolbar: { show: false } },
+  plotOptions: { bar: { horizontal: true, borderRadius: 4, dataLabels: { position: 'top' } } },
+  dataLabels: { enabled: true, formatter: v => v.toFixed(1) + 'M', style: { fontSize: '11px', colors: ['#6a7282'] }, offsetX: 30 },
+  xaxis: {
+    categories: reportData.value?.bar_chart.map(s => s.name) ?? [],
+    labels: { style: { fontSize: '11px', colors: '#6a7282' }, formatter: v => v + 'M' },
   },
-  {
-    id: 2,
-    name: "BS. Trần Thị B",
-    position: "Bác sĩ",
-    avatar:
-      "https://www.figma.com/api/mcp/asset/25655962-5529-4d68-b3e0-34e610c42124",
-    shifts: "110",
-    revenue: "132.0M",
-    avgPerShift: "1.2M",
-    hours: "155",
-    rating: "4.7",
-  },
-  {
-    id: 3,
-    name: "Y tá Lê Văn C",
-    position: "Y tá",
-    avatar:
-      "https://www.figma.com/api/mcp/asset/70431c94-1ac5-4b4a-a0f9-edce60dd1a2d",
-    shifts: "95",
-    revenue: "95.0M",
-    avgPerShift: "1.0M",
-    hours: "148",
-    rating: "4.9",
-  },
-  {
-    id: 4,
-    name: "Chuyên viên Phạm D",
-    position: "Chuyên viên Spa",
-    avatar:
-      "https://www.figma.com/api/mcp/asset/398ffe5d-6736-43f8-bebf-2ea9e5d34f22",
-    shifts: "88",
-    revenue: "88.0M",
-    avgPerShift: "1.0M",
-    hours: "140",
-    rating: "4.6",
-  },
-  {
-    id: 5,
-    name: "NV. Hoàng E",
-    position: "Nhân viên Petshop",
-    avatar:
-      "https://www.figma.com/api/mcp/asset/a7c18fef-5ce3-4c29-961a-3b8a3c3686a6",
-    shifts: "75",
-    revenue: "65.0M",
-    avgPerShift: "867K",
-    hours: "130",
-    rating: "4.5",
-  },
-  {
-    id: 6,
-    name: "Y tá Võ F",
-    position: "Y tá",
-    avatar:
-      "https://www.figma.com/api/mcp/asset/12041ec8-31e9-4b46-a838-61782d2ae786",
-    shifts: "82",
-    revenue: "78.0M",
-    avgPerShift: "951K",
-    hours: "135",
-    rating: "4.7",
-  },
-]);
+  yaxis: { labels: { style: { fontSize: '11px', colors: '#6a7282' } } },
+  colors: ['#009689'],
+  grid: { borderColor: '#f1f1f1' },
+  tooltip: { y: { formatter: v => v.toFixed(2) + ' triệu đồng' } },
+}))
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+const fetchData = async () => {
+  isLoading.value = true
+  errorMsg.value  = ''
+  try {
+    const token  = getToken('admin') || getToken('staff')
+    const params = { period: selectedPeriod.value, vai_tro: selectedRole.value }
+    if (selectedPeriod.value === 'custom') {
+      params.start = customStart.value
+      params.end   = customEnd.value
+    }
+    const { data } = await axios.get('/api/statistics/performance', {
+      params,
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (data.status && data.data) {
+      reportData.value = data.data
+    } else {
+      errorMsg.value = 'Không thể tải dữ liệu báo cáo.'
+    }
+  } catch (err) {
+    errorMsg.value = err.response?.data?.message ?? 'Lỗi kết nối máy chủ.'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// ─── Handlers ─────────────────────────────────────────────────────────────────
+const selectPeriod = (opt) => {
+  selectedPeriod.value = opt.value
+  showPeriod.value = false
+  if (opt.value !== 'custom') fetchData()
+}
+const selectRole = (r) => {
+  selectedRole.value = r.value
+  showRole.value = false
+  fetchData()
+}
+
+const handleOutsideClick = (e) => {
+  if (periodRef.value && !periodRef.value.contains(e.target)) showPeriod.value = false
+  if (roleRef.value   && !roleRef.value.contains(e.target))   showRole.value   = false
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const formatVND = (val) => {
+  if (!val && val !== 0) return '—'
+  return new Intl.NumberFormat('vi-VN').format(Math.round(val)) + ' đ'
+}
+
+const formatCurrency = (val) => {
+  if (!val) return '0 đ'
+  if (val >= 1_000_000_000) return (val / 1_000_000_000).toFixed(1) + ' tỷ'
+  if (val >= 1_000_000)     return (val / 1_000_000).toFixed(1) + 'M'
+  if (val >= 1_000)         return (val / 1_000).toFixed(0) + 'K'
+  return new Intl.NumberFormat('vi-VN').format(Math.round(val)) + ' đ'
+}
+
+const formatDate = (d) => new Date(d).toLocaleDateString('vi-VN')
+
+const avatarUrl = (path) => {
+  if (!path) return ''
+  if (path.startsWith('http')) return path
+  return `/storage/${path}`
+}
+
+const exportExcel = async () => {
+  try {
+    const token  = getToken('admin') || getToken('staff')
+    const params = { period: selectedPeriod.value, vai_tro: selectedRole.value, export: 'excel' }
+    if (selectedPeriod.value === 'custom') {
+      params.start = customStart.value
+      params.end   = customEnd.value
+    }
+    const response = await axios.get('/api/statistics/performance', {
+      params,
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: 'blob',
+    })
+    const url      = window.URL.createObjectURL(new Blob([response.data]))
+    const link     = document.createElement('a')
+    link.href      = url
+    link.download  = `hieu-suat-nhan-vien-${selectedPeriod.value}.xlsx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch {
+    alert('Tính năng xuất Excel chưa được hỗ trợ.')
+  }
+}
+
+// ─── Lifecycle ────────────────────────────────────────────────────────────────
+onMounted(() => {
+  fetchData()
+  document.addEventListener('click', handleOutsideClick)
+})
+onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
 </script>
 
 <style scoped>
-/* Custom scrollbar for table */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
 </style>
