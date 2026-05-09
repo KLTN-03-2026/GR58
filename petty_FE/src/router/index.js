@@ -110,6 +110,7 @@ const routes = [
     meta: { layout: "dangki_dangnhap" },
   },
 
+
   /********************** Staff ************************* */
   {
     path: "/staff/login",
@@ -209,6 +210,14 @@ const routes = [
         path: "profile",
         component: () => import("../views/admin/profile/index.vue"),
       },
+      {
+        path: "contacts",
+        component: () => import("../views/admin/contacts/index.vue"),
+      },
+      {
+        path: "trang-ca-nhan",
+        component: () => import("../views/admin/profile/index.vue"),
+      },
     ],
   },
 
@@ -266,10 +275,6 @@ const routes = [
         component: () =>
           import("../views/doctor/appointment/examination-form/index.vue"),
         props: true,
-      },
-      {
-        path: "contacts",
-        component: () => import("../views/doctor/contacts/index.vue"),
       },
     ],
   },
@@ -340,11 +345,6 @@ const routes = [
         path: "kho-thuoc",
         component: () => import("../views/nurse/inventory/index.vue"),
       },
-      {
-        path: "contacts",
-        component: () => import("../views/doctor/contacts/index.vue"),
-      },
-
     ],
   },
   {

@@ -34,6 +34,7 @@ use App\Http\Controllers\LichNghiController;
 use App\Http\Controllers\ThanhToanController;
 use App\Http\Controllers\YeuCauHoTroController;
 use App\Http\Controllers\ThongBaoController;
+use App\Http\Controllers\Api\InvoiceController;
 
 Route::post('/khach-hang/dang-ki', [KhachHangController::class, 'dangKi']);
 Route::post('/khach-hang/dang-nhap', [KhachHangController::class, 'dangNhap']);
@@ -378,7 +379,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/ho-so-benh-an', [HoSoBenhAnController::class, 'index'])->middleware('staff.only');
     // Lịch sử khám của 1 thú cưng
     Route::get('/ho-so-benh-an/thu-cung/{thuCungId}', [HoSoBenhAnController::class, 'lichSuKham'])->middleware('staff.only');   
-});
+    // Hóa đơn (invoice list)
+    Route::get('/invoices',      [InvoiceController::class, 'index'])->middleware('staff.only');
+    Route::get('/invoices/{id}', [InvoiceController::class, 'show'])->middleware('staff.only');
+    });
 // Trong Route::middleware('auth:sanctum')->group(function () { ... })
 Route::get('/statistics/dashboard', [\App\Http\Controllers\Api\StatisticController::class, 'getDashboardData'])
     ->middleware(['auth:sanctum', 'staff.only']);
@@ -398,3 +402,11 @@ Route::post('/lich-hen/{id}/them-dich-vu', [LichHenController::class, 'themDichV
 
 Route::delete('/lich-hen/{id}/xoa-dich-vu/{dich_vu_id}', [LichHenController::class, 'xoaDichVu'])
     ->middleware('staff.only');
+    // Báo cáo doanh thu (admin only)
+Route::get('/statistics/revenue', [\App\Http\Controllers\Api\RevenueReportController::class, 'getRevenueReport'])
+    ->middleware(['auth:sanctum', 'staff.only']);
+Route::get('/statistics/performance', [\App\Http\Controllers\Api\PerformanceReportController::class, 'getPerformanceReport'])
+    ->middleware(['auth:sanctum', 'staff.only']);
+    Route::get('/statistics/inventory', [\App\Http\Controllers\Api\InventoryReportController::class, 'getInventoryReport'])
+    ->middleware(['auth:sanctum', 'staff.only']);
+

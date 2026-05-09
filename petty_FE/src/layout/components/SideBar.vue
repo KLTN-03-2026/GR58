@@ -173,7 +173,7 @@ const props = defineProps({
   role: {
     type: String,
     default: "admin",
-    validator: (value) => ["admin", "doctor"].includes(value),
+    validator: (value) => ["admin", "doctor", "nurse"].includes(value),
   },
 });
 
