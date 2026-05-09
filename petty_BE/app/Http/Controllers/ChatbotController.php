@@ -83,6 +83,7 @@ class ChatbotController extends Controller
             'trace_id' => $traceId,
             'has_user' => $user !== null,
             'message_count' => count($messages),
+            'user_content_types' => array_map(fn($item) => $item['type'] ?? 'unknown', $userContent),
         ]);
 
         try {
