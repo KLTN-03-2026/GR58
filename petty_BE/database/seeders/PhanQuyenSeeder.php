@@ -157,31 +157,42 @@ class PhanQuyenSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        // 3. ĐIỀU DƯỠNG - Hỗ trợ bác sĩ, quản lý kho thuốc
+        // 3. ĐIỀU DƯỠNG / Y TÁ - Hỗ trợ bác sĩ, quản lý kho thuốc vật tư
         DB::table('phan_quyens')->insert([
             'ma_vai_tro' => PhanQuyen::VAI_TRO_DIEU_DUONG,
             'ten_vai_tro' => 'Điều dưỡng',
-            'mo_ta' => 'Điều dưỡng - Hỗ trợ khám bệnh, quản lý thuốc',
+            'mo_ta' => 'Điều dưỡng / Y tá - Hỗ trợ khám bệnh, quản lý kho thuốc vật tư',
             // Lịch hẹn
             'lich_hen_xem' => true,
             'lich_hen_tao' => false,
             'lich_hen_sua' => true,
             'lich_hen_xoa' => false,
-            'lich_hen_xac_nhan' => false,
+            'lich_hen_xac_nhan' => true,
             // Lịch làm việc
             'lich_lam_viec_xem' => true,
             'lich_lam_viec_tao' => false,
-            // Thú cưng
-            'thu_cung_xem' => true,
-            'thu_cung_tao' => false,
-            'thu_cung_sua' => false,
-            'thu_cung_xoa' => false,
+            // Tài chính
+            'tai_chinh_xem_doanh_thu' => false,
+            'tai_chinh_thu_tien' => true,
+            'tai_chinh_hoan_tien' => false,
+            // Phiếu chi
+            'phieu_chi_xem' => true,
+            'phieu_chi_tao' => true,
+            'phieu_chi_sua' => false,
+            'phieu_chi_xoa' => false,
+            'phieu_chi_xuat_pdf' => true,
+            'phieu_chi_thanh_toan' => true,
             // Hàng hóa
             'hang_hoa_xem' => true,
-            'hang_hoa_tao' => false,
-            'hang_hoa_sua' => false,
+            'hang_hoa_tao' => true,
+            'hang_hoa_sua' => true,
             'hang_hoa_xoa' => false,
-            'hang_hoa_doi_trang_thai' => false,
+            'hang_hoa_doi_trang_thai' => true,
+            // Danh mục hàng hóa
+            'danh_muc_hang_hoa_xem' => true,
+            'danh_muc_hang_hoa_tao' => true,
+            'danh_muc_hang_hoa_sua' => true,
+            'danh_muc_hang_hoa_xoa' => false,
             // Phiếu nhập kho
             'phieu_nhap_kho_xem' => true,
             'phieu_nhap_kho_tao' => true,
@@ -193,18 +204,22 @@ class PhanQuyenSeeder extends Seeder
             'kiem_ke_tao' => true,
             'kiem_ke_sua' => true,
             'kiem_ke_xoa' => false,
-            // Phiếu chi
-            'phieu_chi_xem' => true,
-            'phieu_chi_tao' => true,
-            'phieu_chi_sua' => false,
-            'phieu_chi_xoa' => false,
-            'phieu_chi_xuat_pdf' => true,
-            'phieu_chi_thanh_toan' => true,
+            // Thú cưng
+            'thu_cung_xem' => true,
+            'thu_cung_tao' => false,
+            'thu_cung_sua' => false,
+            'thu_cung_xoa' => false,
             // Khách hàng
             'khach_hang_xem' => true,
             'khach_hang_sua' => false,
             // Nhà cung cấp
             'nha_cung_cap_xem' => true,
+            'nha_cung_cap_tao' => true,
+            'nha_cung_cap_sua' => true,
+            'nha_cung_cap_xoa' => true,
+            'nha_cung_cap_doi_trang_thai' => true,
+            // Upload
+            'upload_file' => true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
