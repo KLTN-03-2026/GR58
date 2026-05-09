@@ -2,7 +2,7 @@ import axios from 'axios'
 import { getToken } from '@/utils/auth'
 
 const getAuthHeaders = () => {
-  const token = getToken('admin') || getToken('staff')
+  const token = getToken('admin') || getToken('y_ta')
   return { Authorization: `Bearer ${token}` }
 }
 
@@ -28,4 +28,12 @@ export const exportInventoryReport = async (params = {}) => {
   link.click()
   document.body.removeChild(link)
   window.URL.revokeObjectURL(url)
+}
+
+export const getKiemKeLogs = async (params = {}) => {
+  const { data } = await axios.get('/api/kiem-ke', {
+    params: { per_page: 100, sort_by: 'ngay_kiem_ke', sort_order: 'desc', ...params },
+    headers: getAuthHeaders(),
+  })
+  return data
 }

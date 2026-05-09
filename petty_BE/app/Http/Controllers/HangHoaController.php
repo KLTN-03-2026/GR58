@@ -18,17 +18,17 @@ class HangHoaController extends Controller
                 'chiTietPhieuNhapKhos' => function ($query) {
                     $query->select('id', 'hang_hoa_id', 'so_luong', 'don_gia', 'thanh_tien', 'so_lo', 'han_su_dung', 'phieu_nhap_kho_id')
                         ->with('phieuNhapKho:id,ma_phieu_nhap,ngay_nhap')
-                        ->orderBy('created_at', 'desc')
-                        ->limit(5); // Lấy 5 phiếu nhập gần nhất
+                        ->orderBy('created_at', 'desc');
                 }
             ])->get()->map(function ($hangHoa) {
-                // Tính tổng số lượng từ tất cả chi tiết phiếu nhập kho
-                $tongSoLuongNhap = $hangHoa->chiTietPhieuNhapKhos->sum('so_luong');
+                // tong_so_luong_nhap = tổng nhập từ phiếu nhập + điều chỉnh cộng dồn từ kiểm kê
+                $tongSoLuongNhap = $hangHoa->chiTietPhieuNhapKhos->sum('so_luong')
+                    + ($hangHoa->so_luong_dieu_chinh ?? 0);
 
                 return array_merge($hangHoa->toArray(), [
                     'ten_danh_muc_hang_hoa' => $hangHoa->danhMuc?->ten_danh_muc_hang_hoa ?? null,
                     'tinh_trang_label' => $hangHoa->tinh_trang_label,
-                    'tong_so_luong_nhap' => $tongSoLuongNhap,
+                    'tong_so_luong_nhap' => max(0, $tongSoLuongNhap), // không để âm
                     'chi_tiet_nhap_kho_gan_nhat' => $hangHoa->chiTietPhieuNhapKhos->map(function ($ct) {
                         return [
                             'id' => $ct->id,
@@ -128,8 +128,9 @@ class HangHoaController extends Controller
                 }
             ]);
 
-            // Tính tổng số lượng từ tất cả chi tiết phiếu nhập kho
-            $tongSoLuongNhap = $hangHoa->chiTietPhieuNhapKhos->sum('so_luong');
+            $tongSoLuongNhap = max(0,
+                $hangHoa->chiTietPhieuNhapKhos->sum('so_luong') + ($hangHoa->so_luong_dieu_chinh ?? 0)
+            );
 
             $response = array_merge($hangHoa->toArray(), [
                 'ten_danh_muc_hang_hoa' => $hangHoa->danhMuc?->ten_danh_muc_hang_hoa ?? null,
