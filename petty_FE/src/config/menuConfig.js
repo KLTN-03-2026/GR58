@@ -149,13 +149,7 @@ export const menuConfig = {
         path: "/doctor/medical-records",
         type: "single",
       },
-      {
-        key: "clinicalTesting",
-        label: "Cận lâm sàng",
-        icon: "https://www.figma.com/api/mcp/asset/d1cbc4bd-ea24-44d1-9608-e2eff73743e7",
-        path: "/doctor/clinical-testing",
-        type: "single",
-      },
+      
       {
         key: "pharmacy",
         label: "Kho thuốc",

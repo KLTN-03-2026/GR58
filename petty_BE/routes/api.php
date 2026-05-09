@@ -27,6 +27,7 @@ use App\Http\Controllers\KhuyenMaiController;
 use App\Http\Controllers\PhanQuyenController;
 use App\Http\Controllers\LichDangKyController;
 use App\Http\Controllers\PhieuKhamController;
+use App\Http\Controllers\Api\DinhKemPhieuKhamController;
 use App\Http\Controllers\HoSoBenhAnController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\PaymentController;
@@ -367,6 +368,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/phieu-kham/thu-cung/{thuCungId}', [PhieuKhamController::class, 'getByPet'])->middleware('staff.only'); // Lấy theo thú cưng
     Route::get('/phieu-kham/bac-si/{nhanVienId}', [PhieuKhamController::class, 'getByDoctor'])->middleware('staff.only'); // Lấy theo bác sĩ
     Route::get('/phieu-kham-hom-nay', [PhieuKhamController::class, 'getTodayExaminations'])->middleware('staff.only'); // Lấy hôm nay
+
+    // Đính kèm phiếu khám (kết quả cận lâm sàng)
+    Route::get('/phieu-kham/{phieuKhamId}/dinh-kem', [DinhKemPhieuKhamController::class, 'index'])->middleware('staff.only');
+    Route::post('/phieu-kham/{phieuKhamId}/dinh-kem', [DinhKemPhieuKhamController::class, 'store'])->middleware('staff.only');
+    Route::delete('/phieu-kham/{phieuKhamId}/dinh-kem/{dinhKemId}', [DinhKemPhieuKhamController::class, 'destroy'])->middleware('staff.only');
 
     // Kiểm tra mã khuyến mãi (public - cho khách hàng)
     Route::post('/khuyen-mai/check-code', [KhuyenMaiController::class, 'checkCode']);

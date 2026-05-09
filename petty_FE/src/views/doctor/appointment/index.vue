@@ -341,7 +341,7 @@ const completedAppointments = ref([]); // Bệnh nhân đã hoàn thành
 const scheduledAppointments = ref([]); // Lịch hẹn đã đặt (chưa check-in)
 const loading = ref(false);
 const error = ref(null);
-const activeTab = ref("waiting"); // Mặc định tab "Chờ khám"
+const activeTab = ref("all"); // Mặc định tab "Tất cả"
 
 // Format helpers
 const formatDate = (date) => format(date, "dd/MM/yyyy");
@@ -436,35 +436,31 @@ const getStatus = (appt) => {
 
 // Tabs count - Dựa trên bệnh nhân đã check-in
 const statusTabs = computed(() => {
-  const scheduled = scheduledAppointments.value.length;
   const waiting = appointments.value.length;
   const examining = examiningAppointments.value.length;
   const completed = completedAppointments.value.length;
-  const all = scheduled + waiting + examining + completed;
+  const all = waiting + examining + completed;
 
   return [
-    { label: "Đã đặt", value: "scheduled", count: scheduled },
+    { label: "Tất cả", value: "all", count: all },
     { label: "Chờ khám", value: "waiting", count: waiting },
     { label: "Đang khám", value: "examining", count: examining },
     { label: "Hoàn thành", value: "completed", count: completed },
-    { label: "Tất cả", value: "all", count: all },
   ];
 });
 
 const displayAppointments = computed(() => {
   let list = [];
 
-  if (activeTab.value === "scheduled") {
-    list = [...scheduledAppointments.value];
-  } else if (activeTab.value === "waiting") {
+  if (activeTab.value === "waiting") {
     list = [...appointments.value];
   } else if (activeTab.value === "examining") {
     list = [...examiningAppointments.value];
   } else if (activeTab.value === "completed") {
     list = [...completedAppointments.value];
   } else {
+    // "all" - không filter
     list = [
-      ...scheduledAppointments.value,
       ...appointments.value,
       ...examiningAppointments.value,
       ...completedAppointments.value,
@@ -619,7 +615,6 @@ const fetchAllData = async () => {
   loading.value = true;
   error.value = null;
   await Promise.all([
-    fetchScheduledAppointments(),
     fetchAppointments(),
     fetchExaminingAppointments(),
     fetchCompletedAppointments(),

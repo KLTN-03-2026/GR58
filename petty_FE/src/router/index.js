@@ -251,10 +251,6 @@ const routes = [
           import("../views/doctor/medical-record/medical-record-detail/index.vue"),
       },
       {
-        path: "clinical-testing",
-        component: () => import("../views/doctor/clinical-testing/index.vue"),
-      },
-      {
         path: "pharmacy",
         component: () => import("../views/doctor/pharmacy/index.vue"),
       },

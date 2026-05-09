@@ -163,6 +163,16 @@
             </div>
           </div>
         </div>
+
+        <!-- Clinical Attachment Uploader (shown after first save) -->
+        <Transition name="fade">
+          <ClinicalAttachmentUploader
+            v-if="savedPhieuKhamId"
+            :phieu-kham-id="savedPhieuKhamId"
+            class="mt-0"
+          />
+        </Transition>
+
       </div>
 
       <!-- Main Content: Two Columns -->
@@ -284,42 +294,7 @@
             ></textarea>
           </div>
 
-          <!-- Lab Results Card (Blue highlight) -->
-          <div
-            class="bg-blue-50 border-2 border-[#bedbff] rounded-[14px] p-[26px]"
-          >
-            <div class="flex items-center gap-2 mb-[30px]">
-              <!-- <img :src="icons.activity" alt="" class="w-4 h-4" /> -->
-              <h3
-                class="font-normal text-base leading-4 text-gray-900 tracking-[-0.3125px]"
-              >
-                KẾT QUẢ CẬN LÂM SÀNG
-              </h3>
-            </div>
-            <div class="bg-white border !border-[#bedbff] rounded-[10px] p-3">
-              <div class="flex flex-col gap-1.5 mb-3">
-                <p
-                  class="font-bold text-sm leading-5 text-[#101828] tracking-[-0.1504px]"
-                >
-                  1. Chụp X-Quang Xương:
-                </p>
-                <p
-                  class="font-normal text-sm leading-5 text-[#364153] tracking-[-0.1504px]"
-                >
-                  Gãy xương đùi trái (kín)
-                </p>
-                <p class="font-normal text-xs leading-4 text-[#6a7282]">
-                  Hoàn thành lúc 10:45
-                </p>
-              </div>
-              <button
-                @click="isClinicalResultModalOpen = true"
-                class="bg-white border !border-[#8ec5ff] rounded-lg px-4 py-1.5 text-sm font-medium text-[#155dfc] tracking-[-0.1504px] hover:bg-blue-50 transition-colors"
-              >
-                Xem ảnh (2)
-              </button>
-            </div>
-          </div>
+
 
           <!-- Diagnosis Card (Required) -->
           <div
@@ -366,19 +341,7 @@
 
         <!-- Right Column: Action Buttons -->
         <div class="flex flex-col gap-6 w-[358px]">
-          <!-- Lab Test Order Button -->
-          <button
-            @click="isPrescriptionModalOpen = true"
-            :class="[
-              'h-9 rounded-lg flex items-center justify-center gap-2 text-sm font-medium tracking-[-0.1504px] transition-colors',
-              selectedPrescriptionType === 'chi_dinh_can_lam_sang'
-                ? 'bg-[#dab2ff] border-2 border-[#8200db] text-[#8200db]'
-                : 'bg-white border-2 !border-[#dab2ff] text-[#8200db] hover:bg-purple-50',
-            ]"
-          >
-            <!-- <img :src="icons.labTest" alt="" class="w-4 h-4" /> -->
-            Chỉ định cận lâm sàng
-          </button>
+
 
           <!-- Prescription Button -->
           <button
@@ -420,19 +383,7 @@
     </div>
     <!-- End of v-else -->
 
-    <!-- Chi Dinh Modal -->
-    <div
-      v-if="isPrescriptionModalOpen"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="isPrescriptionModalOpen = false"
-    >
-      <div class="w-full max-w-2xl mx-4">
-        <ChiDinh
-          @close="isPrescriptionModalOpen = false"
-          @save="handlePrescriptionSave"
-        />
-      </div>
-    </div>
+
 
     <!-- Don Thuoc Modal -->
     <div
@@ -462,16 +413,7 @@
       </div>
     </div>
 
-    <!-- KQ Can Lam Sang Modal -->
-    <div
-      v-if="isClinicalResultModalOpen"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="isClinicalResultModalOpen = false"
-    >
-      <div class="w-full max-w-2xl mx-4">
-        <ClinicalResultModal @close="isClinicalResultModalOpen = false" />
-      </div>
-    </div>
+
   </div>
 </template>
 
@@ -482,10 +424,9 @@ import api from "@/utils/api";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
-import ChiDinh from "./prescription/index.vue";
 import DonThuoc from "./prescription-form/index.vue";
 import HenTaiKham from "./follow-up-appointment/index.vue";
-import ClinicalResultModal from "./clinical-result/index.vue";
+import ClinicalAttachmentUploader from "@/components/doctor/ClinicalAttachmentUploader.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -569,10 +510,11 @@ const notes = ref("");
 const selectedPrescriptionType = ref("don_thuoc"); // default to prescription
 
 // Modal states
-const isPrescriptionModalOpen = ref(false);
 const isPrescriptionFormModalOpen = ref(false);
 const isFollowUpModalOpen = ref(false);
-const isClinicalResultModalOpen = ref(false);
+
+// ID phiếu khám sau khi lưu lần đầu — dùng cho uploader đính kèm
+const savedPhieuKhamId = ref(null);
 
 // Helper function to parse datetime
 const parseDateTime = (dateString) => {
@@ -646,14 +588,15 @@ const loadAppointmentData = async () => {
         petName: petData?.ten || petData?.ten_thu_cung || "Chưa có tên",
         petImage: petData?.anh_dai_dien_url || petData?.anh_dai_dien || "https://via.placeholder.com/150",
         badge: data.la_khach_vang_lai ? "Vãng lai" : "Đặt trước",
-        species: petData?.loai || petData?.species || "Chưa rõ loài",
+        species: petData?.loai || petData?.loai_thu_cung || petData?.species || "Chưa rõ loài",
         breed:
           petData?.giong ||
+          petData?.giong_thu_cung ||
           petData?.giong_loai ||
           petData?.breed ||
           "Chưa rõ giống",
-        age: petData?.ngay_sinh
-          ? calculateAge(petData.ngay_sinh)
+        age: (petData?.ngay_sinh || petData?.tuoi_thu_cung)
+          ? calculateAge(petData.ngay_sinh || petData.tuoi_thu_cung)
           : "Chưa rõ tuổi",
        ownerName:
   (typeof data.khach_hang === 'object'
@@ -750,14 +693,19 @@ const handleSave = async () => {
     console.log("Response:", response.data);
 
     if (response.data.status || response.status === 201) {
+      const savedId = response.data?.data?.id
+      if (savedId) savedPhieuKhamId.value = savedId
+
       showSuccessToast(
         response.data.message || "Lưu hồ sơ khám bệnh thành công!"
       );
 
-      // Optionally redirect after saving
-      setTimeout(() => {
-        router.push("/doctor/lich-kham");
-      }, 1500);
+      // Chỉ redirect khi không có phiếu khám ID (để bác sĩ tiếp tục đính kèm file)
+      if (!savedId) {
+        setTimeout(() => {
+          router.push("/doctor/lich-kham");
+        }, 1500);
+      }
     } else {
       showErrorToast(response.data.message || "Lỗi khi lưu hồ sơ khám bệnh");
     }
@@ -777,13 +725,7 @@ const handleSave = async () => {
   }
 };
 
-// Handle Chi Dinh modal save
-const handlePrescriptionSave = (data) => {
-  console.log("Chi Dinh saved:", data);
-  selectedPrescriptionType.value = "chi_dinh_can_lam_sang";
-  isPrescriptionModalOpen.value = false;
-  showSuccessToast("Đã lưu chỉ định cận lâm sàng");
-};
+
 
 // Handle Don Thuoc modal save
 const handlePrescriptionFormSave = (data) => {

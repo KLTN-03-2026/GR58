@@ -566,7 +566,7 @@ const formatDateTime = (dateString) => {
 // Xem chi tiết hồ sơ - truyền thu_cung_id và khach_hang_id
 const viewRecord = (customerId, petId) => {
   router.push({
-    path: "/doctor/benh-an/chi-tiet",
+    path: "/doctor/medical-records/detail",
     query: { thu_cung_id: petId, khach_hang_id: customerId },
   });
 };
