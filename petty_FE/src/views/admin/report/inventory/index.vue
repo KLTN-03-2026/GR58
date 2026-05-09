@@ -208,6 +208,110 @@
         </div>
       </div>
 
+      <!-- Inventory Check Log Table -->
+      <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-base font-normal text-gray-900 mb-1">Lịch sử Kiểm kê Kho (Y tá)</h3>
+            <p class="text-sm text-gray-600">Toàn bộ các lần đối chiếu tồn kho thực tế với hệ thống</p>
+          </div>
+          <div class="flex items-center gap-3 text-xs text-gray-500">
+            <div class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-full bg-green-500"></span>Thừa</div>
+            <div class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-full bg-red-500"></span>Thiếu</div>
+            <div class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-full bg-gray-400"></span>Đúng</div>
+          </div>
+        </div>
+
+        <!-- Filter hàng hóa -->
+        <div class="flex items-center gap-3 mb-4">
+          <div class="relative">
+            <input
+              v-model="kiemKeSearch"
+              type="text"
+              placeholder="Tìm tên hàng hóa..."
+              class="bg-gray-100 border-none rounded-lg h-9 w-52 pl-3 pr-3 text-sm text-gray-900 outline-none placeholder:text-gray-400"
+            />
+          </div>
+          <div class="relative">
+            <button
+              @click.stop="toggleDropdown('kiem_ke_trang_thai')"
+              class="flex items-center justify-between gap-2 px-3 py-2 bg-gray-100 rounded-lg text-sm text-gray-700 hover:bg-gray-200 transition-colors min-w-[140px]"
+            >
+              {{ kiemKeTrangThaiLabel }}
+              <ChevronDownIcon class="w-4 h-4" />
+            </button>
+            <div v-if="openDropdown === 'kiem_ke_trang_thai'" class="absolute z-30 top-full mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+              <button
+                v-for="opt in kiemKeTrangThaiOptions" :key="opt.value"
+                @click.stop="kiemKeTrangThai = opt.value; openDropdown = null"
+                class="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors"
+                :class="kiemKeTrangThai === opt.value ? 'text-[#009689] font-semibold bg-teal-50' : 'text-gray-700'"
+              >{{ opt.label }}</button>
+            </div>
+          </div>
+          <span class="text-xs text-gray-400 ml-auto">{{ filteredKiemKeLogs.length }} bản ghi</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-gray-200">
+                <th class="text-left text-sm text-gray-600 font-normal py-3 px-2">Ngày kiểm kê</th>
+                <th class="text-left text-sm text-gray-600 font-normal py-3 px-2">Hàng hóa</th>
+                <th class="text-right text-sm text-gray-600 font-normal py-3 px-2">Tồn máy</th>
+                <th class="text-right text-sm text-gray-600 font-normal py-3 px-2">Thực tế</th>
+                <th class="text-right text-sm text-gray-600 font-normal py-3 px-2">Chênh lệch</th>
+                <th class="text-left text-sm text-gray-600 font-normal py-3 px-2">Lý do</th>
+                <th class="text-left text-sm text-gray-600 font-normal py-3 px-2">Người kiểm kê</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="loadingKiemKe">
+                <td colspan="7" class="py-8 text-center">
+                  <div class="flex items-center justify-center gap-2 text-gray-400 text-sm">
+                    <div class="w-5 h-5 border-2 border-[#009689] border-t-transparent rounded-full animate-spin"></div>
+                    Đang tải...
+                  </div>
+                </td>
+              </tr>
+              <tr v-else-if="!filteredKiemKeLogs.length">
+                <td colspan="7" class="py-8 text-center text-gray-400 text-sm">Không có dữ liệu kiểm kê</td>
+              </tr>
+              <tr
+                v-for="log in filteredKiemKeLogs" :key="log.id"
+                class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+              >
+                <td class="py-3 px-2 text-sm text-gray-700 whitespace-nowrap">{{ formatDate(log.ngay_kiem_ke) }}</td>
+                <td class="py-3 px-2">
+                  <p class="text-sm text-gray-900">{{ log.hang_hoa?.ten_mat_hang ?? '—' }}</p>
+                  <p class="text-xs text-gray-400">{{ log.hang_hoa?.ma_hang_hoa }}</p>
+                </td>
+                <td class="py-3 px-2 text-right text-sm text-gray-700">{{ log.so_luong_he_thong }}</td>
+                <td class="py-3 px-2 text-right text-sm text-gray-700">{{ log.so_luong_thuc_te }}</td>
+                <td class="py-3 px-2 text-right">
+                  <span
+                    class="inline-block text-xs font-semibold px-2 py-1 rounded"
+                    :class="{
+                      'bg-green-100 text-green-700': log.chenh_lech > 0,
+                      'bg-red-100 text-red-700': log.chenh_lech < 0,
+                      'bg-gray-100 text-gray-500': log.chenh_lech === 0,
+                    }"
+                  >
+                    {{ log.chenh_lech > 0 ? '+' : '' }}{{ log.chenh_lech }}
+                    ({{ log.trang_thai_chenh_lech }})
+                  </span>
+                </td>
+                <td class="py-3 px-2 text-sm text-gray-700">{{ log.ly_do ?? '—' }}</td>
+                <td class="py-3 px-2">
+                  <p class="text-sm text-gray-900">{{ log.nguoi_kiem_ke_info?.ho_ten ?? '—' }}</p>
+                  <p class="text-xs text-gray-400">{{ log.nguoi_kiem_ke_info?.chuc_danh ?? log.nguoi_kiem_ke_info?.type }}</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Expiring Soon Table -->
       <div class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-6">
         <div class="mb-4">
@@ -264,7 +368,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { getInventoryReport, exportInventoryReport } from '@/services/inventoryReportService'
+import { getInventoryReport, exportInventoryReport, getKiemKeLogs } from '@/services/inventoryReportService'
 import ChevronDownIcon from '@/assets/svg/chevron-down.svg'
 import DownloadIcon    from '@/assets/svg/download.svg'
 
@@ -280,6 +384,43 @@ const expiringSoon  = ref([])
 const danhMucs      = ref([{ value: 'all', label: 'Tất cả' }])
 
 const filters = reactive({ period: 'this_year', danh_muc: 'all' })
+
+// ─── Kiểm kê state ────────────────────────────────────────────────────
+const kiemKeLogs     = ref([])
+const loadingKiemKe  = ref(false)
+const kiemKeSearch   = ref('')
+const kiemKeTrangThai = ref('all')
+
+const kiemKeTrangThaiOptions = [
+  { value: 'all',  label: 'Tất cả' },
+  { value: 'thieu', label: 'Thiếu' },
+  { value: 'thua',  label: 'Thừa' },
+  { value: 'dung',  label: 'Đúng' },
+]
+
+const kiemKeTrangThaiLabel = computed(() =>
+  kiemKeTrangThaiOptions.find(o => o.value === kiemKeTrangThai.value)?.label ?? 'Tất cả'
+)
+
+const filteredKiemKeLogs = computed(() => {
+  let list = kiemKeLogs.value
+  const q = kiemKeSearch.value.trim().toLowerCase()
+  if (q) {
+    list = list.filter(log =>
+      log.hang_hoa?.ten_mat_hang?.toLowerCase().includes(q) ||
+      log.hang_hoa?.ma_hang_hoa?.toLowerCase().includes(q)
+    )
+  }
+  if (kiemKeTrangThai.value !== 'all') {
+    list = list.filter(log => {
+      if (kiemKeTrangThai.value === 'thua')  return log.chenh_lech > 0
+      if (kiemKeTrangThai.value === 'thieu') return log.chenh_lech < 0
+      if (kiemKeTrangThai.value === 'dung')  return log.chenh_lech === 0
+      return true
+    })
+  }
+  return list
+})
 
 // ─── Options ──────────────────────────────────────────────────────────
 const periodOptions = [
@@ -344,6 +485,14 @@ const donutChartOptions = computed(() => ({
   tooltip: { y: { formatter: (val) => val + '%' } },
 }))
 
+// ─── Helpers ──────────────────────────────────────────────────────────
+const formatDate = (dateStr) => {
+  if (!dateStr) return '—'
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+}
+
 // ─── Fetch ────────────────────────────────────────────────────────────
 const fetchData = async () => {
   loading.value = true
@@ -366,6 +515,22 @@ const fetchData = async () => {
     console.error('Lỗi tải báo cáo kho:', err)
   } finally {
     loading.value = false
+  }
+}
+
+const fetchKiemKeLogs = async () => {
+  loadingKiemKe.value = true
+  try {
+    const res = await getKiemKeLogs()
+    if (res.status) {
+      // API trả về paginated: res.data.data hoặc res.data trực tiếp là array
+      const rows = Array.isArray(res.data) ? res.data : (res.data?.data ?? [])
+      kiemKeLogs.value = rows
+    }
+  } catch (err) {
+    console.error('Lỗi tải lịch sử kiểm kê:', err)
+  } finally {
+    loadingKiemKe.value = false
   }
 }
 
@@ -392,7 +557,10 @@ const handleExport = async () => {
   }
 }
 
-onMounted(() => fetchData())
+onMounted(() => {
+  fetchData()
+  fetchKiemKeLogs()
+})
 </script>
 
 <style scoped>

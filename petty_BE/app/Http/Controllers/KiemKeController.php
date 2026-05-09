@@ -167,6 +167,13 @@ class KiemKeController extends Controller
                 'ghi_chu' => $request->ghi_chu,
             ]);
 
+            // Cập nhật tồn kho thực tế: cộng dồn chênh lệch vào so_luong_dieu_chinh
+            // chenh_lech = so_luong_thuc_te - so_luong_he_thong (dương: thừa, âm: thiếu)
+            $hangHoa = HangHoa::find($request->hang_hoa_id);
+            if ($hangHoa) {
+                $hangHoa->increment('so_luong_dieu_chinh', $kiemKe->chenh_lech);
+            }
+
             // Load relationships
             $kiemKe->load([
                 'hangHoa:id,ma_hang_hoa,ten_mat_hang,don_vi_tinh,gia_ban,anh_san_pham',

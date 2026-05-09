@@ -26,6 +26,7 @@ class HangHoa extends Model
         'anh_san_pham',
         'tinh_trang',
         'danh_muc_hang_hoa_id',
+        'so_luong_dieu_chinh',
     ];
 
     /**
