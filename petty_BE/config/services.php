@@ -40,9 +40,9 @@ return [
         'redirect' => env('FACEBOOK_REDIRECT_URI'),
     ],
 
-    'together' => [
-        'api_key' => env('TOGETHER_API_KEY'),
-        'model' => env('TOGETHER_MODEL', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'),
+    'groq' => [
+        'api_key' => env('GROQ_API_KEY'),
+        'model' => env('GROQ_MODEL', 'meta-llama/llama-4-scout-17b-16e-instruct'),
     ],
 
     'slack' => [

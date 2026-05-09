@@ -41,7 +41,7 @@ Route::post('/khach-hang/gui-lai-xac-nhan', [KhachHangController::class, 'guiLai
 
 // Admin login route
 Route::post('/admin/dang-nhap', [AdminController::class, 'dangNhap']);
-Route::post('/chatbot/message', [ChatbotController::class, 'message'])->middleware('throttle:20,1');
+Route::post('/chatbot/message', [ChatbotController::class, 'message'])->middleware(['throttle:20,1', 'auth.multi']);
 
 // Nhân viên login route
 Route::post('/nhan-vien/dang-nhap', [NhanVienController::class, 'dangNhap']);
