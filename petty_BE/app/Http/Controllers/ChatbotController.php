@@ -48,6 +48,17 @@ class ChatbotController extends Controller
 
         $images = collect($validated['images'] ?? [])
             ->map(function ($imageData) {
+                // Kimi K2.6 hỗ trợ base64 images trong định dạng data URL
+                if (strpos($imageData, 'data:image') === 0) {
+                    // Đã là data URL, giữ nguyên
+                    return [
+                        'type' => 'image_url',
+                        'image_url' => [
+                            'url' => $imageData,
+                        ],
+                    ];
+                }
+                // Nếu là URL thường, giữ nguyên
                 return [
                     'type' => 'image_url',
                     'image_url' => [
@@ -62,7 +73,8 @@ class ChatbotController extends Controller
             . 'Chỉ trả lời về chăm sóc thú cưng: dinh dưỡng, vệ sinh, hành vi, huấn luyện cơ bản, môi trường sống, dấu hiệu sức khỏe cần lưu ý. '
             . 'Nếu câu hỏi không liên quan thú cưng, từ chối lịch sự và nhắc người dùng hỏi đúng chủ đề. '
             . 'Không đưa chẩn đoán y khoa chắc chắn; với dấu hiệu nghiêm trọng hãy khuyên đi bác sĩ thú y. '
-            . 'Trả lời ngắn gọn, dễ hiểu, có bước hành động cụ thể.';
+            . 'Trả lời ngắn gọn, dễ hiểu, có bước hành động cụ thể.'
+             . 'không trả lời bằng icon ví dụ như thế này "🍖 Dinh dưỡng & thức ăn - 🛁 Vệ sinh & tắm rửa" đó là có icon';
 
         $userText = trim((string) ($validated['message'] ?? ''));
         $userContent = [];
@@ -97,6 +109,7 @@ class ChatbotController extends Controller
             'history_count' => count($history),
             'image_count' => count($images),
             'message_count' => count($messages),
+            'user_content_types' => array_map(fn($item) => $item['type'] ?? 'unknown', $userContent),
         ]);
 
         try {
@@ -111,17 +124,20 @@ class ChatbotController extends Controller
 
             if (! $response->ok()) {
                 $error = $response->json('error.message') ?: ('Together API Error: ' . $response->status());
+                $errorDetails = $response->json();
 
                 Log::error('Chatbot upstream returned non-OK response', [
                     'trace_id' => $traceId,
                     'http_status' => $response->status(),
                     'elapsed_ms' => $elapsedMs,
-                    'response_body' => $response->body(),
+                    'error_message' => $error,
+                    'response_body' => $errorDetails,
                 ]);
 
                 return response()->json([
                     'status' => false,
                     'message' => $error,
+                    'debug' => config('app.debug') ? $errorDetails : null,
                 ], 502);
             }
 

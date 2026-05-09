@@ -32,6 +32,18 @@
             <img v-for="(img, imageIndex) in msg.images" :key="imageIndex" :src="img.data" :alt="img.name" />
           </div>
         </div>
+
+        <div v-if="loading" class="petty-msg assistant petty-msg-thinking">
+          <span class="petty-thinking-icon">🤖</span>
+          <div class="petty-thinking-content">
+            <div class="petty-thinking-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <span class="petty-thinking-text">Chatbot đang suy nghĩ...</span>
+          </div>
+        </div>
       </div>
 
       <div v-if="attachedImages.length" class="petty-chatbot-preview">
@@ -355,5 +367,71 @@ export default {
 .petty-chatbot-input button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.petty-msg-thinking {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.petty-thinking-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  animation: petty-pulse 1.5s infinite;
+}
+
+.petty-thinking-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.petty-thinking-indicator {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.petty-thinking-indicator span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0a2b9d;
+  animation: petty-bounce 1.4s infinite;
+}
+
+.petty-thinking-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.petty-thinking-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.petty-thinking-text {
+  font-size: 14px;
+  color: #666;
+  font-style: italic;
+}
+
+@keyframes petty-bounce {
+  0%, 80%, 100% {
+    opacity: 0.5;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes petty-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 </style>
