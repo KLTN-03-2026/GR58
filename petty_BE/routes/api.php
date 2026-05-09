@@ -409,4 +409,3 @@ Route::get('/statistics/performance', [\App\Http\Controllers\Api\PerformanceRepo
     ->middleware(['auth:sanctum', 'staff.only']);
     Route::get('/statistics/inventory', [\App\Http\Controllers\Api\InventoryReportController::class, 'getInventoryReport'])
     ->middleware(['auth:sanctum', 'staff.only']);
-
