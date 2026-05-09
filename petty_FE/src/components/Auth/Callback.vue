@@ -41,7 +41,7 @@ onMounted(async () => {
     }
     
     toast.error(errorMessage);
-    router.push("/khach-hang/dang-nhap");
+    router.push("/customer/login");
     return;
   }
 
@@ -75,7 +75,7 @@ onMounted(async () => {
       // Xóa token lỗi
       clearAuth("customer");
       
-      router.push("/khach-hang/dang-nhap");
+      router.push("/customer/login");
     }
   } else {
     // Không có token trong URL -> Có thể Backend trả JSON trực tiếp
@@ -105,12 +105,12 @@ onMounted(async () => {
         console.error("Lỗi phân tích dữ liệu xác thực mạng xã hội:", err);
         sessionStorage.removeItem('social_auth_response');
         toast.error("Có lỗi xảy ra. Vui lòng thử lại.");
-        router.push("/khach-hang/dang-nhap");
+        router.push("/customer/login");
       }
     } else {
       // Không có gì cả
       toast.error("Không nhận được thông tin xác thực. Vui lòng thử lại.");
-      router.push("/khach-hang/dang-nhap");
+      router.push("/customer/login");
     }
   }
 });

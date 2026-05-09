@@ -70,7 +70,7 @@ client.interceptors.response.use(
           logout();
         } catch (r) {
           try {
-            window.location.replace("/khach-hang/dang-nhap");
+            window.location.replace("/customer/login");
           } catch (e) {}
         }
       } catch (e) {

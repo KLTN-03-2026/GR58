@@ -65,7 +65,7 @@ const status = ref('loading'); // 'loading', 'success', 'error'
 const errorMessage = ref('');
 
 const goToLogin = () => {
-  router.push('/khach-hang/dang-nhap');
+  router.push('/customer/login');
 };
 
 const verifyEmail = async () => {

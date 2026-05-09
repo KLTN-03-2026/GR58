@@ -409,7 +409,7 @@ class KhachHangController extends Controller
         } catch (\Exception $e) {
             Log::error($provider . ' login failed: ' . $e->getMessage());
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
-            return redirect($frontendUrl . '/khach-hang/dang-nhap?error=social_login_failed');
+            return redirect($frontendUrl . '/customer/login?error=social_login_failed');
         }
 
         $socialId = $socialUser->getId();
@@ -473,7 +473,7 @@ class KhachHangController extends Controller
             DB::rollBack();
             Log::error('Social login transaction failed: ' . $e->getMessage());
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
-            return redirect($frontendUrl . '/khach-hang/dang-nhap?error=server_error');
+            return redirect($frontendUrl . '/customer/login?error=server_error');
         }
     }
 

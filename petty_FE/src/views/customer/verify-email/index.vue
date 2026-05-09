@@ -100,7 +100,7 @@ const resendEmail = async () => {
       showErrorToast(err.response.data.message || 'Tài khoản đã được xác minh. Vui lòng đăng nhập.');
       isVerified.value = true;
       setTimeout(() => {
-        router.push('/khach-hang/dang-nhap');
+        router.push('/customer/login');
       }, 2000);
     } else {
       showErrorToast(err.response?.data?.message || 'Có lỗi xảy ra khi gửi lại email. Vui lòng thử lại sau.');
@@ -111,7 +111,7 @@ const resendEmail = async () => {
 };
 
 const goToLogin = () => {
-  router.push('/khach-hang/dang-nhap');
+  router.push('/customer/login');
 };
 
 onMounted(() => {

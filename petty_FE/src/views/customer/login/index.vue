@@ -203,9 +203,9 @@
 
           <p class="text-center text-base mt-6">
             <span class="text-gray-600">Chưa có tài khoản?</span>
-            <router-link to="/khach-hang/dang-ky">
+            <router-link to="/customer/register">
               <a
-                href="/khach-hang/dang-ky"
+                href="/customer/register"
                 class="text-blue-600 font-bold hover:underline ml-1"
                 >Đăng Ký</a
               >

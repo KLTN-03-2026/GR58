@@ -278,7 +278,7 @@
               <p class="text-sm text-gray-600 font-nunitoSans">
                 Đã có tài khoản?
                 <router-link
-                  to="/khach-hang/dang-nhap"
+                  to="/customer/login"
                   class="text-blue-600 font-medium hover:underline ml-1"
                 >
                   Đăng Nhập
