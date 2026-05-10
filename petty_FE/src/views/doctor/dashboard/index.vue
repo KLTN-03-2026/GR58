@@ -165,6 +165,7 @@
             >
               <img
                 :src="nextPatient.petImage"
+                @error="(e) => e.target.src = defaultPetImage"
                 alt=""
                 class="w-full h-full object-cover"
               />
@@ -320,6 +321,7 @@
               >
                 <img
                   :src="patient.petImage"
+                  @error="(e) => e.target.src = defaultPetImage"
                   alt=""
                   class="w-full h-full object-cover"
                 />
@@ -667,7 +669,10 @@ const mapPatient = (appointment) => {
     raw: appointment,
     petName: appointment?.thu_cung?.ten_thu_cung || "Chưa có tên",
     petType: getPetType(appointment),
-    petImage: appointment?.thu_cung?.anh_dai_dien || defaultPetImage,
+    petImage:
+      appointment?.thu_cung?.anh_dai_dien_url ||
+      appointment?.thu_cung?.anh_dai_dien ||
+      defaultPetImage,
     ownerName: appointment?.khach_hang?.full_name || "Chưa có chủ nuôi",
     service:
       appointment?.dich_vu?.ten_dich_vu ||
@@ -721,20 +726,30 @@ const loadDashboardData = async () => {
     const currentDoctor = getUser("bac_si");
     const doctorId = currentDoctor?.id;
 
-    const [waitingRes, examiningRes, allAppointmentsRes] = await Promise.all([
+    // Luôn fetch waiting + examining — 2 endpoint này server-side tự lọc theo bác sĩ đang đăng nhập
+    const [waitingRes, examiningRes] = await Promise.all([
       getPatientsWaitingExam({ ngay: today, per_page: 100 }),
       getExaminingPatients({ ngay: today, per_page: 100 }),
-      getAllAppointments({
-        from_date: `${today} 00:00:00`,
-        to_date: `${today} 23:59:59`,
-        per_page: 100,
-        ...(doctorId ? { nhan_vien_id: doctorId } : {}),
-      }),
     ]);
 
     const waitingPatients = extractList(waitingRes).map(mapPatient);
     const examiningPatients = extractList(examiningRes);
-    const todayAppointments = extractList(allAppointmentsRes);
+
+    // Fetch tất cả lịch hẹn hôm nay để lấy số đã hoàn thành + doanh thu
+    // Đặt trong try riêng — nếu lỗi quyền hạn thì không làm vỡ toàn bộ dashboard
+    let todayAppointments = [];
+    try {
+      const allAppointmentsRes = await getAllAppointments({
+        from_date: `${today} 00:00:00`,
+        to_date: `${today} 23:59:59`,
+        per_page: 100,
+        ...(doctorId ? { nhan_vien_id: doctorId } : {}),
+      });
+      todayAppointments = extractList(allAppointmentsRes);
+    } catch (allErr) {
+      console.warn("[Dashboard] Không thể tải tất cả lịch hẹn:", allErr?.response?.status, allErr?.message);
+    }
+
     const completedAppointments = todayAppointments.filter(isCompleted);
 
     nextPatient.value = waitingPatients[0] || null;
@@ -749,7 +764,8 @@ const loadDashboardData = async () => {
       .map(mapSchedule);
 
     stats.value = {
-      appointments: todayAppointments.length,
+      // Ca khám hôm nay = đang chờ + đang khám + đã hoàn thành
+      appointments: waitingPatients.length + examiningPatients.length + completedAppointments.length,
       completed: completedAppointments.length,
       waiting: waitingPatients.length,
       revenue: formatCurrency(completedAppointments.reduce(

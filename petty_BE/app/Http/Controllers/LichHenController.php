@@ -963,7 +963,7 @@ class LichHenController extends Controller
                 }
             }
 
-            // Filter theo ngày
+            // Filter theo ngày (tùy chọn) — nếu không truyền thì lấy tất cả đang khám
             if ($request->filled('ngay')) {
                 try {
                     $ngay = Carbon::parse($request->get('ngay'))->format('Y-m-d');
@@ -974,10 +974,8 @@ class LichHenController extends Controller
                         'message' => 'Định dạng ngày không hợp lệ',
                     ], 422);
                 }
-            } else {
-                // Mặc định lấy bệnh nhân đang khám hôm nay
-                $query->whereDate('thoi_gian_bat_dau_kham', today());
             }
+            // Nếu không có ngay → không filter date, lấy tất cả bệnh nhân đang khám (kể cả bắt đầu từ hôm trước)
 
             // Sắp xếp theo thời gian bắt đầu khám
             $query->orderBy('thoi_gian_bat_dau_kham', 'asc');
