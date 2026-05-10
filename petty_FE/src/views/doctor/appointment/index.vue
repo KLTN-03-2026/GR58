@@ -109,21 +109,6 @@
                 </span>
               </div>
 
-              <!-- Thời gian chờ -->
-              <div
-                v-if="appt.displayStatus.waitMinutes"
-                class="mt-2 text-xs text-gray-500"
-              >
-                Đã chờ: {{ appt.displayStatus.waitMinutes }} phút
-              </div>
-
-              <!-- Thời gian khám -->
-              <div
-                v-if="appt.displayStatus.examMinutes"
-                class="mt-2 text-xs text-orange-600"
-              >
-                Đang khám: {{ appt.displayStatus.examMinutes }} phút
-              </div>
             </div>
 
             <div class="flex flex-col gap-2">
@@ -542,13 +527,10 @@ const fetchAppointments = async () => {
 // Lấy danh sách bệnh nhân đang khám
 const fetchExaminingAppointments = async () => {
   try {
-    const dateStr = format(currentDate.value, "yyyy-MM-dd");
-
+    // Không filter theo ngay vì bệnh nhân có thể bắt đầu khám từ hôm trước
+    // Server đã tự scope theo trạng thái "dang_kham"
     const res = await api.get("/benh-nhan-dang-kham", {
-      params: {
-        ngay: dateStr,
-        per_page: 100,
-      },
+      params: { per_page: 100 },
     });
 
     let data = [];

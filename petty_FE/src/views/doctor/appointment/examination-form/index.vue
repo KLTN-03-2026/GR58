@@ -1,394 +1,425 @@
 <template>
-  <div class="w-full min-h-screen px-8 py-6 flex flex-col">
-    <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center py-20">
-      <div class="text-center">
-        <div
-          class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#155dfc] mx-auto mb-4"
-        ></div>
-        <p class="text-gray-600">Đang tải thông tin bệnh nhân...</p>
-      </div>
+  <div class="ef-root">
+    <!-- Loading -->
+    <div
+      v-if="loading"
+      class="flex flex-col items-center justify-center py-24 gap-4"
+    >
+      <div
+        class="w-10 h-10 rounded-full border-2 border-slate-200 border-t-[#0a3161] animate-spin"
+      ></div>
+      <p
+        class="text-sm text-slate-500 font-medium"
+        style="font-family: 'Plus Jakarta Sans', sans-serif"
+      >
+        Đang tải thông tin bệnh nhân...
+      </p>
     </div>
 
-    <!-- Main Content -->
-    <div v-else>
-      <div class="flex items-center justify-between mb-6">
-        <!-- Left: Back button & Title -->
-        <div class="flex items-center gap-4">
-          <button
-            class="h-9 px-3 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-colors"
-            @click="handleBack"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-            <span
-              class="font-medium text-sm leading-5 text-gray-900 tracking-[-0.1504px]"
-              >Quay lại</span
+    <div v-else class="ef-layout">
+      <!-- Header -->
+      <header class="ef-header">
+        <div class="flex items-center gap-5">
+          <button class="ef-btn-back" @click="handleBack">
+            <svg
+              class="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
             >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            Quay lại
           </button>
-          <div class="flex flex-col gap-2">
-            <h1 class="text-2xl font-semibold text-black">Khám bệnh</h1>
-            <p class="text-gray-500 font-medium text-base">
-              Nhập chẩn đoán và kê đơn thuốc
+          <div>
+            <p class="ef-eyebrow">Phiếu khám bệnh</p>
+            <h1 class="ef-title">Nhập thông tin khám</h1>
+          </div>
+        </div>
+        <button class="ef-btn-save" @click="handleSave" :disabled="saving">
+          <span
+            v-if="saving"
+            class="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin"
+          ></span>
+          <svg
+            v-else
+            class="w-4 h-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+          {{ saving ? "Đang lưu..." : "Lưu hồ sơ" }}
+        </button>
+      </header>
+
+      <!-- Patient Banner -->
+      <div class="ef-banner">
+        <div class="ef-banner-glow"></div>
+        <div class="ef-banner-inner">
+          <!-- Pet Avatar -->
+          <div class="ef-avatar-wrap">
+            <img
+              :src="patientInfo.petImage"
+              @error="(e) => (e.target.src = DEFAULT_PET_IMAGE)"
+              alt=""
+              class="ef-avatar"
+            />
+          </div>
+          <!-- Pet Info -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-3 mb-1.5">
+              <h2 class="ef-pet-name">{{ patientInfo.petName }}</h2>
+              <span class="ef-badge">{{ patientInfo.badge }}</span>
+            </div>
+            <p class="ef-pet-meta">
+              {{ patientInfo.species }} · {{ patientInfo.breed }} ·
+              {{ patientInfo.age }}
+            </p>
+          </div>
+          <!-- Divider -->
+          <div class="w-px h-14 bg-white/15 mx-2 flex-shrink-0"></div>
+          <!-- Owner -->
+          <div class="ef-tile">
+            <p class="ef-tile-label">Chủ nuôi</p>
+            <p class="ef-tile-value">{{ patientInfo.ownerName }}</p>
+            <p class="ef-tile-sub">{{ patientInfo.ownerPhone }}</p>
+          </div>
+          <!-- Divider -->
+          <div class="w-px h-14 bg-white/15 mx-2 flex-shrink-0"></div>
+          <!-- Appointment -->
+          <div class="ef-tile">
+            <p class="ef-tile-label">Lịch khám</p>
+            <p class="ef-tile-value">{{ patientInfo.service }}</p>
+            <p class="ef-tile-sub">
+              {{ patientInfo.appointmentDate }} ·
+              {{ patientInfo.appointmentTime }}
             </p>
           </div>
         </div>
-
-        <!-- Right: Save button -->
-        <button
-          class="h-9 px-3 bg-[#155dfc] text-white rounded-lg flex items-center gap-2 hover:bg-[#1447e6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          @click="handleSave"
-          :disabled="saving"
-        >
-          <div
-            v-if="saving"
-            class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"
-          ></div>
-          <!-- <img v-else :src="icons.save" alt="" class="w-4 h-4" /> -->
-          <span class="font-medium text-sm leading-5 tracking-[-0.1504px]">
-            {{ saving ? "Đang lưu..." : "Lưu hồ sơ" }}
-          </span>
-        </button>
-      </div>
-
-      <!-- Patient Info Card (Blue highlight) -->
-      <div
-        class="bg-blue-50 border-2 !border-[#bedbff] rounded-[14px] p-[26px] mb-6"
-      >
-        <div class="flex items-start gap-6">
-          <!-- Pet Image -->
-          <div
-            class="w-32 h-32 border-4 border-white rounded-[14px] shadow-lg overflow-hidden flex-shrink-0"
-          >
-            <img
-              :src="patientInfo.petImage"
-              alt=""
-              class="w-full h-full object-cover"
-            />
-          </div>
-
-          <!-- Patient Details -->
-          <div class="flex-1 flex flex-col gap-3">
-            <!-- Pet Name & Badge -->
-            <div class="flex items-center gap-3">
-              <h2
-                class="font-bold text-2xl leading-8 text-[#101828] tracking-[0.0703px]"
-              >
-                {{ patientInfo.petName }}
-              </h2>
-              <div
-                class="bg-purple-50 border !border-[#e9d4ff] rounded-lg px-2 py-1 flex items-center gap-2"
-              >
-                <!-- <img :src="icons.userPurple" alt="" class="w-4 h-4" /> -->
-                <span class="font-medium text-xs leading-4 text-[#8200db]">{{
-                  patientInfo.badge
-                }}</span>
-              </div>
-            </div>
-
-            <!-- Species, Breed, Age -->
-            <div
-              class="flex items-center gap-3 text-sm leading-5 text-[#364153] tracking-[-0.1504px]"
-            >
-              <div class="flex gap-1">
-                <span class="font-bold">Loài:</span>
-                <span class="font-normal">{{ patientInfo.species }}</span>
-              </div>
-              <span class="text-[#99a1af]">•</span>
-              <div class="flex gap-1">
-                <span class="font-bold">Giống:</span>
-                <span class="font-normal">{{ patientInfo.breed }}</span>
-              </div>
-              <span class="text-[#99a1af]">•</span>
-              <div class="flex gap-1">
-                <span class="font-bold">Tuổi:</span>
-                <span class="font-normal">{{ patientInfo.age }}</span>
-              </div>
-            </div>
-
-            <!-- Owner & Appointment Info -->
-            <div class="bg-gray-50 rounded-[10px] p-4 grid grid-cols-2 gap-3">
-              <!-- Owner Info -->
-              <div class="flex flex-col gap-2">
-                <p
-                  class="font-normal text-xs leading-4 text-[#6a7282] uppercase"
-                >
-                  Chủ nuôi
-                </p>
-                <p
-                  class="font-bold text-base leading-6 text-[#101828] tracking-[-0.3125px]"
-                >
-                  {{ patientInfo.ownerName }}
-                </p>
-                <div class="flex items-center gap-2">
-                  <!-- <img :src="icons.phone" alt="" class="w-4 h-4" /> -->
-                  <span
-                    class="font-normal text-sm leading-5 text-[#4a5565] tracking-[-0.1504px]"
-                    >{{ patientInfo.ownerPhone }}</span
-                  >
-                </div>
-              </div>
-
-              <!-- Appointment Info -->
-              <div class="flex flex-col gap-2">
-                <p
-                  class="font-normal text-xs leading-4 text-[#6a7282] uppercase"
-                >
-                  Thông tin lịch khám
-                </p>
-                <div class="flex items-center gap-4">
-                  <div class="flex items-center gap-1.5">
-                    <!-- <img :src="icons.calendar" alt="" class="w-4 h-4" /> -->
-                    <span
-                      class="font-normal text-sm leading-5 text-[#364153] tracking-[-0.1504px]"
-                      >{{ patientInfo.appointmentDate }}</span
-                    >
-                  </div>
-                  <div class="flex items-center gap-1.5">
-                    <!-- <img :src="icons.clock" alt="" class="w-4 h-4" /> -->
-                    <span
-                      class="font-normal text-sm leading-5 text-[#364153] tracking-[-0.1504px]"
-                      >{{ patientInfo.appointmentTime }}</span
-                    >
-                  </div>
-                </div>
-                <div
-                  class="bg-white border !border-gray-300 rounded-lg px-2 py-1 inline-flex items-center gap-2 w-fit"
-                >
-                  <!-- <img :src="icons.stethoscope" alt="" class="w-4 h-4" /> -->
-                  <span class="font-medium text-xs leading-4 text-gray-900">{{
-                    patientInfo.service
-                  }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Clinical Attachment Uploader (shown after first save) -->
-        <Transition name="fade">
+        <!-- Attachment uploader (after save) -->
+        <Transition name="ef-fade">
           <ClinicalAttachmentUploader
             v-if="savedPhieuKhamId"
             :phieu-kham-id="savedPhieuKhamId"
-            class="mt-0"
+            class="mt-5"
           />
         </Transition>
-
       </div>
 
-      <!-- Main Content: Two Columns -->
-      <div class="flex items-start justify-between gap-6">
-        <!-- Left Column: Forms -->
-        <div class="flex flex-col gap-6 flex-1">
-          <!-- Vital Signs Card -->
-          <div
-            class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-[25px]"
-          >
-            <div class="flex items-center gap-2 mb-[30px]">
-              <!-- <img :src="icons.activity" alt="" class="w-4 h-4" /> -->
-              <h3
-                class="font-normal text-base leading-4 text-gray-900 tracking-[-0.3125px]"
-              >
-                Chỉ số sinh tồn
-              </h3>
+      <!-- Body -->
+      <div class="ef-body">
+        <!-- Left Column -->
+        <div class="ef-col-left">
+          <!-- Vital Signs -->
+          <section class="ef-card">
+            <div class="ef-card-header">
+              <span class="ef-icon ef-icon-amber"
+                ><svg
+                  class="w-3.5 h-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg
+              ></span>
+              <h3 class="ef-card-title">Chỉ số sinh tồn</h3>
             </div>
-            <div class="grid grid-cols-2 gap-x-4 gap-y-4">
-              <!-- Temperature -->
-              <div class="flex flex-col gap-1">
-                <label
-                  class="flex items-center gap-1 text-sm leading-5 text-[#364153] tracking-[-0.1504px]"
-                >
-                  <!-- <img :src="icons.thermometer" alt="" class="w-4 h-4" /> -->
-                  Nhiệt độ (°C)
-                </label>
-                <input
-                  v-model="vitalSigns.temperature"
-                  type="text"
-                  class="h-9 bg-[#f3f3f5] border-0 rounded-lg px-3 py-1 text-sm text-[#717182] tracking-[-0.1504px] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+            <div class="grid grid-cols-2 gap-3">
+              <div class="ef-vital">
+                <label class="ef-vital-label">Nhiệt độ</label>
+                <div class="ef-vital-input-wrap">
+                  <input
+                    v-model="vitalSigns.temperature"
+                    type="text"
+                    placeholder="38.5"
+                    class="ef-vital-input"
+                  />
+                  <span class="ef-vital-unit">°C</span>
+                </div>
               </div>
-
-              <!-- Weight -->
-              <div class="flex flex-col gap-1">
-                <label
-                  class="flex items-center gap-1 text-sm leading-5 text-[#364153] tracking-[-0.1504px]"
-                >
-                  <!-- <img :src="icons.weight" alt="" class="w-4 h-4" /> -->
-                  Cân nặng (kg)
-                </label>
-                <input
-                  v-model="vitalSigns.weight"
-                  type="text"
-                  class="h-9 bg-[#f3f3f5] border-0 rounded-lg px-3 py-1 text-sm text-[#717182] tracking-[-0.1504px] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              <div class="ef-vital">
+                <label class="ef-vital-label">Cân nặng</label>
+                <div class="ef-vital-input-wrap">
+                  <input
+                    v-model="vitalSigns.weight"
+                    type="text"
+                    placeholder="4.2"
+                    class="ef-vital-input"
+                  />
+                  <span class="ef-vital-unit">kg</span>
+                </div>
               </div>
-
-              <!-- Heart Rate -->
-              <div class="flex flex-col gap-1">
-                <label
-                  class="flex items-center gap-1 text-sm leading-5 text-[#364153] tracking-[-0.1504px]"
-                >
-                  <!-- <img :src="icons.heartbeat" alt="" class="w-4 h-4" /> -->
-                  Nhịp tim (bpm)
-                </label>
-                <input
-                  v-model="vitalSigns.heartRate"
-                  type="text"
-                  class="h-9 bg-[#f3f3f5] border-0 rounded-lg px-3 py-1 text-sm text-[#717182] tracking-[-0.1504px] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              <div class="ef-vital">
+                <label class="ef-vital-label">Nhịp tim</label>
+                <div class="ef-vital-input-wrap">
+                  <input
+                    v-model="vitalSigns.heartRate"
+                    type="text"
+                    placeholder="80"
+                    class="ef-vital-input"
+                  />
+                  <span class="ef-vital-unit">bpm</span>
+                </div>
               </div>
-
-              <!-- Respiratory Rate -->
-              <div class="flex flex-col gap-1">
-                <label
-                  class="flex items-center gap-1 text-sm leading-5 text-[#364153] tracking-[-0.1504px]"
-                >
-                  <!-- <img :src="icons.lungs" alt="" class="w-4 h-4" /> -->
-                  Nhịp thở (/phút)
-                </label>
-                <input
-                  v-model="vitalSigns.respiratoryRate"
-                  type="text"
-                  class="h-9 bg-[#f3f3f5] border-0 rounded-lg px-3 py-1 text-sm text-[#717182] tracking-[-0.1504px] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              <div class="ef-vital">
+                <label class="ef-vital-label">Nhịp thở</label>
+                <div class="ef-vital-input-wrap">
+                  <input
+                    v-model="vitalSigns.respiratoryRate"
+                    type="text"
+                    placeholder="20"
+                    class="ef-vital-input"
+                  />
+                  <span class="ef-vital-unit">/phút</span>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <!-- Reason for Visit Card -->
-          <div
-            class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-[25px]"
-          >
-            <div class="flex items-center gap-2 mb-[30px]">
-              <!-- <img :src="icons.reason" alt="" class="w-4 h-4" /> -->
-              <h3
-                class="font-normal text-base leading-4 text-gray-900 tracking-[-0.3125px]"
-              >
-                Lý do đến khám
-              </h3>
+          <!-- Reason -->
+          <section class="ef-card">
+            <div class="ef-card-header">
+              <span class="ef-icon ef-icon-violet"
+                ><svg
+                  class="w-3.5 h-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  /></svg
+              ></span>
+              <h3 class="ef-card-title">Lý do đến khám</h3>
             </div>
             <textarea
               v-model="reasonForVisit"
               rows="3"
-              class="w-full bg-[#f3f3f5] border-0 rounded-lg px-3 py-2 text-sm text-[#717182] leading-5 tracking-[-0.1504px] resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Mô tả triệu chứng của thú cưng (từ lời kể của chủ hoặc quan sát)..."
+              class="ef-textarea"
+              placeholder="Mô tả lý do từ lời kể của chủ nuôi..."
             ></textarea>
-          </div>
+          </section>
 
-          <!-- Symptoms Card -->
-          <div
-            class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-[25px]"
-          >
-            <div class="flex items-center gap-2 mb-[30px]">
-              <!-- <img :src="icons.symptoms" alt="" class="w-4 h-4" /> -->
-              <h3
-                class="font-normal text-base leading-4 text-gray-900 tracking-[-0.3125px]"
-              >
-                Triệu chứng
-              </h3>
+          <!-- Symptoms -->
+          <section class="ef-card">
+            <div class="ef-card-header">
+              <span class="ef-icon ef-icon-rose"
+                ><svg
+                  class="w-3.5 h-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  /></svg
+              ></span>
+              <h3 class="ef-card-title">Triệu chứng</h3>
             </div>
             <textarea
               v-model="symptoms"
               rows="3"
-              class="w-full bg-[#f3f3f5] border-0 rounded-lg px-3 py-2 text-sm text-[#717182] leading-5 tracking-[-0.1504px] resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Mô tả triệu chứng của thú cưng (từ lời kể của chủ hoặc quan sát)..."
+              class="ef-textarea"
+              placeholder="Quan sát và ghi nhận triệu chứng lâm sàng..."
             ></textarea>
-          </div>
+          </section>
 
-
-
-          <!-- Diagnosis Card (Required) -->
-          <div
-            class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-[25px]"
-          >
-            <div class="flex items-center gap-2 mb-[30px]">
-              <!-- <img :src="icons.diagnosis" alt="" class="w-4 h-4" /> -->
-              <h3
-                class="font-normal text-base leading-4 text-gray-900 tracking-[-0.3125px]"
-              >
-                Chẩn đoán
+          <!-- Diagnosis -->
+          <section class="ef-card ef-card-diagnosis">
+            <div class="ef-card-header">
+              <span class="ef-icon ef-icon-emerald"
+                ><svg
+                  class="w-3.5 h-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  /></svg
+              ></span>
+              <h3 class="ef-card-title">
+                Chẩn đoán <span class="text-red-500 ml-0.5">*</span>
               </h3>
-              <span class="text-base text-[#e7000b] tracking-[-0.3125px]"
-                >*</span
-              >
             </div>
             <textarea
               v-model="diagnosis"
               rows="3"
-              class="w-full bg-[#f3f3f5] border-0 rounded-lg px-3 py-2 text-sm text-[#717182] leading-5 tracking-[-0.1504px] resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="ef-textarea ef-textarea-diag"
               placeholder="Nhập chẩn đoán bệnh..."
             ></textarea>
-          </div>
+          </section>
 
-          <!-- Notes Card -->
-          <div
-            class="bg-white border !border-gray-300 shadow-sm rounded-[14px] p-[25px]"
-          >
-            <div class="flex items-center gap-2 mb-[30px]">
-              <h3
-                class="font-normal text-base leading-4 text-gray-900 tracking-[-0.3125px]"
-              >
-                Ghi Chú
-              </h3>
+          <!-- Notes -->
+          <section class="ef-card">
+            <div class="ef-card-header">
+              <span class="ef-icon ef-icon-yellow"
+                ><svg
+                  class="w-3.5 h-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  /></svg
+              ></span>
+              <h3 class="ef-card-title">Ghi chú điều trị</h3>
             </div>
             <textarea
               v-model="notes"
               rows="3"
-              class="w-full bg-[#f3f3f5] border-0 rounded-lg px-3 py-2 text-sm text-[#717182] leading-5 tracking-[-0.1504px] resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Mô tả phương pháp điều trị (nếu có)..."
+              class="ef-textarea"
+              placeholder="Phác đồ, lưu ý đặc biệt sau khám..."
             ></textarea>
+          </section>
+        </div>
+
+        <!-- Right: Action Panel -->
+        <aside class="ef-col-right">
+          <div class="ef-action-panel">
+            <p class="ef-action-title">Thao tác</p>
+
+            <button
+              @click="isPrescriptionFormModalOpen = true"
+              :class="[
+                'ef-action-btn',
+                selectedPrescriptionType === 'don_thuoc'
+                  ? 'ef-action-btn--active-green'
+                  : 'ef-action-btn--green',
+              ]"
+            >
+              <span class="ef-action-icon">
+                <svg
+                  class="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </span>
+              <div class="text-left text-current">
+                <p class="text-sm font-semibold leading-5 text-current">
+                  Kê đơn thuốc
+                </p>
+                <p class="text-xs opacity-70 leading-4 text-current">
+                  {{
+                    selectedPrescriptionType === "don_thuoc"
+                      ? "✓ Đã thêm đơn thuốc"
+                      : "Thêm toa thuốc cho bệnh nhân"
+                  }}
+                </p>
+              </div>
+            </button>
+
+            <button
+              @click="isFollowUpModalOpen = true"
+              :class="[
+                'ef-action-btn',
+                selectedPrescriptionType === 'hen_tai_kham'
+                  ? 'ef-action-btn--active-cyan'
+                  : 'ef-action-btn--cyan',
+              ]"
+            >
+              <span class="ef-action-icon">
+                <svg
+                  class="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </span>
+              <div class="text-left text-current">
+                <p class="text-sm font-semibold leading-5 text-current">
+                  Hẹn tái khám
+                </p>
+                <p class="text-xs opacity-70 leading-4 text-current">
+                  {{
+                    selectedPrescriptionType === "hen_tai_kham"
+                      ? "✓ Đã đặt lịch tái khám"
+                      : "Lên lịch khám theo dõi"
+                  }}
+                </p>
+              </div>
+            </button>
+
+            <div class="border-t border-slate-100 my-1"></div>
+
+            <button
+              class="ef-action-btn ef-action-btn--complete"
+              @click="hoanTatVaChuyenThuNgan"
+            >
+              <span class="ef-action-icon">
+                <svg
+                  class="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
+                </svg>
+              </span>
+              <div class="text-left text-white">
+                <p class="text-sm font-semibold leading-5 text-white">
+                  Hoàn tất & Chuyển thu ngân
+                </p>
+                <p class="text-xs opacity-70 leading-4 text-white">
+                  Kết thúc ca khám, tạo hóa đơn
+                </p>
+              </div>
+            </button>
           </div>
-        </div>
-
-        <!-- Right Column: Action Buttons -->
-        <div class="flex flex-col gap-6 w-[358px]">
-
-
-          <!-- Prescription Button -->
-          <button
-            @click="isPrescriptionFormModalOpen = true"
-            :class="[
-              'h-9 rounded-lg flex items-center justify-center gap-2 text-sm font-medium tracking-[-0.1504px] transition-colors',
-              selectedPrescriptionType === 'don_thuoc'
-                ? 'bg-[#7bf1a8] border-2 border-[#008236] text-[#008236]'
-                : 'bg-white border-2 !border-[#7bf1a8] text-[#008236] hover:bg-green-50',
-            ]"
-          >
-            <!-- <img :src="icons.prescription" alt="" class="w-4 h-4" /> -->
-            Đơn thuốc
-          </button>
-
-          <!-- Follow-up Appointment Button -->
-          <button
-            @click="isFollowUpModalOpen = true"
-            :class="[
-              'h-9 rounded-lg flex items-center justify-center gap-2 text-sm font-medium tracking-[-0.1504px] transition-colors',
-              selectedPrescriptionType === 'hen_tai_kham'
-                ? 'bg-[#53eafd] border-2 border-[#007595] text-[#007595]'
-                : 'bg-white border-2 !border-[#53eafd] text-[#007595] hover:bg-cyan-50',
-            ]"
-          >
-            <!-- <img :src="icons.followUp" alt="" class="w-4 h-4" /> -->
-            Hẹn Tái Khám
-          </button>
-
-          <!-- Complete & Transfer Button -->
-          <button
-            class="bg-[#5a9690] text-white rounded-lg px-8 py-3 text-sm font-medium text-center tracking-[-0.1504px] hover:bg-[#4a857f] transition-colors"
-            @click="hoanTatVaChuyenThuNgan"
-          >
-            Hoàn tất & Chuyển thu ngân
-          </button>
-        </div>
+        </aside>
       </div>
     </div>
-    <!-- End of v-else -->
-
-
 
     <!-- Don Thuoc Modal -->
     <div
       v-if="isPrescriptionFormModalOpen"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      class="ef-modal"
       @click.self="isPrescriptionFormModalOpen = false"
     >
       <div class="w-full max-w-2xl mx-4">
@@ -398,11 +429,10 @@
         />
       </div>
     </div>
-
     <!-- Hen Tai Kham Modal -->
     <div
       v-if="isFollowUpModalOpen"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      class="ef-modal"
       @click.self="isFollowUpModalOpen = false"
     >
       <div class="w-full max-w-2xl mx-4">
@@ -412,8 +442,6 @@
         />
       </div>
     </div>
-
-
   </div>
 </template>
 
@@ -427,6 +455,10 @@ import { showSuccessToast, showErrorToast } from "@/utils/toast";
 import DonThuoc from "./prescription-form/index.vue";
 import HenTaiKham from "./follow-up-appointment/index.vue";
 import ClinicalAttachmentUploader from "@/components/doctor/ClinicalAttachmentUploader.vue";
+
+// Ảnh mặc định cho thú cưng khi chưa có ảnh
+const DEFAULT_PET_IMAGE =
+  "https://www.figma.com/api/mcp/asset/7dc3f4c9-30fd-4f46-b415-7a1aab552e01";
 
 const router = useRouter();
 const route = useRoute();
@@ -586,30 +618,39 @@ const loadAppointmentData = async () => {
       // Update patient info: lấy trực tiếp các trường đã được BE chuẩn hóa
       patientInfo.value = {
         petName: petData?.ten || petData?.ten_thu_cung || "Chưa có tên",
-        petImage: petData?.anh_dai_dien_url || petData?.anh_dai_dien || "https://via.placeholder.com/150",
+        petImage:
+          petData?.anh_dai_dien_url ||
+          petData?.anh_dai_dien ||
+          DEFAULT_PET_IMAGE,
         badge: data.la_khach_vang_lai ? "Vãng lai" : "Đặt trước",
-        species: petData?.loai || petData?.loai_thu_cung || petData?.species || "Chưa rõ loài",
+        species:
+          petData?.loai ||
+          petData?.loai_thu_cung ||
+          petData?.species ||
+          "Chưa rõ loài",
         breed:
           petData?.giong ||
           petData?.giong_thu_cung ||
           petData?.giong_loai ||
           petData?.breed ||
           "Chưa rõ giống",
-        age: (petData?.ngay_sinh || petData?.tuoi_thu_cung)
-          ? calculateAge(petData.ngay_sinh || petData.tuoi_thu_cung)
-          : "Chưa rõ tuổi",
-       ownerName:
-  (typeof data.khach_hang === 'object'
-    ? data.khach_hang?.full_name
-    : data.khach_hang) ||
-  data.khachHang?.full_name || "Chưa có tên",
+        age:
+          petData?.ngay_sinh || petData?.tuoi_thu_cung
+            ? calculateAge(petData.ngay_sinh || petData.tuoi_thu_cung)
+            : "Chưa rõ tuổi",
+        ownerName:
+          (typeof data.khach_hang === "object"
+            ? data.khach_hang?.full_name
+            : data.khach_hang) ||
+          data.khachHang?.full_name ||
+          "Chưa có tên",
         oownerPhone:
-  (typeof data.khach_hang === 'object'
-    ? data.khach_hang?.so_dien_thoai
-    : null) ||
-  data.khach_hang_info?.so_dien_thoai ||
-  data.khachHang?.so_dien_thoai ||
-  "Chưa có SĐT",
+          (typeof data.khach_hang === "object"
+            ? data.khach_hang?.so_dien_thoai
+            : null) ||
+          data.khach_hang_info?.so_dien_thoai ||
+          data.khachHang?.so_dien_thoai ||
+          "Chưa có SĐT",
         appointmentDate: appointmentDateTime
           ? format(appointmentDateTime, "dd/MM/yyyy", { locale: vi })
           : "",
@@ -693,8 +734,8 @@ const handleSave = async () => {
     console.log("Response:", response.data);
 
     if (response.data.status || response.status === 201) {
-      const savedId = response.data?.data?.id
-      if (savedId) savedPhieuKhamId.value = savedId
+      const savedId = response.data?.data?.id;
+      if (savedId) savedPhieuKhamId.value = savedId;
 
       showSuccessToast(
         response.data.message || "Lưu hồ sơ khám bệnh thành công!"
@@ -725,8 +766,6 @@ const handleSave = async () => {
   }
 };
 
-
-
 // Handle Don Thuoc modal save
 const handlePrescriptionFormSave = (data) => {
   console.log("Don Thuoc saved:", data);
@@ -744,49 +783,58 @@ const handleFollowUpSave = (data) => {
 };
 const hoanTatVaChuyenThuNgan = async () => {
   if (!diagnosis.value.trim()) {
-    showErrorToast('Vui lòng nhập chẩn đoán trước khi hoàn tất')
-    return
+    showErrorToast("Vui lòng nhập chẩn đoán trước khi hoàn tất");
+    return;
   }
 
-  saving.value = true
+  saving.value = true;
   try {
     // Bước 1: Lưu phiếu khám
     const phieuKhamData = {
       lich_hen_id: appointmentId.value,
-      nhiet_do: vitalSigns.value.temperature ? parseFloat(vitalSigns.value.temperature) : null,
-      can_nang: vitalSigns.value.weight ? parseFloat(vitalSigns.value.weight) : null,
-      nhip_tim: vitalSigns.value.heartRate ? parseInt(vitalSigns.value.heartRate) : null,
-      nhip_tho: vitalSigns.value.respiratoryRate ? parseInt(vitalSigns.value.respiratoryRate) : null,
+      nhiet_do: vitalSigns.value.temperature
+        ? parseFloat(vitalSigns.value.temperature)
+        : null,
+      can_nang: vitalSigns.value.weight
+        ? parseFloat(vitalSigns.value.weight)
+        : null,
+      nhip_tim: vitalSigns.value.heartRate
+        ? parseInt(vitalSigns.value.heartRate)
+        : null,
+      nhip_tho: vitalSigns.value.respiratoryRate
+        ? parseInt(vitalSigns.value.respiratoryRate)
+        : null,
       ly_do_den_kham: reasonForVisit.value || null,
       trieu_chung: symptoms.value || null,
       chan_doan: diagnosis.value,
       ghi_chu: notes.value || null,
       loai_chi_dinh: selectedPrescriptionType.value,
-    }
-    await api.post('/phieu-kham', phieuKhamData)
+    };
+    await api.post("/phieu-kham", phieuKhamData);
 
     // Bước 2: Đổi trạng thái lịch hẹn sang completed
     await api.post(`/lich-hen/${appointmentId.value}/hoan-thanh-kham`, {
       ghi_chu: notes.value || null,
-    })
+    });
 
-    showSuccessToast('Hoàn tất khám! Đang chuyển sang thu ngân...')
+    showSuccessToast("Hoàn tất khám! Đang chuyển sang thu ngân...");
 
     // Bước 3: Chuyển sang trang thu ngân sau 1 giây
     setTimeout(() => {
       router.push({
-        path: '/nurse/invoices',
-        query: { lich_hen_id: appointmentId.value }
-      })
-    }, 1000)
-
+        path: "/nurse/invoices",
+        query: { lich_hen_id: appointmentId.value },
+      });
+    }, 1000);
   } catch (error) {
-    console.error('Lỗi hoàn tất khám:', error)
-    showErrorToast(error.response?.data?.message || 'Lỗi khi hoàn tất khám bệnh')
+    console.error("Lỗi hoàn tất khám:", error);
+    showErrorToast(
+      error.response?.data?.message || "Lỗi khi hoàn tất khám bệnh"
+    );
   } finally {
-    saving.value = false
+    saving.value = false;
   }
-}
+};
 
 // Load data on mount
 onMounted(() => {
@@ -798,3 +846,442 @@ onMounted(() => {
   }
 });
 </script>
+
+<style scoped>
+.ef-root {
+  min-height: 100vh;
+  font-family: "Nunito Sans", sans-serif;
+}
+
+/* Layout */
+.ef-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 32px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  animation: ef-in 0.25s ease;
+}
+@keyframes ef-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header */
+.ef-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ef-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+.ef-title {
+  font-family: "Montserrat Alternates", sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: #432323;
+  margin: 0;
+}
+.ef-btn-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid #e0d9d9;
+  background: #fff;
+  color: #393e46;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "Nunito Sans", sans-serif;
+  transition: all 0.15s;
+}
+.ef-btn-back:hover {
+  background: #f8fafc;
+}
+.ef-btn-save {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  background: #009689;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: "Nunito Sans", sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 150, 137, 0.3);
+}
+.ef-btn-save:hover:not(:disabled) {
+  background: #008177;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 150, 137, 0.35);
+}
+.ef-btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Banner */
+.ef-banner {
+  background: linear-gradient(135deg, #5a9690 0%, #4a7f79 100%);
+  border-radius: 8px;
+  padding: 26px 30px;
+  position: relative;
+  overflow: hidden;
+}
+.ef-banner-glow {
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+.ef-banner-inner {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  position: relative;
+  z-index: 1;
+}
+.ef-avatar-wrap {
+  flex-shrink: 0;
+}
+.ef-avatar {
+  width: 82px;
+  height: 82px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2.5px solid rgba(255, 255, 255, 0.25);
+}
+.ef-pet-name {
+  font-family: "Montserrat Alternates", sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+.ef-badge {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.ef-pet-meta {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  margin: 0;
+}
+.ef-tile {
+  flex-shrink: 0;
+}
+.ef-tile-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 3px;
+}
+.ef-tile-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 2px;
+}
+.ef-tile-sub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Body */
+.ef-body {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+.ef-col-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ef-col-right {
+  width: 288px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 24px;
+}
+
+/* Cards */
+.ef-card {
+  background: #fff;
+  border: 1px solid #e0d9d9;
+  border-radius: 8px;
+  padding: 20px 22px;
+  transition: box-shadow 0.2s;
+}
+.ef-card:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+.ef-card-diagnosis {
+  border-color: #2dd4bf;
+}
+.ef-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.ef-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #393e46;
+  margin: 0;
+}
+
+/* Icons */
+.ef-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ef-icon-amber {
+  background: #fef3c7;
+  color: #d97706;
+}
+.ef-icon-violet {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+.ef-icon-rose {
+  background: #fce7f3;
+  color: #be185d;
+}
+.ef-icon-emerald {
+  background: #dcfce7;
+  color: #15803d;
+}
+.ef-icon-yellow {
+  background: #fef9c3;
+  color: #ca8a04;
+}
+
+/* Textarea */
+.ef-textarea {
+  width: 100%;
+  background: #f8fafc;
+  border: 1.5px solid #eeeeee;
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 13.5px;
+  color: #393e46;
+  font-family: "Nunito Sans", sans-serif;
+  resize: none;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  line-height: 1.6;
+}
+.ef-textarea:focus {
+  background: #fff;
+  border-color: #009689;
+}
+.ef-textarea::placeholder {
+  color: #9ca3af;
+}
+.ef-textarea-diag {
+  border-color: #2dd4bf;
+}
+.ef-textarea-diag:focus {
+  border-color: #0d9488;
+}
+
+/* Vitals */
+.ef-vital {
+  background: #f8fafc;
+  border: 1px solid #eeeeee;
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ef-vital-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+.ef-vital-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.ef-vital-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: "Nunito Sans", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #432323;
+  min-width: 0;
+  padding: 0;
+}
+.ef-vital-input::placeholder {
+  color: #cbd5e1;
+  font-size: 16px;
+}
+.ef-vital-unit {
+  font-family: "Nunito Sans", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+/* Action Panel */
+/* Action Panel */
+.ef-action-panel {
+  background: #fff;
+  border: 1px solid #e0d9d9;
+  border-radius: 8px;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ef-action-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+.ef-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  font-family: "Nunito Sans", sans-serif;
+  transition: all 0.18s;
+}
+.ef-action-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ef-action-btn--green {
+  background: #f8fafc;
+  border-color: #eeeeee;
+  color: #393e46;
+}
+.ef-action-btn--green:hover {
+  background: #f1f5f9;
+}
+.ef-action-btn--active-green {
+  background: #009689;
+  border-color: #009689;
+  color: #fff;
+}
+.ef-action-btn--green .ef-action-icon {
+  background: #e2e8f0;
+}
+.ef-action-btn--active-green .ef-action-icon {
+  background: rgba(255, 255, 255, 0.2);
+}
+.ef-action-btn--cyan {
+  background: #f8fafc;
+  border-color: #eeeeee;
+  color: #393e46;
+}
+.ef-action-btn--cyan:hover {
+  background: #f1f5f9;
+}
+.ef-action-btn--active-cyan {
+  background: #5a9690;
+  border-color: #5a9690;
+  color: #fff;
+}
+.ef-action-btn--cyan .ef-action-icon {
+  background: #e2e8f0;
+}
+.ef-action-btn--active-cyan .ef-action-icon {
+  background: rgba(255, 255, 255, 0.2);
+}
+.ef-action-btn--complete {
+  background: #2f5755;
+  border-color: #2f5755;
+  color: #fff;
+}
+.ef-action-btn--complete:hover {
+  background: #009689;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 150, 137, 0.3);
+}
+.ef-action-btn--complete .ef-action-icon {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Modal */
+.ef-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* Fade transition */
+.ef-fade-enter-active,
+.ef-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.ef-fade-enter-from,
+.ef-fade-leave-to {
+  opacity: 0;
+}
+</style>

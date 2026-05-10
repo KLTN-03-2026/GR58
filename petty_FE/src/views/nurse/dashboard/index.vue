@@ -151,10 +151,16 @@
                 <span class="text-xs font-medium text-[#008236]"> Đã đến </span>
               </span>
               <span
-                v-else-if="appointment.status === 'payment'"
-                class="bg-green-100 border-transparent rounded-lg px-2 py-1"
+                v-else-if="appointment.status === 'examining'"
+                class="bg-orange-100 border !border-orange-300 rounded-lg px-3 py-1"
               >
-                <span class="text-xs font-medium text-[#008236]">
+                <span class="text-xs font-medium text-orange-700"> Đang khám </span>
+              </span>
+              <span
+                v-else-if="appointment.status === 'payment'"
+                class="bg-emerald-100 border !border-emerald-300 rounded-lg px-2 py-1"
+              >
+                <span class="text-xs font-medium text-emerald-700">
                   Chờ thanh toán
                 </span>
               </span>
@@ -279,12 +285,17 @@
             <!-- <img :src="iconCheckIn" alt="Check-in" class="w-4 h-4" /> -->
             <span class="text-sm font-medium text-white"> Check-In </span>
           </button>
+          <div
+            v-else-if="appointment.status === 'examining'"
+            class="bg-orange-50 border !border-orange-200 rounded-lg h-10 w-full flex items-center justify-center"
+          >
+            <span class="text-sm font-medium text-orange-600">⏳ Bác sĩ đang khám...</span>
+          </div>
           <button
             v-else-if="appointment.status === 'payment'"
             class="bg-green-600 rounded-lg h-10 w-full flex items-center justify-center gap-2 hover:bg-green-700 transition-colors"
             @click="collectPayment(appointment)"
           >
-            <!-- <img :src="iconMoney" alt="Payment" class="w-4 h-4" /> -->
             <span class="text-sm font-medium text-white"> Thu tiền </span>
           </button>
         </div>
@@ -395,16 +406,26 @@ const loadDashboardData = async () => {
 
     let upcoming = 0;
     let waiting = 0;
+    let payment = 0;
 
-    appointments.value = data.map((item) => {
-      const statusGroup =
-        item.trang_thai === 'checked_in'
-          ? 'arrived'
-          : item.trang_thai === 'pending' || item.trang_thai === 'confirmed'
-          ? 'upcoming'
-          : 'payment';
-      if (statusGroup === 'upcoming') upcoming++;
-      if (statusGroup === 'arrived') waiting++;
+    appointments.value = data
+      .map((item) => {
+        // Phân loại đúng theo trang_thai
+        const trangThai = item.trang_thai;
+        const statusGroup =
+          trangThai === 'pending' || trangThai === 'confirmed'
+            ? 'upcoming'
+            : trangThai === 'checked_in'
+            ? 'arrived'
+            : trangThai === 'in-progress' || trangThai === 'dang_kham'
+            ? 'examining'          // đang khám — không hiện "Thu tiền"
+            : trangThai === 'completed' || trangThai === 'cho_thanh_toan'
+            ? 'payment'            // khám xong, chờ thanh toán
+            : 'done';              // da_thanh_toan, cancelled — ẩn khỏi hàng chờ
+
+        if (statusGroup === 'upcoming') upcoming++;
+        if (statusGroup === 'arrived') waiting++;
+        if (statusGroup === 'payment') payment++;
 
       return {
         // Raw API data — dùng cho modal
@@ -434,11 +455,14 @@ const loadDashboardData = async () => {
       };
     });
 
+    // Chỉ hiển thị trong hàng chờ: bỏ qua trạng thái "done" (đã thanh toán / hủy)
+    appointments.value = appointments.value.filter(a => a.status !== 'done');
+
     stats.value = {
       upcoming,
       waiting,
-      payment: 0,
-      total: appointments.value.length,
+      payment,
+      total: data.length,   // Tổng = tất cả records trong ngày
     };
   } catch (error) {
     console.error("Dashboard data error:", error);
