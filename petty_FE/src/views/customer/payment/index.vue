@@ -685,6 +685,12 @@ const loadPaymentData = async () => {
         const ngayGio = lichHen.ngay_gio;
         const phuongThucThanhToan = thanhToan?.phuong_thuc || lichHen.phuong_thuc_thanh_toan || null;
 
+        // Calculate actual paid amount from thanh_toan record
+        // Check if thanhToan exists AND (trang_thai is completed OR da_thanh_toan is truthy)
+        const paidAmount = thanhToan && (lichHen.trang_thai === 'completed' || lichHen.da_thanh_toan)
+          ? parseFloat(thanhToan.tong_tien_sau_giam) || 0
+          : 0;
+
         return {
           id: lichHen.id,
           invoiceCode: `HD${String(lichHen.id).padStart(6, '0')}`,
@@ -695,7 +701,7 @@ const loadPaymentData = async () => {
           statusText: getStatusText(lichHen.trang_thai, tongTien, lichHen.da_thanh_toan),
           amountText: getAmountText(lichHen.trang_thai, tongTien, lichHen.da_thanh_toan),
           totalAmount: tongTien,
-          paidAmount: lichHen.da_thanh_toan ? tongTien : 0,
+          paidAmount: paidAmount,
           phuongThuc: mapPaymentMethod(phuongThucThanhToan),
           petName: lichHen.thu_cung?.ten || null,
           doctor: lichHen.nhan_vien?.ho_ten || null,

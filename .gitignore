@@ -42,6 +42,7 @@ petty_FE/lerna-debug.log*
 petty_FE/node_modules/
 petty_FE/dist/
 petty_FE/dist-ssr/
+petty_FE/*.env
 petty_FE/*.local
 
 # Editor directories and files

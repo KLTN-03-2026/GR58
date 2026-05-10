@@ -102,7 +102,7 @@ class ThuCungController extends Controller
             'giong_thu_cung' => 'required|string|max:255',
             'tuoi_thu_cung' => 'required|date',
             'gioi_tinh' => 'required|string|max:50',
-            'can_nang' => 'required|string|max:50',
+            'can_nang' => 'required|numeric|min:0.01',
         ];
 
         if ($request->hasFile('anh_dai_dien')) {
@@ -202,7 +202,7 @@ class ThuCungController extends Controller
             'giong_thu_cung' => 'sometimes|required|string|max:255',
             'tuoi_thu_cung' => 'sometimes|required|date',
             'gioi_tinh' => 'sometimes|required|string|max:50',
-            'can_nang' => 'sometimes|required|string|max:50',
+            'can_nang' => 'sometimes|required|numeric|min:0.01',
         ];
 
         if ($request->hasFile('anh_dai_dien')) {
