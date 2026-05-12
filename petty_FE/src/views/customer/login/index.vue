@@ -301,12 +301,13 @@ const handleLogin = async () => {
   }
 
   try {
+    const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8001/api';
     const payload = {
       email: form.value.email,
       password: form.value.password,
     };
     const res = await axios.post(
-      "http://127.0.0.1:8000/api/khach-hang/dang-nhap",
+      `${API_BASE}/khach-hang/dang-nhap`,
       payload
     );
     if (res.data && res.data.status) {
@@ -366,12 +367,14 @@ watch(
 
 // Xử lý đăng nhập Google
 const handleGoogleLogin = () => {
-  window.location.href = "http://127.0.0.1:8000/api/auth/google";
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8001/api';
+  window.location.href = `${API_BASE}/auth/google`;
 };
 
 // Xử lý đăng nhập Facebook
 const handleFacebookLogin = () => {
-  window.location.href = "http://127.0.0.1:8000/api/auth/facebook";
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8001/api';
+  window.location.href = `${API_BASE}/auth/facebook`;
 };
 </script>
 

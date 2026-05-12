@@ -356,18 +356,10 @@ class ThuCungController extends Controller
         $data = $thuCung->toArray();
 
         $img = $thuCung->anh_dai_dien ?? null;
-        if ($img) {
-            if (preg_match('#^https?://#i', $img)) {
-                $data['anh_dai_dien_url'] = $img;
-            } else {
-                $data['anh_dai_dien_url'] = url(Storage::url($img));
-            }
-        } else {
-            // Nếu không có ảnh, trả về ảnh mặc định
-            $loai = $thuCung->loai_thu_cung ?? 'khac';
-            $gioiTinh = $thuCung->gioi_tinh ?? null;
-            $data['anh_dai_dien_url'] = PetImageHelper::getDefaultImage($loai, $gioiTinh);
-        }
+        $loai = $thuCung->loai_thu_cung ?? 'khac';
+        $gioiTinh = $thuCung->gioi_tinh ?? null;
+
+        $data['anh_dai_dien_url'] = PetImageHelper::getImageUrl($img, $loai, $gioiTinh);
 
         return $data;
     }

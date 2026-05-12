@@ -171,7 +171,7 @@ import XoaThuCung from "./delete-pet/index.vue";
 import { showSuccessToast } from "@/utils/toast";
 import Calendar from "@/assets/svg/calendar.svg";
 
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8001/api";
 const BASE_HOST = API_BASE.replace("/api", "");
 const PLACEHOLDER_IMAGE =
   "https://www.figma.com/api/mcp/asset/7dc3f4c9-30fd-4f46-b415-7a1aab552e01";

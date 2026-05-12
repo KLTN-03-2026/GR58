@@ -402,7 +402,7 @@ import { getToken } from "@/utils/auth";
 import { getLichSuKham } from "@/services/thuCungService";
 import CloseIcon from "@/assets/svg/close.svg";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8001/api";
 
 const props = defineProps({
   isOpen: Boolean,

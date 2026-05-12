@@ -17,28 +17,13 @@ class UserImageHelper
     /**
      * Lấy URL ảnh đại diện của người dùng
      * Nếu không có ảnh, trả về ảnh mặc định
-     * 
+     *
      * @param string|null $imageUrl URL hoặc path của ảnh
      * @return string URL đầy đủ của ảnh
      */
     public static function getAvatarUrl($imageUrl)
     {
-        if (!$imageUrl || trim($imageUrl) === '') {
-            return self::getDefaultAvatar();
-        }
-
-        // Nếu là URL đầy đủ (http/https)
-        if (preg_match('#^https?://#i', $imageUrl)) {
-            return $imageUrl;
-        }
-
-        // Nếu là path trong storage
-        if (str_starts_with($imageUrl, 'storage/') || str_starts_with($imageUrl, 'public/')) {
-            return url($imageUrl);
-        }
-
-        // Nếu là path tương đối khác
-        return url('storage/' . $imageUrl);
+        return ImageHelper::resolveUrl($imageUrl, self::getDefaultAvatar());
     }
 
     /**

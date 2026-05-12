@@ -2,7 +2,7 @@ import axios from "axios";
 import { getToken, clearAuth, logout } from "./auth";
 import { showErrorToast } from "./toast";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8001/api";
 
 const client = axios.create({
   baseURL: API_BASE,

@@ -30,7 +30,12 @@ return [
 
 
     // Specific messages
+    'full_name_required' => 'Vui lòng nhập Họ và Tên',
+    'email_required' => 'Vui lòng nhập Email',
+    'email_invalid' => 'Email không đúng định dạng',
     'email_taken' => 'Email này đã được sử dụng. Vui lòng dùng email khác hoặc đăng nhập.',
+    'password_required' => 'Vui lòng nhập Mật khẩu',
+    'password_min' => 'Mật khẩu phải có ít nhất 8 ký tự',
     'password_mismatch' => 'Mật khẩu xác nhận không khớp.',
     'terms_required' => 'Bạn cần đồng ý với Điều Khoản và Chính Sách Bảo Mật để tiếp tục.',
     'missing_fields' => 'Thiếu thông tin bắt buộc. Vui lòng điền đầy đủ.',

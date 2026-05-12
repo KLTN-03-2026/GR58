@@ -148,7 +148,7 @@ const redirectToBooking = (petId) => {
   router.push(`/customer/appointments/book?pet_id=${petId}`);
 };
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8001/api";
 
 const fetchPets = async () => {
   isRetrying.value = true;
