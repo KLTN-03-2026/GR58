@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\KhachHang;
 use App\Models\LichHen;
 use App\Models\PhieuKham;
+use App\Helpers\PetImageHelper;
 
 class ThuCung extends Model
 {
@@ -37,20 +38,7 @@ class ThuCung extends Model
 
     public function getAnhDaiDienUrlAttribute()
     {
-        if (!$this->anh_dai_dien) {
-            return \App\Helpers\PetImageHelper::getDefaultImage(
-                $this->loai_thu_cung ?? 'khac',
-                $this->gioi_tinh
-            );
-        }
-
-        // If it's already a full URL, return as is
-        if (str_starts_with($this->anh_dai_dien, 'http')) {
-            return $this->anh_dai_dien;
-        }
-
-        // Otherwise, prepend storage URL
-        return url('storage/' . $this->anh_dai_dien);
+        return PetImageHelper::getImageUrl($this->anh_dai_dien, $this->loai_thu_cung ?? 'khac', $this->gioi_tinh);
     }
 
     public function khachHang()

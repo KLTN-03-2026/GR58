@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DichVu;
+use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
@@ -90,7 +91,7 @@ class DichVuController extends Controller
             if ($file && $file->isValid()) {
                 try {
                     $path                 = $file->store('dichvu/images', 'public');
-                    $data['anh_dich_vu']  = url(Storage::url($path));
+                    $data['anh_dich_vu']  = $path;
                 } catch (\Throwable $e) {
                     Log::error('Service image store failed (create)', ['message' => $e->getMessage()]);
                     return response()->json(['status' => false, 'message' => 'Lưu ảnh thất bại.'], 500);
@@ -176,7 +177,7 @@ class DichVuController extends Controller
 
                     try {
                         $path                = $file->store('dichvu/images', 'public');
-                        $data['anh_dich_vu'] = url(Storage::url($path));
+                        $data['anh_dich_vu'] = $path;
                     } catch (\Throwable $ue) {
                         Log::error('Service image store failed (update)', ['message' => $ue->getMessage()]);
                         return response()->json(['status' => false, 'message' => 'Lưu ảnh thất bại.'], 500);
@@ -239,10 +240,7 @@ class DichVuController extends Controller
      */
     private function resolveImageUrl(?string $path): ?string
     {
-        if (!$path) return null;
-        if (preg_match('/^https?:\/\//i', $path)) return $path;
-        if (!str_starts_with($path, '/')) $path = '/' . $path;
-        return url($path);
+        return ImageHelper::resolveUrl($path);
     }
 
     /**

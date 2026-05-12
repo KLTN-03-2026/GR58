@@ -100,6 +100,7 @@ cat petty_FE/.env | grep VITE_API_BASE
 2. **Khởi động lại** cả 2 server sau khi đổi port
 3. **Clear cache** Laravel: `php artisan config:clear`
 4. **Restart Vite** dev server để áp dụng env mới
+5. **DB lưu relative path** — không cần update khi đổi port (ảnh tự build URL từ `APP_URL`)
 
 ---
 

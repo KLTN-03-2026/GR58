@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
@@ -54,16 +55,16 @@ class UploadController extends Controller
                 'folder' => $folder,
             ]);
 
-            // Get full URL
-            $publicUrl = url(Storage::url($path));
+            // Client should store 'path' in DB, display 'url' in UI
+            $publicUrl = ImageHelper::resolveUrl($path);
 
-            Log::info('Upload successful', ['url' => $publicUrl]);
+            Log::info('Upload successful', ['path' => $path, 'url' => $publicUrl]);
 
             return response()->json([
                 'status' => true,
                 'message' => 'File uploaded successfully',
                 'data' => [
-                    'path' => $publicUrl,
+                    'path' => $path,
                     'url' => $publicUrl,
                     'file' => basename($path),
                 ],

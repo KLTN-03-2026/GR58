@@ -183,3 +183,40 @@ npm run dev
 ## 📅 Ngày hoàn thành: 2026-05-12
 
 **Tất cả hardcoded URLs đã được loại bỏ! Bạn có thể chạy Petty với bất kỳ port nào! 🎉**
+
+---
+
+## 🔄 Update 2026-05-12 — DB now stores relative paths
+
+### Vấn đề đã giải quyết thêm
+
+✅ **Database**: Chuyển từ lưu full URL sang relative path  
+✅ **Helpers**: Thống nhất API `resolveUrl` cho mọi loại ảnh  
+✅ **Migration**: One-shot normalize existing data  
+✅ **Backward compat**: Hỗ trợ cả full URL legacy và external URLs (Google OAuth)
+
+### Thay đổi chính
+
+- **ImageHelper::resolveUrl()** - Generic resolver cho mọi file upload
+- **PetImageHelper::getImageUrl()** - Pet-specific với default fallback
+- **UserImageHelper::getAvatarUrl()** - Refactored để dùng ImageHelper
+- **Migration** `normalize_upload_paths_to_relative` - Bóc tách URLs trong DB
+- **Xóa** `update-database-urls.sh` - Không còn cần thiết
+
+### Lợi ích mới
+
+✅ **Không cần update DB** khi đổi port - chỉ cần `./sync-ports.sh`  
+✅ **Helpers thống nhất** - 3 case (empty/full URL/relative) xử lý đồng nhất  
+✅ **Google OAuth safe** - External URLs không bị bóc tách  
+✅ **Migration idempotent** - Chạy nhiều lần không ảnh hưởng
+
+### Cách sử dụng mới
+
+```bash
+# Đổi port - KHÔNG cần chạy update-database-urls.sh nữa
+./sync-ports.sh 9000
+cd petty_BE && php artisan serve --port=9000
+cd petty_FE && npm run dev
+```
+
+Ảnh tự động build URL từ `APP_URL` hiện tại!

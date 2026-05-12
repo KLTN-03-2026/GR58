@@ -171,7 +171,7 @@ class KhachHangController extends Controller
 
         try {
             $path = $file->store('khachhang/avatars', 'public');
-            return url(Storage::url($path));
+            return $path;
         } catch (\Exception $e) {
             Log::error('Avatar store failed (helper)', [
                 'message' => $e->getMessage(),
