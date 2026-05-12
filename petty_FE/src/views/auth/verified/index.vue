@@ -82,7 +82,8 @@ const verifyEmail = async () => {
     setAuth(token, null, true, 'customer');
     
     // Validate token with server
-    const res = await axios.get('http://127.0.0.1:8000/api/user');
+    const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8001/api';
+    const res = await axios.get(`${API_BASE.replace('/api', '')}/api/user`);
     
     // Server returns success response and user data
     if (res.status === 200) {

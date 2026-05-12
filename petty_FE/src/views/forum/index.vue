@@ -407,7 +407,7 @@ const getCategoryName = (id) => {
 const getImageUrl = (path) => {
   if (!path) return '';
   if (path.startsWith('http') || path.startsWith('data:')) return path;
-  const baseUrl = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'http://127.0.0.1:8000';
+  const baseUrl = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'http://localhost:8001';
   return `${baseUrl}/storage/${path}`;
 };
 

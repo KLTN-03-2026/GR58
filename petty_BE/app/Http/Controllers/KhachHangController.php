@@ -73,7 +73,7 @@ class KhachHangController extends Controller
 
         $rules = [
             'full_name' => 'required|string|max:191',
-            'email' => 'required|email|unique:khach_hangs,email',
+            'email' => ['required', 'email', 'regex:/^[^\s@]+@gmail\.com$/', 'unique:khach_hangs,email'],
             'password' => 'required|string|min:8',
             'phone' => ['nullable', 'regex:/^[0-9]{10}$/', 'unique:khach_hangs,phone'],
             'address' => 'nullable|string|max:255',
@@ -81,10 +81,15 @@ class KhachHangController extends Controller
         ];
 
         $messages = [
+            'full_name.required' => Lang::get('messages.full_name_required'),
+            'email.required' => Lang::get('messages.email_required'),
+            'email.email' => Lang::get('messages.email_invalid'),
+            'email.regex' => 'Email phải có định dạng @gmail.com',
+            'email.unique' => Lang::get('messages.email_taken'),
+            'password.required' => Lang::get('messages.password_required'),
+            'password.min' => Lang::get('messages.password_min'),
             'phone.regex' => Lang::get('messages.phone_invalid'),
             'phone.unique' => Lang::get('messages.phone_taken'),
-            'email.required' => Lang::get('messages.email_required'),
-            'email.unique' => Lang::get('messages.email_taken'),
         ];
 
         $validator = Validator::make($input, $rules, $messages);

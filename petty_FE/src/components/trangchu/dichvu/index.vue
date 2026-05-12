@@ -253,7 +253,7 @@ const showActive = ref(false);
 const currentPage = ref(1);
 const itemsPerPage = 9;
 
-const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'http://127.0.0.1:8000';
+const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') || 'http://localhost:8001';
 
 const getImageUrl = (path) => {
   if (!path) return '';

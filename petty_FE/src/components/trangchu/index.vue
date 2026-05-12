@@ -909,7 +909,8 @@ onMounted(async () => {
 
       // Thử gọi API để lấy thông tin người dùng
       try {
-        const response = await axios.get("http://127.0.0.1:8000/api/user");
+        const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8001/api';
+        const response = await axios.get(`${API_BASE.replace('/api', '')}/api/user`);
 
         if (response.data && response.data.status) {
           // Lưu thông tin người dùng

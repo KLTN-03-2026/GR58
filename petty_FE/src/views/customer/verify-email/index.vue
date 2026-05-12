@@ -88,7 +88,8 @@ const resendEmail = async () => {
   
   isLoading.value = true;
   try {
-    const res = await axios.post('http://127.0.0.1:8000/api/khach-hang/gui-lai-xac-nhan', {
+    const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8001/api';
+    const res = await axios.post(`${API_BASE}/khach-hang/gui-lai-xac-nhan`, {
       email: email.value
     });
     

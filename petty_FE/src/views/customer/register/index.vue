@@ -351,47 +351,73 @@ const focusFirstError = (errs) => {
   }
 };
 
+const isValidEmail = (value) => {
+  return /^[^\s@]+@gmail\.com$/.test(value);
+};
+
 const handleSubmit = async () => {
   errors.value = {};
   passwordMismatch.value = false;
   isSubmitting.value = true;
 
-  const required = ["full_name", "email", "password", "confirmPassword"];
-  const missingKey = required.find((k) => !formData.value[k]);
-  if (missingKey) {
-    showErrorToast("Vui lòng điền đầy đủ các trường bắt buộc");
-    isSubmitting.value = false;
-    await nextTick();
-    focusByKey(missingKey);
-    return;
+  // Validate per-field
+  let hasError = false;
+
+  if (!formData.value.full_name || formData.value.full_name.trim() === "") {
+    errors.value.full_name = ["Vui lòng nhập Họ và Tên"];
+    hasError = true;
   }
 
-  if (formData.value.password !== formData.value.confirmPassword) {
-    passwordMismatch.value = true;
-    isSubmitting.value = false;
-    await nextTick();
-    focusByKey("password");
-    return;
+  if (!formData.value.email || formData.value.email.trim() === "") {
+    errors.value.email = ["Vui lòng nhập Email"];
+    hasError = true;
+  } else if (!isValidEmail(formData.value.email.trim())) {
+    errors.value.email = ["Email phải có định dạng @gmail.com"];
+    hasError = true;
   }
 
+  if (!formData.value.password || formData.value.password.trim() === "") {
+    errors.value.password = ["Vui lòng nhập Mật khẩu"];
+    hasError = true;
+  }
+
+  if (!formData.value.confirmPassword || formData.value.confirmPassword.trim() === "") {
+    errors.value.confirmPassword = ["Vui lòng xác nhận Mật khẩu"];
+    hasError = true;
+  }
+
+  // Check password mismatch after required checks
+  if (!errors.value.password && !errors.value.confirmPassword) {
+    if (formData.value.password !== formData.value.confirmPassword) {
+      passwordMismatch.value = true;
+      hasError = true;
+    }
+  }
+
+  // Check agreeTerms after field validation
   if (!formData.value.agreeTerms) {
     errors.value.agreeTerms = ["Bạn cần đồng ý với điều khoản"];
-    showErrorToast("Bạn cần đồng ý với Điều khoản và Chính sách bảo mật");
+    hasError = true;
+  }
+
+  if (hasError) {
+    showErrorToast("Vui lòng kiểm tra lại thông tin đăng ký");
     isSubmitting.value = false;
     await nextTick();
-    focusByKey("agreeTerms");
+    focusFirstError(errors.value);
     return;
   }
 
   const payload = {
-    full_name: formData.value.full_name,
-    email: formData.value.email,
+    full_name: formData.value.full_name.trim(),
+    email: formData.value.email.trim(),
     password: formData.value.password,
   };
 
   try {
+    const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8001/api';
     const res = await axios.post(
-      "http://127.0.0.1:8000/api/khach-hang/dang-ki",
+      `${API_BASE}/khach-hang/dang-ki`,
       payload
     );
 
@@ -416,6 +442,9 @@ const handleSubmit = async () => {
 
 // Xử lý đăng nhập Google
 const handleGoogleLogin = () => {
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8001/api';
+  const API_ORIGIN = API_BASE.replace('/api', '');
+
   const width = 500;
   const height = 600;
   const left = window.screen.width / 2 - width / 2;
@@ -423,7 +452,7 @@ const handleGoogleLogin = () => {
 
   // Mở popup đăng nhập Google
   const popup = window.open(
-    "http://127.0.0.1:8000/api/auth/google",
+    `${API_BASE}/auth/google`,
     "Google Login",
     `width=${width},height=${height},left=${left},top=${top}`
   );
@@ -431,7 +460,7 @@ const handleGoogleLogin = () => {
   // Lắng nghe thông điệp từ cửa sổ popup
   const messageHandler = (event) => {
     // Kiểm tra nguồn gốc để đảm bảo bảo mật
-    if (event.origin !== "http://127.0.0.1:8000") return;
+    if (event.origin !== API_ORIGIN) return;
 
     const authData = event.data;
 
@@ -464,6 +493,9 @@ const handleGoogleLogin = () => {
 
 // Xử lý đăng nhập Facebook
 const handleFacebookLogin = () => {
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8001/api';
+  const API_ORIGIN = API_BASE.replace('/api', '');
+
   const width = 500;
   const height = 600;
   const left = window.screen.width / 2 - width / 2;
@@ -471,14 +503,14 @@ const handleFacebookLogin = () => {
 
   // Mở popup đăng nhập Facebook
   const popup = window.open(
-    "http://127.0.0.1:8000/api/auth/facebook",
+    `${API_BASE}/auth/facebook`,
     "Facebook Login",
     `width=${width},height=${height},left=${left},top=${top}`
   );
 
   // Lắng nghe message từ popup
   const messageHandler = (event) => {
-    if (event.origin !== "http://127.0.0.1:8000") return;
+    if (event.origin !== API_ORIGIN) return;
 
     const authData = event.data;
 

@@ -144,7 +144,7 @@ import { ref, computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { getToken } from '@/utils/auth'
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000/api'
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8001/api'
 
 const route = useRoute()
 const isOpen = ref(false)
