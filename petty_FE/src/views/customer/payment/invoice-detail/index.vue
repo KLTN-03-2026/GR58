@@ -10,11 +10,11 @@
         <h2 class="font-bold text-lg leading-7 text-black">
           Thanh toán hoá đơn
         </h2>
-        <button 
+        <button
           @click="closePopup"
-          class="w-7 h-7 cursor-pointer"
+          class="w-7 h-7 cursor-pointer flex items-center justify-center"
         >
-          <img :src="iconClose" alt="Close" class="w-full h-full" />
+          <X class="w-5 h-5 text-gray-600" />
         </button>
       </div>
       <div>
@@ -91,9 +91,7 @@
         @click="handleConfirmPayment"
         class="bg-amber-600 rounded-lg px-4 py-[6px] flex items-center gap-3"
       >
-        <div class="w-4 h-4">
-          <img :src="iconCreditCard" alt="" class="w-full h-full" />
-        </div>
+        <CreditCard class="w-4 h-4 text-white" />
         <span class="font-semibold text-base leading-6 text-white">
           Xác nhận & Thanh toán
         </span>
@@ -130,8 +128,8 @@
       <!-- VNPay -->
       <div class="bg-white border border-teal-300 rounded-[10px] h-[98px] px-[17px] py-[17px] flex items-start justify-between">
         <div class="flex items-start gap-3">
-          <div class="rounded-[10px] shadow-md w-10 h-10 flex items-center justify-center">
-            <img :src="imgVNPay" alt="VNPay" class="w-full h-full rounded-[10px] object-contain" />
+          <div class="rounded-[10px] shadow-md w-10 h-10">
+            <img src="/src/assets/img_imports/public_img/vnpay.png" alt="VNPay" class="w-full h-full rounded-[10px] object-contain" />
           </div>
           <div class="flex flex-col">
             <p class="font-medium text-sm leading-5 text-black">
@@ -146,9 +144,7 @@
           @click="handlePayment('vnpay')"
           class="bg-[#5a9690] rounded-lg px-3 py-1 flex items-center gap-2"
         >
-          <div class="w-[13.333px] h-[9.333px]">
-            <img :src="iconPayment" alt="" class="w-full h-full" />
-          </div>
+          <CreditCard class="w-4 h-4 text-white" />
           <span class="font-semibold text-base leading-6 text-white">
             Thanh toán
           </span>
@@ -158,8 +154,8 @@
       <!-- MoMo -->
       <div class="bg-white border border-teal-300 rounded-[10px] h-[98px] px-[17px] py-[17px] flex items-start justify-between">
         <div class="flex items-start gap-3">
-          <div class="rounded-[10px] shadow-md w-10 h-10 flex items-center justify-center">
-            <img :src="imgMoMo" alt="MoMo" class="w-full h-full rounded-[10px] object-contain" />
+          <div class="rounded-[10px] shadow-md w-10 h-10">
+            <img src="/src/assets/img_imports/public_img/momo.png" alt="MoMo" class="w-full h-full rounded-[10px] object-contain" />
           </div>
           <div class="flex flex-col">
             <p class="font-medium text-sm leading-5 text-black">
@@ -176,39 +172,9 @@
           :class="isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#5a9690]'"
           class="rounded-lg px-3 py-1 flex items-center gap-2"
         >
-          <div v-if="!isProcessing" class="w-[13.333px] h-[9.333px]">
-            <img :src="iconPayment" alt="" class="w-full h-full" />
-          </div>
+          <CreditCard v-if="!isProcessing" class="w-4 h-4 text-white" />
           <span class="font-semibold text-base leading-6 text-white">
             {{ isProcessing ? 'Đang xử lý...' : 'Thanh toán' }}
-          </span>
-        </button>
-      </div>
-
-      <!-- Techcombank -->
-      <div class="bg-white border border-teal-300 rounded-[10px] h-[98px] px-[17px] py-[17px] flex items-start justify-between">
-        <div class="flex items-start gap-3">
-          <div class="rounded-[10px] shadow-md w-10 h-10 flex items-center justify-center">
-            <img :src="imgTechcombank" alt="Techcombank" class="w-full h-full rounded-[10px] object-contain" />
-          </div>
-          <div class="flex flex-col">
-            <p class="font-medium text-sm leading-6 text-black">
-              Ngân hàng Techcombank
-            </p>
-            <p class="font-medium text-xs leading-5 text-gray-600">
-              Chuyển khoản qua ngân hàng
-            </p>
-          </div>
-        </div>
-        <button
-          @click="handlePayment('techcombank')"
-          class="bg-[#5a9690] rounded-lg px-3 py-1 flex items-center gap-2"
-        >
-          <div class="w-[13.333px] h-[9.333px]">
-            <img :src="iconPayment" alt="" class="w-full h-full" />
-          </div>
-          <span class="font-semibold text-base leading-6 text-white">
-            Thanh toán
           </span>
         </button>
       </div>
@@ -220,9 +186,9 @@
         @click="goBack"
         class="bg-white border border-black/40 rounded-lg px-[17px] py-[9px] flex items-center gap-2"
       >
-        <div class="w-6 h-6">
-          <img :src="iconArrowLeft" alt="" class="w-full h-full" />
-        </div>
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
         <span class="font-semibold text-base leading-6 text-black">
           Quay lại
         </span>
@@ -242,8 +208,8 @@
           <h2 class="font-bold text-lg leading-7 text-black">
             Chi tiết lịch hẹn
           </h2>
-          <button @click="closePopup" class="w-7 h-7">
-            <img :src="iconClose" alt="Close" class="w-full h-full" />
+          <button @click="closePopup" class="w-7 h-7 flex items-center justify-center">
+            <X class="w-5 h-5 text-gray-600" />
           </button>
         </div>
       </div>
@@ -364,8 +330,8 @@
           <h2 class="font-bold text-lg leading-7 text-black">
             Trạng thái Hoàn tiền
           </h2>
-          <button @click="closePopup" class="w-7 h-7">
-            <img :src="iconClose" alt="Close" class="w-full h-full" />
+          <button @click="closePopup" class="w-7 h-7 flex items-center justify-center">
+            <X class="w-5 h-5 text-gray-600" />
           </button>
         </div>
       </div>
@@ -484,9 +450,7 @@
   >
     <!-- Success Icon -->
     <div class="bg-teal-100 rounded-full w-16 h-16 flex items-center justify-center">
-      <div class="w-10 h-10">
-        <img :src="iconCheckCircleGreen" alt="" class="w-full h-full" />
-      </div>
+      <CheckCircle2 class="w-10 h-10 text-[#5A9690]" />
     </div>
 
     <!-- Title -->
@@ -530,9 +494,7 @@
           Phương thức
         </p>
         <div class="flex items-center gap-2">
-          <div class="w-5 h-5 rounded-sm">
-            <img :src="invoiceData.paymentMethodLogo" alt="" class="w-full h-full object-contain rounded-sm" />
-          </div>
+          <CreditCard class="w-4 h-4 text-gray-600" />
           <p class="font-medium text-sm leading-5 text-black">
             {{ invoiceData.paymentMethodName }}
           </p>
@@ -584,6 +546,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { X, CreditCard, CheckCircle2, CreditCard as PaymentIcon } from 'lucide-vue-next';
 
 // Props
 const props = defineProps({

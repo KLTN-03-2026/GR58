@@ -344,7 +344,7 @@ const totalItems = ref(0);
 const lastPage = ref(1);
 
 // API origin used to build absolute image URLs when backend returns relative paths
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8001/api";
 const API_ORIGIN = API_BASE.replace(/\/api\/?$/, "");
 
 const mapApiToView = (item) => {

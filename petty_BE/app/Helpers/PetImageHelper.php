@@ -32,8 +32,23 @@ class PetImageHelper
     }
 
     /**
+     * Resolve pet image path/URL to full URL with default fallback.
+     *
+     * Uses same 3-case logic as ImageHelper::resolveUrl but with pet-specific default.
+     *
+     * @param string|null $value The value from DB (relative path, full URL, or null)
+     * @param string $loai Loại thú cưng: 'cho', 'meo', 'khac'
+     * @param string|null $gioiTinh Giới tính: 'duc', 'cai', null
+     * @return string Full URL
+     */
+    public static function getImageUrl($value, $loai, $gioiTinh = null): string
+    {
+        return ImageHelper::resolveUrl($value, self::getDefaultImage($loai, $gioiTinh));
+    }
+
+    /**
      * Kiểm tra xem có phải ảnh mặc định không
-     * 
+     *
      * @param string|null $imageUrl
      * @return bool
      */
@@ -44,7 +59,7 @@ class PetImageHelper
         }
 
         $defaultImages = ['choduc.jpg', 'chocai.jpg', 'meo.jpg', 'thucungkhac.jpg'];
-        
+
         foreach ($defaultImages as $defaultImage) {
             if (str_contains($imageUrl, $defaultImage)) {
                 return true;

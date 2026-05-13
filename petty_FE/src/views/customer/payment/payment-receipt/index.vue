@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="isOpen"
-    class="bg-white border border-black/15 rounded-[10px] p-6 flex flex-col gap-4 max-w-[512px] shadow-lg"
+    class="bg-white border border-black/15 rounded-[10px] p-8 flex flex-col gap-4 max-w-lg shadow-lg"
   >
     <!-- Header -->
     <div class="flex flex-col gap-2">
@@ -10,8 +10,8 @@
           <h2 class="font-bold text-lg leading-7 text-black">
             Biên lai thanh toán
           </h2>
-          <button @click="closePopup" class="w-7 h-7">
-            <img :src="iconClose" alt="Close" class="w-full h-full" />
+          <button @click="closePopup" class="w-7 h-7 flex items-center justify-center">
+            <X class="w-5 h-5 text-gray-600" />
           </button>
         </div>
       </div>
@@ -21,7 +21,7 @@
     </div>
 
     <!-- Receipt Content -->
-    <div class="bg-white border border-black/15 rounded-[10px] p-6 flex flex-col gap-6">
+    <div class="bg-white border border-black/15 rounded-[10px] p-8 flex flex-col gap-6">
       <!-- Clinic Info -->
       <div class="border-b border-black/15 pb-1 flex flex-col items-center">
         <p class="font-medium text-sm leading-5 text-teal-500 text-center">
@@ -36,36 +36,36 @@
       </div>
 
       <!-- Invoice Details Grid -->
-      <div class="grid grid-cols-2 gap-4">
-        <div class="flex flex-col">
+      <div class="grid grid-cols-2 gap-x-6 gap-y-4">
+        <div class="flex flex-col gap-1">
           <p class="font-medium text-sm leading-6 text-gray-600">
-            Mã hóa đơn:
+            Mã hóa đơn
           </p>
-          <p class="font-medium text-sm leading-6 text-black">
+          <p class="font-semibold text-sm leading-6 text-black">
             {{ receiptData.invoiceCode }}
           </p>
         </div>
-        <div class="flex flex-col">
+        <div class="flex flex-col gap-1">
           <p class="font-medium text-sm leading-6 text-gray-600">
-            Ngày khám:
+            Ngày khám
           </p>
-          <p class="font-medium text-sm leading-6 text-black">
+          <p class="font-semibold text-sm leading-6 text-black">
             {{ receiptData.visitDate }}
           </p>
         </div>
-        <div class="flex flex-col">
+        <div class="flex flex-col gap-1">
           <p class="font-medium text-sm leading-6 text-gray-600">
-            Thú cưng:
+            Thú cưng
           </p>
-          <p class="font-medium text-sm leading-6 text-black">
+          <p class="font-semibold text-sm leading-6 text-black">
             {{ receiptData.petName }}
           </p>
         </div>
-        <div class="flex flex-col">
+        <div class="flex flex-col gap-1">
           <p class="font-medium text-sm leading-6 text-gray-600">
-            Bác sĩ:
+            Bác sĩ
           </p>
-          <p class="font-medium text-sm leading-6 text-black">
+          <p class="font-semibold text-sm leading-6 text-black">
             {{ receiptData.doctor }}
           </p>
         </div>
@@ -140,9 +140,7 @@
             Trạng thái:
           </p>
           <div class="flex items-center gap-2">
-            <div class="w-4 h-4">
-              <img :src="iconCheck" alt="" class="w-full h-full" />
-            </div>
+            <CheckCircle class="w-4 h-4 text-teal-600" />
             <p class="font-medium text-sm leading-5 text-teal-600">
               Đã thanh toán trước {{ formatCurrency(receiptData.prepaidAmount) }}
             </p>
@@ -167,9 +165,7 @@
         @click="downloadPDF"
         class="bg-[#5a9690] rounded-lg px-4 py-1.5 flex items-center gap-2"
       >
-        <div class="w-4 h-4">
-          <img :src="iconDownload" alt="" class="w-full h-full" />
-        </div>
+        <Download class="w-4 h-4 text-white" />
         <span class="font-semibold text-base leading-6 text-white">
           Tải xuống PDF
         </span>
@@ -180,6 +176,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { X, CheckCircle, Download } from 'lucide-vue-next';
 import axios from 'axios';
 const props = defineProps({
   isOpen: {

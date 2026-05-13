@@ -463,7 +463,7 @@ const onLinkFacebook = () => {
 const saving = ref(false);
 const errors = ref({});
 
-const API_BASE = "http://127.0.0.1:8000/api/khach-hang";
+const API_BASE = import.meta.env.VITE_API_BASE?.replace('/api', '') + '/api/khach-hang' || "http://localhost:8001/api/khach-hang";
 
 function ensureAuthHeader() {
   try {
@@ -637,7 +637,7 @@ async function saveProfile() {
     address: form.value.address,
   };
 
-  const base = "http://127.0.0.1:8000/api/khach-hang";
+  const base = import.meta.env.VITE_API_BASE?.replace('/api', '') + '/api/khach-hang' || "http://localhost:8001/api/khach-hang";
   try {
     errors.value = {};
     ensureAuthHeader();

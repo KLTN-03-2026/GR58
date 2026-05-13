@@ -196,6 +196,7 @@
               <input
                 v-model="formData.weight"
                 type="number"
+                min="0.01"
                 step="0.1"
                 placeholder="Ví dụ: 5.5"
                 class="w-full h-9 px-3 py-1 bg-gray-50 border !border-black/15 rounded-lg text-sm font-medium placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
@@ -279,6 +280,10 @@ const close = () => {
 const handleSubmit = () => {
   if (!formData.name || !formData.species) {
     alert("Vui lòng điền đầy đủ thông tin bắt buộc");
+    return;
+  }
+  if (formData.weight && parseFloat(formData.weight) <= 0) {
+    alert("Cân nặng phải lớn hơn 0");
     return;
   }
   emit("submit", { ...formData });
