@@ -109,6 +109,7 @@ import { useRouter, useRoute } from "vue-router";
 import axios from "axios";
 import { showSuccessToast, showInfoToast } from "@/utils/toast";
 import { getUser, logout } from "@/utils/auth";
+import { resolveImageUrl } from "@/utils/image";
 // Icon SVG
 import searchIcon from "@/assets/svg/search.svg";
 import notificationIcon from "@/assets/svg/notification.svg";
@@ -174,8 +175,7 @@ const userInitials = computed(() => {
 const userAvatar = computed(() => {
   const a = userData.value.anh_dai_dien;
   if (!a) return null;
-  // If avatar is stored as relative path on server, you may need to prefix with base URL.
-  return a;
+  return resolveImageUrl(a);
 });
 
 // Methods

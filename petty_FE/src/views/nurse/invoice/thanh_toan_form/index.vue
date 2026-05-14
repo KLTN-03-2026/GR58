@@ -4,7 +4,7 @@
     <div class="bg-blue-50 border-2 !border-[#bedbff] rounded-[14px] p-6">
       <div class="flex items-start gap-4">
         <div class="w-16 h-16 rounded-[10px] bg-white border !border-gray-200 flex items-center justify-center overflow-hidden">
-          <img v-if="lichHen.thu_cung?.anh_dai_dien" :src="lichHen.thu_cung.anh_dai_dien" class="w-full h-full object-cover" />
+          <img v-if="lichHen.thu_cung?.anh_dai_dien" :src="resolveImageUrl(lichHen.thu_cung.anh_dai_dien_url || lichHen.thu_cung.anh_dai_dien)" class="w-full h-full object-cover" />
           <span v-else class="text-2xl">🐾</span>
         </div>
         <div class="flex-1">
@@ -195,6 +195,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import api from '@/utils/api'
+import { resolveImageUrl } from '@/utils/image'
 import { showSuccessToast, showErrorToast } from '@/utils/toast'
 
 

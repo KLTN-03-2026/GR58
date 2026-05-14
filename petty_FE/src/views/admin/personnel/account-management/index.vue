@@ -540,6 +540,7 @@ import DatMatKhau from "./set-password/index.vue";
 import ChiTietKhachHang from "./customer-detail/index.vue";
 import { listNhanVien } from "@/utils/nhanVien";
 import api from "@/utils/api";
+import { resolveImageUrl } from "@/utils/image";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
 // Icon SVG
 import AddIcon from "@/assets/svg/add.svg";
@@ -654,8 +655,7 @@ const populateStaffList = (items) => {
   staffList.value = items.map((it) => ({
     id: it.id,
     name: it.full_name || it.name || "—",
-    avatar:
-      it.avatar || it.anh_dai_dien || "https://www.gravatar.com/avatar?d=mp",
+    avatar: resolveImageUrl(it.avatar || it.anh_dai_dien, "https://www.gravatar.com/avatar?d=mp"),
     email: it.email || "",
     phone: it.so_dien_thoai || it.phone || "",
     roles: mapRole(it.vai_tro),

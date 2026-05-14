@@ -388,6 +388,7 @@
 <script>
 import api from "@/utils/api";
 import { getUser, ROLE_KEYS } from "@/utils/auth";
+import { resolveImageUrl } from "@/utils/image";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
 
 export default {
@@ -402,8 +403,7 @@ export default {
 
       // Doctor Profile
       doctorProfile: {
-        avatar:
-          "https://www.figma.com/api/mcp/asset/4af27492-9c88-43d5-b84b-905cf059ab56",
+        avatar: resolveImageUrl(currentDoctor?.anh_dai_dien || currentDoctor?.anh_dai_dien_url),
         name: fullName,
         role: "Bác sĩ chính",
         joinDate: "20/11/2023",
