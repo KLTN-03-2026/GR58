@@ -456,6 +456,7 @@ import CalendarDot from "../../assets/svg/calendar-dot.svg";
 import CreditCardPay from "../../assets/svg/credit-card-pay.svg";
 import HelpIcon from "../../assets/svg/help.svg";
 import Logout2 from "../../assets/svg/logout-2.svg";
+import { resolveImageUrl } from "@/utils/image";
 
 // State for mobile menu toggle
 const mobileMenuOpen = ref(false);
@@ -525,7 +526,7 @@ const displayName = computed(() => {
 const userAvatar = computed(() => {
   if (!user.value) return "/avatar.png";
   const src = user.value.anh_dai_dien_url || user.value.anh_dai_dien || user.value.avatar || user.value.photo;
-  return src || "/avatar.png";
+  return resolveImageUrl(src, "/avatar.png");
 });
 
 function handleAvatarError(e) {

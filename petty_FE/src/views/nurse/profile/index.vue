@@ -300,6 +300,8 @@
 
 <script setup>
 import { ref } from 'vue'
+import { getUser } from '@/utils/auth'
+import { resolveImageUrl } from '@/utils/image'
 
 // Icons from Figma (7-day expiry)
 const ICONS = {
@@ -317,9 +319,11 @@ const ICONS = {
 // State
 const activeTab = ref('personal')
 
+const currentNurse = getUser('y_ta')
+
 // Profile Data (replace with API call)
 const profileData = ref({
-  avatar: 'https://www.figma.com/api/mcp/asset/d5f5c669-705f-4e41-aa19-efe6fa4d18d9',
+  avatar: resolveImageUrl(currentNurse?.anh_dai_dien || currentNurse?.anh_dai_dien_url),
   name: 'Nguyễn Thị C',
   role: 'Y tá',
   position: 'Y tá kiêm Thu ngân',

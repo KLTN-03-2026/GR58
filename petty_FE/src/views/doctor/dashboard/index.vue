@@ -505,6 +505,7 @@ import {
   startExamination,
 } from "@/services/lichHenService";
 import { getUser } from "@/utils/auth";
+import { resolveImageUrl } from "@/utils/image";
 import ChangeTurnModal from "./change-turn/index.vue";
 import PriorityExamModal from "./priority-examination/index.vue";
 
@@ -669,10 +670,10 @@ const mapPatient = (appointment) => {
     raw: appointment,
     petName: appointment?.thu_cung?.ten_thu_cung || "Chưa có tên",
     petType: getPetType(appointment),
-    petImage:
-      appointment?.thu_cung?.anh_dai_dien_url ||
-      appointment?.thu_cung?.anh_dai_dien ||
-      defaultPetImage,
+    petImage: resolveImageUrl(
+      appointment?.thu_cung?.anh_dai_dien_url || appointment?.thu_cung?.anh_dai_dien,
+      defaultPetImage
+    ),
     ownerName: appointment?.khach_hang?.full_name || "Chưa có chủ nuôi",
     service:
       appointment?.dich_vu?.ten_dich_vu ||

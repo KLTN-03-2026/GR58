@@ -39,12 +39,7 @@
         <!-- Pet Info -->
         <div class="flex gap-4 mb-6">
           <img
-            :src="
-              pet.anh_dai_dien_url ||
-              pet.image ||
-              pet.imageCard ||
-              imgPetPlaceholder
-            "
+            :src="resolveImageUrl(pet.anh_dai_dien_url || pet.image || pet.imageCard, imgPetPlaceholder)"
             alt="Pet"
             class="w-24 h-24 rounded-xl object-cover"
             @error="handleImgError"
@@ -399,6 +394,7 @@ import { useRouter } from "vue-router";
 import axios from "axios";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
 import { getToken } from "@/utils/auth";
+import { resolveImageUrl } from "@/utils/image";
 import { getLichSuKham } from "@/services/thuCungService";
 import CloseIcon from "@/assets/svg/close.svg";
 
@@ -504,11 +500,10 @@ watch(
     petData.value.gender = /cái|female|f/.test(g) ? "female" : "male";
 
     // Ảnh
-    petData.value.image =
-      newPet.anh_dai_dien_url ||
-      newPet.image ||
-      newPet.imageCard ||
-      imgPetPlaceholder;
+    petData.value.image = resolveImageUrl(
+      newPet.anh_dai_dien_url || newPet.image || newPet.imageCard,
+      imgPetPlaceholder
+    );
     petData.value._file = null;
   },
   { immediate: true }

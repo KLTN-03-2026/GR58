@@ -449,9 +449,11 @@
 import { ref, onMounted, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import api from "@/utils/api";
+import { resolveImageUrl } from "@/utils/image";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
+import * as phieuKhamService from "@/services/phieuKhamService";
 import DonThuoc from "./prescription-form/index.vue";
 import HenTaiKham from "./follow-up-appointment/index.vue";
 import ClinicalAttachmentUploader from "@/components/doctor/ClinicalAttachmentUploader.vue";
@@ -618,10 +620,10 @@ const loadAppointmentData = async () => {
       // Update patient info: lấy trực tiếp các trường đã được BE chuẩn hóa
       patientInfo.value = {
         petName: petData?.ten || petData?.ten_thu_cung || "Chưa có tên",
-        petImage:
-          petData?.anh_dai_dien_url ||
-          petData?.anh_dai_dien ||
-          DEFAULT_PET_IMAGE,
+        petImage: resolveImageUrl(
+          petData?.anh_dai_dien_url || petData?.anh_dai_dien,
+          DEFAULT_PET_IMAGE
+        ),
         badge: data.la_khach_vang_lai ? "Vãng lai" : "Đặt trước",
         species:
           petData?.loai ||
@@ -810,21 +812,19 @@ const hoanTatVaChuyenThuNgan = async () => {
       ghi_chu: notes.value || null,
       loai_chi_dinh: selectedPrescriptionType.value,
     };
-    await api.post("/phieu-kham", phieuKhamData);
+    const phieuKhamResponse = await api.post("/phieu-kham", phieuKhamData);
+    const phieuKhamId = phieuKhamResponse.data?.data?.id;
 
-    // Bước 2: Đổi trạng thái lịch hẹn sang completed
-    await api.post(`/lich-hen/${appointmentId.value}/hoan-thanh-kham`, {
-      ghi_chu: notes.value || null,
-    });
+    // Bước 2: Hoàn tất phiếu khám (chuyển trạng thái sang chờ thanh toán)
+    if (phieuKhamId) {
+      await phieuKhamService.hoanTat(phieuKhamId);
+    }
 
-    showSuccessToast("Hoàn tất khám! Đang chuyển sang thu ngân...");
+    showSuccessToast("Hoàn tất khám thành công!");
 
-    // Bước 3: Chuyển sang trang thu ngân sau 1 giây
+    // Bước 3: Chuyển về trang danh sách lịch hẹn
     setTimeout(() => {
-      router.push({
-        path: "/nurse/invoices",
-        query: { lich_hen_id: appointmentId.value },
-      });
+      router.push("/doctor/appointments");
     }, 1000);
   } catch (error) {
     console.error("Lỗi hoàn tất khám:", error);

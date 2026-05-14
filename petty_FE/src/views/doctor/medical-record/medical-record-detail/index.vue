@@ -575,6 +575,7 @@
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import api from "@/utils/api";
+import { resolveImageUrl } from "@/utils/image";
 import XemChiTiet from "./view-detail/index.vue";
 //Icon SVG
 import ArrowLeftIcon from "@/assets/svg/arrow-left.svg";
@@ -818,7 +819,7 @@ const loadPatientData = async () => {
 
     // Map patient data
     patientData.value = {
-      image: pet.anh_dai_dien || "https://www.figma.com/api/mcp/asset/bcbdd3c0-05cd-4022-95d5-0219bc3ca3b9",
+      image: resolveImageUrl(pet.anh_dai_dien_url || pet.anh_dai_dien),
       name: pet.ten_thu_cung || "Chưa có tên",
       species: `${pet.loai_thu_cung || ""} ${pet.giong_thu_cung || ""}`.trim(),
       type: pet.khach_hang?.la_thanh_vien ? "member" : "khach_vang_lai",
