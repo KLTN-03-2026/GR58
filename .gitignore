@@ -60,11 +60,11 @@ petty_FE/*.sw?
 .agents/
 .github/
 .gemini/
-openspec/
+openspec
 GEMINI.md
 skills-lock.json
 CLAUDE.md
-.claude/
+.claude
 .qwen/
 rubric_aws_capstone_week1.md
 AI_ROADMAP.md
