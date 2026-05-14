@@ -24,7 +24,7 @@ petty_BE/public/hot/
 petty_BE/public/storage
 petty_BE/storage/*.key
 petty_BE/storage/pail/
-petty_BE/vendor/
+petty_BE/vendor
 petty_BE/Homestead.json
 petty_BE/Homestead.yaml
 
@@ -39,7 +39,7 @@ petty_FE/yarn-error.log*
 petty_FE/pnpm-debug.log*
 petty_FE/lerna-debug.log*
 
-petty_FE/node_modules/
+petty_FE/node_modules
 petty_FE/dist/
 petty_FE/dist-ssr/
 petty_FE/.env
@@ -60,11 +60,11 @@ petty_FE/*.sw?
 .agents/
 .github/
 .gemini/
-openspec/
+openspec
 GEMINI.md
 skills-lock.json
 CLAUDE.md
-.claude/
+.claude
 .qwen/
 rubric_aws_capstone_week1.md
 AI_ROADMAP.md
