@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PhieuKham extends Model
 {
@@ -51,5 +52,21 @@ class PhieuKham extends Model
     public function nhanVien(): BelongsTo
     {
         return $this->belongsTo(NhanVien::class, 'nhan_vien_id');
+    }
+
+    /**
+     * Chi tiết đơn thuốc
+     */
+    public function chiTietPhieuKhams(): HasMany
+    {
+        return $this->hasMany(ChiTietPhieuKham::class);
+    }
+
+    /**
+     * Đính kèm phiếu khám
+     */
+    public function dinhKems(): HasMany
+    {
+        return $this->hasMany(DinhKemPhieuKham::class);
     }
 }

@@ -93,4 +93,15 @@ class HangHoa extends Model
 
         return $statusMap[$this->tinh_trang] ?? $this->tinh_trang;
     }
+
+    /**
+     * Scope to filter only medicine products.
+     */
+    public function scopeThuoc($query)
+    {
+        return $query->whereHas('danhMuc', function ($q) {
+            $q->where('ten_danh_muc_hang_hoa', 'like', '%thuốc%')
+              ->orWhere('ten_danh_muc_hang_hoa', 'like', '%thuoc%');
+        });
+    }
 }

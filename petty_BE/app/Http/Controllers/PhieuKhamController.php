@@ -401,4 +401,54 @@ class PhieuKhamController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Hoàn tất phiếu khám và chuyển sang trạng thái chờ thanh toán
+     */
+    public function hoanTat($id)
+    {
+        try {
+            $phieuKham = PhieuKham::with('lichHen')->findOrFail($id);
+
+            // Check ownership: bác sĩ là người khám
+            if ($phieuKham->nhan_vien_id !== auth()->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bạn không có quyền hoàn tất phiếu khám này.'
+                ], 403);
+            }
+
+            // Check phiếu khám chưa thanh toán
+            if ($phieuKham->lichHen && $phieuKham->lichHen->trang_thai === 'da_thanh_toan') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Phiếu khám đã được thanh toán, không thể hoàn tất lại.'
+                ], 409);
+            }
+
+            \DB::transaction(function () use ($phieuKham) {
+                // Update lich_hen.trang_thai = 'cho_thanh_toan'
+                if ($phieuKham->lichHen) {
+                    $phieuKham->lichHen->update([
+                        'trang_thai' => 'cho_thanh_toan'
+                    ]);
+                }
+            });
+
+            $phieuKham->load('lichHen');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Hoàn tất phiếu khám thành công',
+                'data' => new \App\Http\Resources\PhieuKhamResource($phieuKham)
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi hoàn tất phiếu khám',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

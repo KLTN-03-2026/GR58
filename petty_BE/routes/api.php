@@ -28,6 +28,9 @@ use App\Http\Controllers\PhanQuyenController;
 use App\Http\Controllers\LichDangKyController;
 use App\Http\Controllers\PhieuKhamController;
 use App\Http\Controllers\Api\DinhKemPhieuKhamController;
+use App\Http\Controllers\Api\DonThuocController;
+use App\Http\Controllers\Api\LichNhacController;
+use App\Http\Controllers\Api\ChiTietHoSoBenhAnController;
 use App\Http\Controllers\HoSoBenhAnController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\PaymentController;
@@ -373,6 +376,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/phieu-kham/{phieuKhamId}/dinh-kem', [DinhKemPhieuKhamController::class, 'index'])->middleware('staff.only');
     Route::post('/phieu-kham/{phieuKhamId}/dinh-kem', [DinhKemPhieuKhamController::class, 'store'])->middleware('staff.only');
     Route::delete('/phieu-kham/{phieuKhamId}/dinh-kem/{dinhKemId}', [DinhKemPhieuKhamController::class, 'destroy'])->middleware('staff.only');
+
+    // Đơn thuốc (chi tiết phiếu khám)
+    Route::get('/phieu-kham/{phieuKham}/don-thuoc', [DonThuocController::class, 'index'])->middleware('staff.only');
+    Route::post('/phieu-kham/{phieuKham}/don-thuoc', [DonThuocController::class, 'store'])->middleware('staff.only');
+    Route::delete('/phieu-kham/{phieuKham}/don-thuoc/{chiTiet}', [DonThuocController::class, 'destroy'])->middleware('staff.only');
+
+    // Lịch nhắc (kế hoạch điều trị & tái khám)
+    Route::post('/phieu-kham/{phieuKham}/lich-nhac', [LichNhacController::class, 'store'])->middleware('staff.only');
+    Route::get('/phieu-kham/{phieuKham}/lich-nhac', [LichNhacController::class, 'index'])->middleware('staff.only');
+    Route::delete('/lich-nhac/{lichNhac}', [LichNhacController::class, 'destroy'])->middleware('staff.only');
+
+    // Hoàn tất phiếu khám
+    Route::patch('/phieu-kham/{id}/hoan-tat', [PhieuKhamController::class, 'hoanTat'])->middleware('staff.only');
+
+    // Timeline hồ sơ bệnh án
+    Route::get('/ho-so-benh-an/thu-cung/{thuCungId}/timeline', [ChiTietHoSoBenhAnController::class, 'timeline'])->middleware('staff.only');
 
     // Kiểm tra mã khuyến mãi (public - cho khách hàng)
     Route::post('/khuyen-mai/check-code', [KhuyenMaiController::class, 'checkCode']);
