@@ -305,6 +305,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 import { getToken } from '@/utils/auth'
+import { resolveImageUrl } from '@/utils/image'
 
 import ChevronDownIcon from '@/assets/svg/chevron-down.svg'
 import DownloadIcon    from '@/assets/svg/download.svg'
@@ -429,11 +430,7 @@ const formatCurrency = (val) => {
 
 const formatDate = (d) => new Date(d).toLocaleDateString('vi-VN')
 
-const avatarUrl = (path) => {
-  if (!path) return ''
-  if (path.startsWith('http')) return path
-  return `/storage/${path}`
-}
+const avatarUrl = (path) => resolveImageUrl(path, '')
 
 const exportExcel = async () => {
   try {

@@ -158,8 +158,8 @@
               class="w-28 h-28 border-2 !border-gray-300 rounded-2xl overflow-hidden flex-shrink-0"
             >
               <img
-                v-if="appt.thu_cung?.anh_dai_dien_url"
-                :src="appt.thu_cung.anh_dai_dien_url"
+                v-if="appt.thu_cung?.anh_dai_dien_url || appt.thu_cung?.anh_dai_dien"
+                :src="resolveImageUrl(appt.thu_cung.anh_dai_dien_url || appt.thu_cung.anh_dai_dien)"
                 class="w-full h-full object-cover"
               />
               <div
@@ -311,6 +311,7 @@ import { ref, computed, watch, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import api from "@/utils/api";
 import { getUser } from "@/utils/auth";
+import { resolveImageUrl } from "@/utils/image";
 import { format, differenceInMinutes, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 //Icon SVG

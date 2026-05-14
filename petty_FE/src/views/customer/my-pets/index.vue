@@ -239,7 +239,15 @@ const mapGender = (raw) => {
 const resolveImageUrl = (imagePath) => {
   if (!imagePath) return PLACEHOLDER_IMAGE;
   const p = String(imagePath).trim();
-  if (p.startsWith("http://") || p.startsWith("https://")) return p;
+  if (p.startsWith("http://") || p.startsWith("https://")) {
+    try {
+      const parsed = new URL(p);
+      if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+        return `${BASE_HOST}${parsed.pathname}`;
+      }
+    } catch { /* fall through */ }
+    return p;
+  }
   // If begins with /storage or storage/, use BASE_HOST + /storage/...
   if (p.startsWith("/storage/") || p.startsWith("storage/"))
     return `${BASE_HOST}/storage/${p
@@ -252,8 +260,7 @@ const resolveImageUrl = (imagePath) => {
 const mapBackendPetToCard = (item) => {
   const imagePath = item.anh_dai_dien || "";
   const candidates = getImageCandidates(imagePath);
-  // Prefer anh_dai_dien_url from backend — it already handles default-image logic for pets with no photo
-  const imageUrl = item.anh_dai_dien_url || (candidates.length ? candidates[0] : PLACEHOLDER_IMAGE);
+  const imageUrl = resolveImageUrl(item.anh_dai_dien_url || item.anh_dai_dien) || (candidates.length ? candidates[0] : PLACEHOLDER_IMAGE);
 
   const type = item.loai_thu_cung || "";
   const tagClass =

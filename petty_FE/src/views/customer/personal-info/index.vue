@@ -289,6 +289,7 @@ import axios from "axios";
 import client from "@/utils/api";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
 import { getUser, logout, setAuth, getToken } from "../../../utils/auth";
+import { resolveImageUrl } from "@/utils/image";
 import CameraSmIcon from "@/assets/svg/camerasm.svg";
 import KeyIcon from "@/assets/svg/key.svg";
 import LogoutIcon from "@/assets/svg/log-out.svg";
@@ -479,7 +480,7 @@ const addressRef = ref(null);
 const fileInputRef = ref(null);
 const avatarFile = ref(null);
 const avatarPreview = ref(
-  user.value?.anh_dai_dien_url || user.value?.anh_dai_dien || null
+  resolveImageUrl(user.value?.anh_dai_dien_url || user.value?.anh_dai_dien)
 );
 const avatarLocalUrl = ref(null); // object URL created for preview
 const avatarUploading = ref(false);
