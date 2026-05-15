@@ -462,7 +462,7 @@ const handleSubmit = async () => {
     } catch (e) {}
 
     // If files present, upload and replace with returned URLs before calling createNhanVien
-    // Upload avatar
+    // Upload avatar — lưu relative path vào DB
     if (formData.value.avatar) {
       try {
         const fd = new FormData();
@@ -470,19 +470,7 @@ const handleSubmit = async () => {
         const upRes = await api.post("/upload", fd);
         let avatarPath = null;
         if (upRes && upRes.data) {
-          avatarPath =
-            (upRes.data.data &&
-              (upRes.data.data.path || upRes.data.data.url)) ||
-            upRes.data.path ||
-            upRes.data.url ||
-            null;
-        }
-        if (avatarPath && !/^https?:\/\//i.test(avatarPath)) {
-          const API_BASE =
-            import.meta.env.VITE_API_BASE || "http://localhost:8001/api";
-          const API_ORIGIN = API_BASE.replace(/\/api\/?$/, "");
-          if (!avatarPath.startsWith("/")) avatarPath = "/" + avatarPath;
-          avatarPath = API_ORIGIN + avatarPath;
+          avatarPath = (upRes.data.data && upRes.data.data.path) || upRes.data.path || null;
         }
         formData.value.avatar = avatarPath;
       } catch (ue) {
@@ -494,7 +482,7 @@ const handleSubmit = async () => {
       }
     }
 
-    // Upload practice certificate
+    // Upload practice certificate — lưu relative path vào DB
     if (formData.value.practiceCertificate) {
       try {
         const fd = new FormData();
@@ -502,19 +490,7 @@ const handleSubmit = async () => {
         const upRes = await api.post("/upload", fd);
         let pPath = null;
         if (upRes && upRes.data)
-          pPath =
-            (upRes.data.data &&
-              (upRes.data.data.path || upRes.data.data.url)) ||
-            upRes.data.path ||
-            upRes.data.url ||
-            null;
-        if (pPath && !/^https?:\/\//i.test(pPath)) {
-          const API_BASE =
-            import.meta.env.VITE_API_BASE || "http://localhost:8001/api";
-          const API_ORIGIN = API_BASE.replace(/\/api\/?$/, "");
-          if (!pPath.startsWith("/")) pPath = "/" + pPath;
-          pPath = API_ORIGIN + pPath;
-        }
+          pPath = (upRes.data.data && upRes.data.data.path) || upRes.data.path || null;
         formData.value.practiceCertificate = pPath;
       } catch (ue) {
         console.error("Practice certificate upload error:", ue);
@@ -525,7 +501,7 @@ const handleSubmit = async () => {
       }
     }
 
-    // Upload professional degree
+    // Upload professional degree — lưu relative path vào DB
     if (formData.value.professionalDegree) {
       try {
         const fd = new FormData();
@@ -533,19 +509,7 @@ const handleSubmit = async () => {
         const upRes = await api.post("/upload", fd);
         let dPath = null;
         if (upRes && upRes.data)
-          dPath =
-            (upRes.data.data &&
-              (upRes.data.data.path || upRes.data.data.url)) ||
-            upRes.data.path ||
-            upRes.data.url ||
-            null;
-        if (dPath && !/^https?:\/\//i.test(dPath)) {
-          const API_BASE =
-            import.meta.env.VITE_API_BASE || "http://localhost:8001/api";
-          const API_ORIGIN = API_BASE.replace(/\/api\/?$/, "");
-          if (!dPath.startsWith("/")) dPath = "/" + dPath;
-          dPath = API_ORIGIN + dPath;
-        }
+          dPath = (upRes.data.data && upRes.data.data.path) || upRes.data.path || null;
         formData.value.professionalDegree = dPath;
       } catch (ue) {
         console.error("Professional degree upload error:", ue);

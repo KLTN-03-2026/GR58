@@ -391,25 +391,18 @@ const shortFileName = (urlOrName) => {
   return parts[parts.length - 1] || urlOrName;
 };
 
-// Upload a File and return its absolute URL string
+// Upload a File and return its relative path (to store in DB)
 const uploadFile = async (file) => {
   const fd = new FormData();
   fd.append("file", file);
   const upRes = await api.post("/upload", fd);
   let p = null;
   if (upRes && upRes.data) {
+    // Ưu tiên lấy path (relative) để lưu vào DB
     p =
-      (upRes.data.data && (upRes.data.data.path || upRes.data.data.url)) ||
+      (upRes.data.data && upRes.data.data.path) ||
       upRes.data.path ||
-      upRes.data.url ||
       null;
-  }
-  if (p && !/^https?:\/\//i.test(p)) {
-    const API_BASE =
-      import.meta.env.VITE_API_BASE || "http://localhost:8001/api";
-    const API_ORIGIN = API_BASE.replace(/\/api\/?$/, "");
-    if (!p.startsWith("/")) p = "/" + p;
-    p = API_ORIGIN + p;
   }
   return p;
 };
