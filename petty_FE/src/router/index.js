@@ -117,6 +117,11 @@ const routes = [
     component: () => import("../views/staff/login/index.vue"),
     meta: { layout: "dangki_dangnhap" },
   },
+  {
+    path: "/staff/doi-mat-khau-lan-dau",
+    component: () => import("../views/staff/first-change-password/index.vue"),
+    meta: { layout: "dangki_dangnhap" },
+  },
 
   {
     path: "/admin",

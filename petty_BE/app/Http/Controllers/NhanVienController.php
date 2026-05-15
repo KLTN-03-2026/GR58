@@ -119,6 +119,9 @@ class NhanVienController extends Controller
             $data['password'] = $plainPassword;
         }
 
+        // Bắt buộc đổi mật khẩu lần đầu đăng nhập
+        $data['must_change_password'] = true;
+
         // Map vai_tro to PhanQuyen and assign phan_quyen_id
         $vaiTroMap = [
             'bac_si' => PhanQuyen::VAI_TRO_BAC_SI,
@@ -222,6 +225,35 @@ class NhanVienController extends Controller
             'status' => true,
             'message' => 'Cập nhật nhân viên thành công.',
             'data' => $payload,
+        ]);
+    }
+
+    /**
+     * Đổi mật khẩu lần đầu (self-service, không cần mật khẩu cũ).
+     * Chỉ dùng được khi must_change_password = true.
+     */
+    public function firstChangePassword(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!($user instanceof NhanVien)) {
+            return response()->json(['status' => false, 'message' => 'Không hợp lệ.'], 403);
+        }
+
+        $data = $request->validate([
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'password.required'  => 'Mật khẩu mới là bắt buộc.',
+            'password.min'       => 'Mật khẩu phải có ít nhất 8 ký tự.',
+            'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
+        ]);
+
+        $user->password              = $data['password'];
+        $user->must_change_password  = false;
+        $user->save();
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Đổi mật khẩu thành công. Chào mừng bạn!',
         ]);
     }
 
@@ -362,6 +394,7 @@ class NhanVienController extends Controller
             'data' => $nhanVienData,
             'token' => $token,
             'redirect_url' => $redirectUrl,
+            'must_change_password' => (bool) $nhanVien->must_change_password,
             'vai_tro_debug' => $nhanVien->vai_tro, // Thêm để debug
         ], 200);
     }

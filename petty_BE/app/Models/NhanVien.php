@@ -27,6 +27,7 @@ class NhanVien extends Authenticatable
         'password',
         'trang_thai',
         'phan_quyen_id',
+        'must_change_password',
     ];
 
     // Ẩn mật khẩu khi serialize
@@ -36,9 +37,10 @@ class NhanVien extends Authenticatable
     ];
 
     protected $casts = [
-        'nam_kinh_nghiem' => 'integer',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'nam_kinh_nghiem'      => 'integer',
+        'must_change_password' => 'boolean',
+        'created_at'           => 'datetime',
+        'updated_at'           => 'datetime',
     ];
 
     /**

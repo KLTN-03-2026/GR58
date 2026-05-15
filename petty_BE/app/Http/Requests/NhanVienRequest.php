@@ -26,16 +26,15 @@ class NhanVienRequest extends FormRequest
                 'email',
                 Rule::unique('nhan_viens', 'email')->ignore($ignoreId),
             ],
-            'phone' => 'required|digits:10',
-            'address' => 'required|string',
-            'anh_dai_dien' => 'required|string',
-            'vai_tro' => 'required|in:bac_si,y_ta',
-            'chuc_danh' => 'required|string|max:255',
-            'nam_kinh_nghiem' => 'required|integer|min:0',
-            'chung_chi_hanh_nghe' => 'required|string',
-            'bang_cap_chuyen_mon' => 'required|string',
-            // password is required when creating (POST) but optional when updating (PUT/PATCH)
-            'trang_thai' => 'required|in:hoat_dong,da_khoa',
+            'phone'               => 'required|digits:10',
+            'address'             => 'nullable|string',
+            'anh_dai_dien'        => 'nullable|string',
+            'vai_tro'             => 'required|in:bac_si,y_ta',
+            'chuc_danh'           => 'nullable|string|max:255',
+            'nam_kinh_nghiem'     => 'nullable|integer|min:0',
+            'chung_chi_hanh_nghe' => 'nullable|string',
+            'bang_cap_chuyen_mon' => 'nullable|string',
+            'trang_thai'          => 'required|in:hoat_dong,da_khoa',
         ];
 
         // Allow creating without providing a password (controller will generate one if missing)

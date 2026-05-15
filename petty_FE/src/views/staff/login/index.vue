@@ -208,6 +208,11 @@ const handleLogin = async () => {
       // Use redirect_url from backend if available
       let redirectPath = res.data.redirect_url || null;
 
+      // Nếu phải đổi mật khẩu lần đầu → redirect đến trang đổi mật khẩu
+      if (res.data.must_change_password) {
+        redirectPath = '/staff/doi-mat-khau-lan-dau';
+      }
+
       // Fallback to query parameter redirect
       if (!redirectPath && route.query && route.query.redirect) {
         redirectPath = String(route.query.redirect);

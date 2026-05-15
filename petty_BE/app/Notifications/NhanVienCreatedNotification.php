@@ -38,22 +38,19 @@ class NhanVienCreatedNotification extends Notification
      */
     public function toMail($notifiable)
     {
-        $mail = (new MailMessage)
-            ->subject('Chào mừng nhân viên mới')
-            ->greeting('Xin chào ' . $this->nhanVien->full_name)
-            ->line('Tài khoản nhân viên của bạn đã được tạo.')
-            ->line('Email: ' . $this->nhanVien->email);
+        $name     = $this->nhanVien->full_name;
+        $email    = $this->nhanVien->email;
+        $password = $this->plainPassword ?? '(đã được thiết lập)';
+        $vaiTro   = match($this->nhanVien->vai_tro ?? '') {
+            'bac_si' => 'Bác sĩ',
+            'y_ta'   => 'Y tá',
+            default  => 'Nhân viên',
+        };
+        $loginUrl = config('app.url', 'http://localhost:5173') . '/staff/login';
 
-        if ($this->plainPassword) {
-            $mail->line('Mật khẩu tạm thời của bạn: ' . $this->plainPassword)
-                ->line('Vui lòng đăng nhập và thay đổi mật khẩu ngay sau khi đăng nhập.');
-        } else {
-            $mail->line('Nếu bạn không nhập mật khẩu, hãy sử dụng chức năng quên mật khẩu để thiết lập.');
-        }
-
-        $mail->line('Cảm ơn bạn đã gia nhập đội ngũ.');
-
-        return $mail;
+        return (new MailMessage)
+            ->subject('🎉 Chào mừng bạn gia nhập đội ngũ Petty Care!')
+            ->view('emails.nhan_vien_created', compact('name', 'email', 'password', 'vaiTro', 'loginUrl'));
     }
 
     /**
