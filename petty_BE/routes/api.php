@@ -259,6 +259,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/khoa', [KhoaController::class, 'store'])->middleware(['staff.only', 'permission:khoa_tao']);
     // Nhân viên: tạo mới (chỉ admin và nhân viên có quyền)
     Route::post('/nhan-vien', [NhanVienController::class, 'store'])->middleware(['staff.only', 'permission:nhan_vien_tao']);
+    // Nhân viên: cập nhật thông tin (chỉ admin và nhân viên có quyền)
+    Route::match(['put', 'patch'], '/nhan-vien/{nhanVien}', [NhanVienController::class, 'update'])->middleware(['staff.only', 'permission:nhan_vien_sua']);
     // Nhân viên: đổi mật khẩu (chỉ admin và nhân viên có quyền)
     Route::patch('/nhan-vien/{nhanVien}/mat-khau', [NhanVienController::class, 'changePassword'])->middleware(['staff.only', 'permission:nhan_vien_doi_mat_khau']);
     // Nhân viên: khóa tài khoản (chỉ admin và nhân viên có quyền)

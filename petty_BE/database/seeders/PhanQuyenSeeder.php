@@ -87,6 +87,7 @@ class PhanQuyenSeeder extends Seeder
             // Nhân viên
             'nhan_vien_xem' => true,
             'nhan_vien_tao' => true,
+            'nhan_vien_sua' => true,
             'nhan_vien_doi_mat_khau' => true,
             'nhan_vien_khoa_tai_khoan' => true,
             'nhan_vien_mo_khoa_tai_khoan' => true,

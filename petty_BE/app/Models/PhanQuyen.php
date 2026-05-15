@@ -89,6 +89,7 @@ class PhanQuyen extends Model
         // Nhân viên
         'nhan_vien_xem',
         'nhan_vien_tao',
+        'nhan_vien_sua',
         'nhan_vien_doi_mat_khau',
         'nhan_vien_khoa_tai_khoan',
         'nhan_vien_mo_khoa_tai_khoan',
@@ -181,6 +182,7 @@ class PhanQuyen extends Model
         'khach_hang_sua' => 'boolean',
         'nhan_vien_xem' => 'boolean',
         'nhan_vien_tao' => 'boolean',
+        'nhan_vien_sua' => 'boolean',
         'nhan_vien_doi_mat_khau' => 'boolean',
         'nhan_vien_khoa_tai_khoan' => 'boolean',
         'nhan_vien_mo_khoa_tai_khoan' => 'boolean',
