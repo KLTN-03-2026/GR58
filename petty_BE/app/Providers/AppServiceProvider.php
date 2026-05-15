@@ -10,6 +10,7 @@ use App\Models\NhanVien;
 use App\Policies\ThuCungPolicy;
 use App\Observers\AdminObserver;
 use App\Observers\NhanVienObserver;
+use App\Services\SepayService;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -18,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(SepayService::class);
     }
 
     /**

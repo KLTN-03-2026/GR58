@@ -189,6 +189,14 @@
 
       </div>
     </div>
+
+    <!-- QR Payment Modal -->
+    <PaymentQrModal
+      :lich-hen-id="lichHen.id"
+      :visible="showQrModal"
+      @close="showQrModal = false"
+      @success="onQrPaymentSuccess"
+    />
   </div>
 </template>
 
@@ -197,6 +205,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import api from '@/utils/api'
 import { resolveImageUrl } from '@/utils/image'
 import { showSuccessToast, showErrorToast } from '@/utils/toast'
+import PaymentQrModal from '@/components/payment/PaymentQrModal.vue'
 
 
 const props = defineProps({
@@ -219,14 +228,16 @@ const hinhThuc = ref('tien_mat')
 const tienMat = ref(0)
 const tienOnline = ref(0)
 const soTienGiam = ref(0)
+const showQrModal = ref(false)
 const khuyenMaiId = ref(null)
 const loaiGiam = ref('khong_giam')
 
 const paymentOptions = [
-  { value: 'tien_mat', label: 'Tiền mặt' },
-  { value: 'vnpay',    label: 'VNPay' },
-  { value: 'momo',     label: 'Momo' },
-  { value: 'ket_hop',  label: 'Kết hợp (Tiền mặt + Online)' },
+  { value: 'tien_mat',      label: 'Tiền mặt' },
+  { value: 'chuyen_khoan',  label: 'Chuyển khoản (QR)' },
+  { value: 'vnpay',         label: 'VNPay' },
+  { value: 'momo',          label: 'Momo' },
+  { value: 'ket_hop',       label: 'Kết hợp (Tiền mặt + Online)' },
 ]
 
 // Tổng tiền
@@ -372,6 +383,11 @@ watch(hinhThuc, (val) => {
 
 // Xác nhận thanh toán
 const confirmPayment = async () => {
+  if (hinhThuc.value === 'chuyen_khoan') {
+    showQrModal.value = true
+    return
+  }
+
   saving.value = true
   try {
     await api.post('/thanh-toan', {
@@ -390,6 +406,11 @@ const confirmPayment = async () => {
   } finally {
     saving.value = false
   }
+}
+
+const onQrPaymentSuccess = () => {
+  showQrModal.value = false
+  emit('complete')
 }
 
 const formatCurrency = (val) =>

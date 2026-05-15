@@ -344,38 +344,24 @@
           <div class="flex flex-col h-[70px] items-start w-full">
             <p class="font-bold text-xl leading-6 text-teal-800">Phương thức thanh toán</p>
             <p class="font-normal text-lg leading-6 text-teal-600">
-              Liên kết ví điện tử và tài khoản ngân hàng để thanh toán nhanh hơn
+              Các phương thức thanh toán được hỗ trợ tại Petty
             </p>
           </div>
 
           <div class="flex flex-col gap-4">
-            <!-- VNPay -->
+            <!-- Chuyển khoản ngân hàng (SePay) -->
             <div class="bg-white border !border-teal-300 rounded-[10px] h-[82px] px-[17px] py-px flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <div class="rounded-[10px] shadow-md w-12 h-12">
-                  <img src="/src/assets/img_imports/public_img/vnpay.png" alt="VNPay" class="w-full h-full rounded-[10px] object-contain" />
+                  <img src="/src/assets/img_imports/public_img/sepay.png" alt="SePay" class="w-full h-full rounded-[10px] object-contain" />
                 </div>
                 <div class="flex flex-col">
-                  <p class="font-medium text-base leading-6 text-black">VNPay</p>
-                  <p class="font-medium text-sm leading-6 text-gray-500">Ví điện tử VNPay</p>
+                  <p class="font-medium text-base leading-6 text-black">Chuyển khoản ngân hàng</p>
+                  <p class="font-medium text-sm leading-6 text-gray-500">Quét mã QR bằng app ngân hàng bất kỳ</p>
                 </div>
               </div>
-              <div class="flex items-center gap-3">
-                <div
-                  :class="linkedMethods.vnpay ? 'bg-green-100 border-green-300' : 'bg-gray-100 border-black/15'"
-                  class="border rounded-lg px-[17px] py-[3px]"
-                >
-                  <p :class="linkedMethods.vnpay ? 'text-green-700' : 'text-black/60'" class="font-semibold text-sm leading-5">
-                    {{ linkedMethods.vnpay ? 'Đã liên kết' : 'Chưa liên kết' }}
-                  </p>
-                </div>
-                <button
-                  @click="handleLinkPayment('vnpay')"
-                  :class="linkedMethods.vnpay ? 'border-red-300 text-red-500 hover:bg-red-50' : 'border-teal-500 text-teal-500 hover:bg-teal-50'"
-                  class="bg-white border rounded-lg px-[13px] py-[9px] transition-colors"
-                >
-                  <p class="font-semibold text-sm leading-5">{{ linkedMethods.vnpay ? 'Hủy liên kết' : 'Liên kết' }}</p>
-                </button>
+              <div class="bg-green-100 border border-green-300 rounded-lg px-[17px] py-[3px]">
+                <p class="font-semibold text-sm leading-5 text-green-700">Khả dụng</p>
               </div>
             </div>
 
@@ -386,30 +372,16 @@
                   <img src="/src/assets/img_imports/public_img/momo.png" alt="MoMo" class="w-full h-full rounded-[10px] object-contain" />
                 </div>
                 <div class="flex flex-col">
-                  <p class="font-medium text-base leading-6 text-black">MoMo</p>
-                  <p class="font-medium text-sm leading-6 text-gray-500">Ví điện tử MoMo</p>
+                  <p class="font-medium text-base leading-6 text-black">Ví MoMo</p>
+                  <p class="font-medium text-sm leading-6 text-gray-500">Thanh toán qua ứng dụng MoMo</p>
                 </div>
               </div>
-              <div class="flex items-center gap-3">
-                <div
-                  :class="linkedMethods.momo ? 'bg-green-100 border-green-300' : 'bg-gray-100 border-black/15'"
-                  class="border rounded-lg px-[17px] py-[3px]"
-                >
-                  <p :class="linkedMethods.momo ? 'text-green-700' : 'text-black/60'" class="font-semibold text-sm leading-5">
-                    {{ linkedMethods.momo ? 'Đã liên kết' : 'Chưa liên kết' }}
-                  </p>
-                </div>
-                <button
-                  @click="handleLinkPayment('momo')"
-                  :class="linkedMethods.momo ? 'border-red-300 text-red-500 hover:bg-red-50' : 'border-teal-500 text-teal-500 hover:bg-teal-50'"
-                  class="bg-white border rounded-lg px-[13px] py-[9px] transition-colors"
-                >
-                  <p class="font-semibold text-sm leading-5">{{ linkedMethods.momo ? 'Hủy liên kết' : 'Liên kết' }}</p>
-                </button>
+              <div class="bg-green-100 border border-green-300 rounded-lg px-[17px] py-[3px]">
+                <p class="font-semibold text-sm leading-5 text-green-700">Khả dụng</p>
               </div>
             </div>
 
-            <!-- Tiền mặt (info only) -->
+            <!-- Tiền mặt -->
             <div class="bg-white border !border-teal-300 rounded-[10px] h-[82px] px-[17px] py-px flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <div class="rounded-[10px] shadow-md w-12 h-12 bg-teal-50 flex items-center justify-center">
@@ -417,11 +389,11 @@
                 </div>
                 <div class="flex flex-col">
                   <p class="font-medium text-base leading-6 text-black">Tiền mặt tại phòng khám</p>
-                  <p class="font-medium text-sm leading-6 text-gray-500">Thanh toán trực tiếp</p>
+                  <p class="font-medium text-sm leading-6 text-gray-500">Thanh toán trực tiếp khi đến khám</p>
                 </div>
               </div>
               <div class="bg-green-100 border border-green-300 rounded-lg px-[17px] py-[3px]">
-                <p class="font-semibold text-sm leading-5 text-green-700">Luôn khả dụng</p>
+                <p class="font-semibold text-sm leading-5 text-green-700">Khả dụng</p>
               </div>
             </div>
           </div>
@@ -500,8 +472,6 @@ const paymentStatus = ref("pending");
 const showReceiptPopup = ref(false);
 const selectedReceipt = ref(null);
 
-// Payment methods link status (local state for demo)
-const linkedMethods = ref({ vnpay: false, momo: false });
 
 // Payments data (raw from API)
 const payments = ref([]);
@@ -836,10 +806,6 @@ const handleViewRefundStatus = (payment) => {
     phuongThuc: payment.phuongThuc,
   };
   showPaymentPopup.value = true;
-};
-
-const handleLinkPayment = (method) => {
-  linkedMethods.value[method] = !linkedMethods.value[method];
 };
 
 const handlePaymentSuccess = (paymentData) => {

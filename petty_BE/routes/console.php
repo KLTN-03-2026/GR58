@@ -44,6 +44,9 @@ Schedule::command('lich-lam-viec:generate', [
 // ─── Nhắc tiêm phòng hàng ngày lúc 8:00 sáng ────────────────────────────────
 Schedule::command('thongbao:nhac-tiem-phong')->dailyAt('08:00');
 
+// ─── Tự động hết hạn giao dịch chuyển khoản quá 15 phút ──────────────────────
+Schedule::command('payments:expire')->everyMinute()->withoutOverlapping();
+
 // ─── Tự động hủy lịch hẹn quá 7 ngày chưa xử lý ─────────────────────────────
 Schedule::command('lich-hen:cancel-overdue --days=7')
     ->dailyAt('00:05')

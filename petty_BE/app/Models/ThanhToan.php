@@ -18,6 +18,7 @@ class ThanhToan extends Model
         'tien_mat',
         'tien_online',
         'ma_giao_dich_online',
+        'sepay_transaction_id',
         'khuyen_mai_id',
         'ma_giam_gia',
         'loai_giam',
@@ -25,17 +26,34 @@ class ThanhToan extends Model
         'nhan_vien_id',
         'admin_id',
         'ngay_thanh_toan',
+        'het_han_luc',
         'ghi_chu',
     ];
 
     protected $casts = [
         'ngay_thanh_toan'    => 'datetime',
+        'het_han_luc'        => 'datetime',
         'tong_tien_goc'      => 'float',
         'so_tien_giam'       => 'float',
         'tong_tien_sau_giam' => 'float',
         'tien_mat'           => 'float',
         'tien_online'        => 'float',
     ];
+
+    public function isPending(): bool
+    {
+        return $this->trang_thai === 'cho_thanh_toan';
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->trang_thai === 'het_han';
+    }
+
+    public function isBankTransfer(): bool
+    {
+        return $this->hinh_thuc_thanh_toan === 'chuyen_khoan';
+    }
 
     public function lichHen(): BelongsTo
     {

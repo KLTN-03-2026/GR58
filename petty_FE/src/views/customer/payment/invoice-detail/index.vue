@@ -178,6 +178,34 @@
           </span>
         </button>
       </div>
+
+      <!-- Chuyển khoản ngân hàng (QR) -->
+      <div class="bg-white border border-teal-300 rounded-[10px] h-[98px] px-[17px] py-[17px] flex items-start justify-between">
+        <div class="flex items-start gap-3">
+          <div class="rounded-[10px] shadow-md w-10 h-10 bg-[#009689] flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+          </div>
+          <div class="flex flex-col">
+            <p class="font-medium text-sm leading-5 text-black">
+              Chuyển khoản ngân hàng
+            </p>
+            <p class="font-medium text-xs leading-5 text-gray-600">
+              Quét mã QR bằng app ngân hàng
+            </p>
+          </div>
+        </div>
+        <button
+          @click="handlePayment('chuyen_khoan')"
+          class="bg-[#5a9690] rounded-lg px-3 py-1 flex items-center gap-2"
+        >
+          <CreditCard class="w-4 h-4 text-white" />
+          <span class="font-semibold text-base leading-6 text-white">
+            Thanh toán
+          </span>
+        </button>
+      </div>
     </div>
 
     <!-- Back Button -->
@@ -542,11 +570,20 @@
       </span>
     </button>
   </div>
+
+  <!-- QR Payment Modal -->
+  <PaymentQrModal
+    :lich-hen-id="lichHenId"
+    :visible="showQrModal"
+    @close="showQrModal = false"
+    @success="onQrPaymentSuccess"
+  />
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { X, CreditCard, CheckCircle2, CreditCard as PaymentIcon } from 'lucide-vue-next';
+import PaymentQrModal from '@/components/payment/PaymentQrModal.vue';
 
 // Props
 const props = defineProps({
@@ -595,6 +632,8 @@ const currentStep = ref('invoice'); // 'invoice' or 'payment-method' (only for p
 const displayType = computed(() => props.paymentStatus);
 const errorMessage = ref('');
 const isProcessing = ref(false);
+const showQrModal = ref(false);
+const lichHenId = computed(() => props.invoiceData?.lichHenId || props.invoiceData?.id);
 
 // Watch for popup open/close to reset step
 watch(() => props.isOpen, (newVal) => {
@@ -629,9 +668,20 @@ const goBack = () => {
   currentStep.value = 'invoice';
 };
 
+const onQrPaymentSuccess = () => {
+  showQrModal.value = false;
+  emit('payment-success');
+  closePopup();
+};
+
 const handlePayment = async (method) => {
   console.log('Payment method selected:', method);
   errorMessage.value = '';
+
+  if (method === 'chuyen_khoan') {
+    showQrModal.value = true;
+    return;
+  }
 
   if (method === 'momo') {
     const amount = props.invoiceData.remainingAmount || props.invoiceData.totalAmount;

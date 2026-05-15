@@ -33,6 +33,7 @@ use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\LichNghiController;
 use App\Http\Controllers\ThanhToanController;
+use App\Http\Controllers\SepayController;
 use App\Http\Controllers\YeuCauHoTroController;
 use App\Http\Controllers\ThongBaoController;
 use App\Http\Controllers\Api\InvoiceController;
@@ -248,6 +249,8 @@ Route::get('/reactions', [ReactionController::class, 'index']);
 Route::post('/admin/dang-nhap', [AdminController::class, 'dangNhap']);
 // route cho momo webhook
 Route::post('/payment/momo/ipn', [PaymentController::class, 'momoIPN']);
+// SePay webhook (no auth required)
+Route::post('/webhook/sepay', [SepayController::class, 'webhook']);
 // Admin authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/dang-xuat', [AdminController::class, 'dangXuat']);
@@ -401,6 +404,14 @@ Route::post('/thanh-toan', [ThanhToanController::class, 'store'])
 
 Route::get('/thanh-toan/{id}', [ThanhToanController::class, 'show'])
     ->middleware('staff.only');
+
+// SePay payment routes (authenticated)
+Route::post('/thanh-toan/chuyen-khoan', [SepayController::class, 'createPayment'])
+    ->middleware('auth:sanctum');
+Route::get('/thanh-toan/{id}/trang-thai', [SepayController::class, 'checkStatus'])
+    ->middleware('auth:sanctum');
+Route::post('/thanh-toan/{id}/confirm', [SepayController::class, 'confirmManual'])
+    ->middleware(['auth:sanctum', 'staff.only']);
 
 // ── Thêm dịch vụ vào lịch hẹn (nhiều dịch vụ) ──
 Route::post('/lich-hen/{id}/them-dich-vu', [LichHenController::class, 'themDichVu'])
