@@ -36,20 +36,56 @@
         <!-- Filters -->
         <div class="grid grid-cols-2 gap-4">
           <!-- Status Filter -->
-          <button
-            class="bg-[#f3f3f5] border-0 rounded-lg px-3 py-1 flex items-center justify-between h-9 hover:bg-gray-200 transition-colors"
-          >
-            <span class="text-sm text-neutral-950">Tất cả trạng thái</span>
-            <ChevronDownIcon />
-          </button>
+          <div class="relative" ref="statusDropdownRef">
+            <button
+              type="button"
+              @click="isStatusDropdownOpen = !isStatusDropdownOpen"
+              class="w-full bg-[#f3f3f5] border-0 rounded-lg px-3 py-1 flex items-center justify-between h-9 hover:bg-gray-200 transition-colors"
+            >
+              <span class="text-sm text-neutral-950">{{ selectedStatusLabel }}</span>
+              <ChevronDownIcon :class="['transition-transform', isStatusDropdownOpen ? 'rotate-180' : '']" />
+            </button>
+            <div
+              v-if="isStatusDropdownOpen"
+              class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden"
+            >
+              <button
+                v-for="opt in statusOptions"
+                :key="opt.value"
+                type="button"
+                @click="selectStatus(opt.value)"
+                :class="['w-full px-3 py-2 text-left text-sm transition-colors', statusFilter === opt.value ? 'bg-[#e6f4f3] text-[#0d9488]' : 'text-neutral-950 hover:bg-gray-50']"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
 
           <!-- Type Filter -->
-          <button
-            class="bg-[#f3f3f5] border-0 rounded-lg px-3 py-1 flex items-center justify-between h-9 hover:bg-gray-200 transition-colors"
-          >
-            <span class="text-sm text-neutral-950">Tất cả loại hình</span>
-            <ChevronDownIcon />
-          </button>
+          <div class="relative" ref="typeDropdownRef">
+            <button
+              type="button"
+              @click="isTypeDropdownOpen = !isTypeDropdownOpen"
+              class="w-full bg-[#f3f3f5] border-0 rounded-lg px-3 py-1 flex items-center justify-between h-9 hover:bg-gray-200 transition-colors"
+            >
+              <span class="text-sm text-neutral-950">{{ selectedTypeLabel }}</span>
+              <ChevronDownIcon :class="['transition-transform', isTypeDropdownOpen ? 'rotate-180' : '']" />
+            </button>
+            <div
+              v-if="isTypeDropdownOpen"
+              class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden"
+            >
+              <button
+                v-for="opt in typeOptions"
+                :key="opt.value"
+                type="button"
+                @click="selectType(opt.value)"
+                :class="['w-full px-3 py-2 text-left text-sm transition-colors', typeFilter === opt.value ? 'bg-[#e6f4f3] text-[#0d9488]' : 'text-neutral-950 hover:bg-gray-50']"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -344,7 +380,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, watch, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { khuyenMaiAPI } from "@/utils/khuyenMai";
 
@@ -355,32 +391,69 @@ import ChevronDownIcon from "@/assets/svg/chevron-down.svg";
 import EyeIcon from "@/assets/svg/eye.svg";
 import UpdateIcon from "@/assets/svg/update.svg";
 
-// Icons from Figma
-const iconPlus =
-  "https://www.figma.com/api/mcp/asset/bd491dc9-ee5e-4b10-88a8-62b03bef9093";
-const iconSearch =
-  "https://www.figma.com/api/mcp/asset/8df55cc2-682a-4eaf-baa1-55b3c1c1c558";
-const iconChevronDown =
-  "https://www.figma.com/api/mcp/asset/8d066934-07ff-48dd-abfa-6acf31386f7a";
-const iconVoucher =
-  "https://www.figma.com/api/mcp/asset/ad1dd362-a99c-4f98-a2de-06d8e30e7664";
-const iconAuto =
-  "https://www.figma.com/api/mcp/asset/00b0f86b-3ecd-43b4-b04c-bb40a7cbe478";
-const iconCalendar =
-  "https://www.figma.com/api/mcp/asset/bc5fe324-77bb-4170-975f-5a239914c750";
-const iconEye =
-  "https://www.figma.com/api/mcp/asset/0fa890c9-168a-4cb8-a147-33294ab5f8a1";
-const iconEdit =
-  "https://www.figma.com/api/mcp/asset/d29d4188-00c3-466a-be7b-334b9e84fe7a";
-const iconDelete =
-  "https://www.figma.com/api/mcp/asset/d7d8ae1f-948d-45bc-9bb4-944566004825";
-
 const router = useRouter();
 const searchQuery = ref("");
 const promotions = ref([]);
 const loading = ref(false);
 const statusFilter = ref("");
 const typeFilter = ref("");
+
+// Dropdown state
+const isStatusDropdownOpen = ref(false);
+const isTypeDropdownOpen = ref(false);
+const statusDropdownRef = ref(null);
+const typeDropdownRef = ref(null);
+
+const statusOptions = [
+  { value: "", label: "Tất cả trạng thái" },
+  { value: "dang_chay", label: "Đang chạy" },
+  { value: "sap_dien_ra", label: "Sắp diễn ra" },
+  { value: "da_ket_thuc", label: "Đã kết thúc" },
+  { value: "tam_dung", label: "Tạm dừng" },
+];
+
+const typeOptions = [
+  { value: "", label: "Tất cả loại hình" },
+  { value: "ma_giam_gia", label: "Voucher" },
+  { value: "tu_dong", label: "Tự động" },
+];
+
+const selectedStatusLabel = computed(
+  () => statusOptions.find((o) => o.value === statusFilter.value)?.label || "Tất cả trạng thái"
+);
+const selectedTypeLabel = computed(
+  () => typeOptions.find((o) => o.value === typeFilter.value)?.label || "Tất cả loại hình"
+);
+
+const selectStatus = (value) => {
+  statusFilter.value = value;
+  isStatusDropdownOpen.value = false;
+  pagination.value.current_page = 1;
+  loadPromotions();
+};
+
+const selectType = (value) => {
+  typeFilter.value = value;
+  isTypeDropdownOpen.value = false;
+  pagination.value.current_page = 1;
+  loadPromotions();
+};
+
+const handleClickOutside = (e) => {
+  if (statusDropdownRef.value && !statusDropdownRef.value.contains(e.target)) {
+    isStatusDropdownOpen.value = false;
+  }
+  if (typeDropdownRef.value && !typeDropdownRef.value.contains(e.target)) {
+    isTypeDropdownOpen.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener("click", handleClickOutside);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
 
 // Pagination
 const pagination = ref({

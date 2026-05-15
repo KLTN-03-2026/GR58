@@ -34,20 +34,63 @@
         <!-- Filters -->
         <div class="grid grid-cols-2 gap-4">
           <!-- Category Filter -->
-          <button
-            class="bg-[#f3f3f5] border-0 rounded-lg px-3 py-1 flex items-center justify-between h-9 hover:bg-gray-200 transition-colors"
-          >
-            <span class="text-sm text-neutral-950">Tất cả danh mục</span>
-            <ChevronDownIcon />
-          </button>
+          <div class="relative" ref="categoryDropdownRef">
+            <button
+              type="button"
+              @click="isCategoryDropdownOpen = !isCategoryDropdownOpen"
+              class="w-full bg-[#f3f3f5] border-0 rounded-lg px-3 py-1 flex items-center justify-between h-9 hover:bg-gray-200 transition-colors"
+            >
+              <span class="text-sm text-neutral-950">{{ selectedCategoryLabel }}</span>
+              <ChevronDownIcon :class="['transition-transform', isCategoryDropdownOpen ? 'rotate-180' : '']" />
+            </button>
+            <div
+              v-if="isCategoryDropdownOpen"
+              class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden"
+            >
+              <button
+                type="button"
+                @click="selectCategory(null)"
+                :class="['w-full px-3 py-2 text-left text-sm transition-colors', selectedCategoryFilter === null ? 'bg-[#e6f4f3] text-[#0d9488]' : 'text-neutral-950 hover:bg-gray-50']"
+              >
+                Tất cả danh mục
+              </button>
+              <button
+                v-for="cat in categories"
+                :key="cat.id"
+                type="button"
+                @click="selectCategory(cat.id)"
+                :class="['w-full px-3 py-2 text-left text-sm transition-colors', selectedCategoryFilter === cat.id ? 'bg-[#e6f4f3] text-[#0d9488]' : 'text-neutral-950 hover:bg-gray-50']"
+              >
+                {{ cat.ten_phan_loai }}
+              </button>
+            </div>
+          </div>
 
           <!-- Status Filter -->
-          <button
-            class="bg-[#f3f3f5] border-0 rounded-lg px-3 py-1 flex items-center justify-between h-9 hover:bg-gray-200 transition-colors"
-          >
-            <span class="text-sm text-neutral-950">Tất cả</span>
-            <ChevronDownIcon />
-          </button>
+          <div class="relative" ref="statusDropdownRef">
+            <button
+              type="button"
+              @click="isStatusDropdownOpen = !isStatusDropdownOpen"
+              class="w-full bg-[#f3f3f5] border-0 rounded-lg px-3 py-1 flex items-center justify-between h-9 hover:bg-gray-200 transition-colors"
+            >
+              <span class="text-sm text-neutral-950">{{ selectedStatusLabel }}</span>
+              <ChevronDownIcon :class="['transition-transform', isStatusDropdownOpen ? 'rotate-180' : '']" />
+            </button>
+            <div
+              v-if="isStatusDropdownOpen"
+              class="absolute left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden"
+            >
+              <button
+                v-for="opt in statusOptions"
+                :key="opt.value"
+                type="button"
+                @click="selectStatus(opt.value)"
+                :class="['w-full px-3 py-2 text-left text-sm transition-colors', selectedStatusFilter === opt.value ? 'bg-[#e6f4f3] text-[#0d9488]' : 'text-neutral-950 hover:bg-gray-50']"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -183,7 +226,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import XoaBaiViet from "./delete-post/index.vue";
 import client from "../../../../utils/api.js";
@@ -208,6 +251,56 @@ const categories = ref([]);
 const isLoading = ref(false);
 const selectedCategoryFilter = ref(null);
 const selectedStatusFilter = ref(null);
+
+// Dropdown state
+const isCategoryDropdownOpen = ref(false);
+const isStatusDropdownOpen = ref(false);
+const categoryDropdownRef = ref(null);
+const statusDropdownRef = ref(null);
+
+const statusOptions = [
+  { value: null, label: "Tất cả" },
+  { value: "published", label: "Đã xuất bản" },
+  { value: "draft", label: "Bản nháp" },
+  { value: "hidden", label: "Đã ẩn" },
+];
+
+const selectedCategoryLabel = computed(() => {
+  if (!selectedCategoryFilter.value) return "Tất cả danh mục";
+  const cat = categories.value.find((c) => c.id === selectedCategoryFilter.value);
+  return cat?.ten_phan_loai || "Tất cả danh mục";
+});
+
+const selectedStatusLabel = computed(() => {
+  const opt = statusOptions.find((o) => o.value === selectedStatusFilter.value);
+  return opt?.label || "Tất cả";
+});
+
+const selectCategory = (id) => {
+  selectedCategoryFilter.value = id;
+  isCategoryDropdownOpen.value = false;
+};
+
+const selectStatus = (value) => {
+  selectedStatusFilter.value = value;
+  isStatusDropdownOpen.value = false;
+};
+
+const handleClickOutside = (e) => {
+  if (categoryDropdownRef.value && !categoryDropdownRef.value.contains(e.target)) {
+    isCategoryDropdownOpen.value = false;
+  }
+  if (statusDropdownRef.value && !statusDropdownRef.value.contains(e.target)) {
+    isStatusDropdownOpen.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener("click", handleClickOutside);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
 
 // Fetch articles from API
 const fetchPosts = async () => {
