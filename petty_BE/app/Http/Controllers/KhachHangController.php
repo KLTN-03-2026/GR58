@@ -42,6 +42,7 @@ class KhachHangController extends Controller
                 'full_name' => $item->full_name,
                 'so_dien_thoai' => $item->phone,
                 'email' => $item->email,
+                'trang_thai' => $item->trang_thai,
                 'anh_dai_dien' => UserImageHelper::getAvatarUrl($item->anh_dai_dien),
                 'thu_cung' => $item->thuCungs->map(function ($pet) {
                     return [
@@ -482,6 +483,33 @@ class KhachHangController extends Controller
         }
     }
 
+    public function toggleTrangThai(Request $request, $id): JsonResponse
+    {
+        $target = KhachHang::find($id);
+        if (! $target) {
+            return response()->json(['status' => false, 'message' => 'Không tìm thấy khách hàng.'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'trang_thai' => 'required|in:active,blocked',
+        ], [
+            'trang_thai.required' => 'Vui lòng cung cấp trạng thái.',
+            'trang_thai.in'       => 'Trạng thái không hợp lệ.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['status' => false, 'message' => $validator->errors()->first(), 'errors' => $validator->errors()], 422);
+        }
+
+        $target->trang_thai = $request->trang_thai;
+        $target->save();
+
+        return response()->json([
+            'status'    => true,
+            'message'   => $request->trang_thai === 'blocked' ? 'Khách hàng đã bị chặn.' : 'Khách hàng đã được kích hoạt.',
+            'trang_thai' => $target->trang_thai,
+        ]);
+    }
     public function guiLaiXacNhan(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [

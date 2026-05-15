@@ -349,7 +349,7 @@
           <p
             class="font-nunito text-sm leading-5 text-[#6a7282] tracking-tight"
           >
-            Tổng: {{ customerList.length }} khách hàng
+            Tổng: {{ filteredCustomerList.length }} khách hàng
           </p>
         </div>
 
@@ -410,7 +410,7 @@
             </thead>
             <tbody>
               <tr
-                v-for="customer in customerList"
+                v-for="customer in pagedCustomers"
                 :key="customer.id"
                 class="border-b border-gray-200/60"
               >
@@ -477,14 +477,18 @@
                     </button>
                     <button
                       @click="handleToggleCustomerStatus(customer)"
+                      :title="customer.status === 'active' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'"
                       :class="[
                         'rounded-lg w-8 h-8 flex border !border-gray-800 items-center justify-center transition-colors',
                         customer.status === 'active'
-                          ? 'hover:bg-gray-100'
+                          ? 'hover:bg-red-50'
                           : 'hover:bg-green-50',
                       ]"
                     >
-                      <PasswordIcon class="w-4 h-4 text-black" />
+                      <!-- Đang active → hiện ổ khóa đóng (click sẽ khóa) -->
+                      <PasswordIcon v-if="customer.status === 'active'" class="w-4 h-4 text-black" />
+                      <!-- Đang blocked → hiện ổ khóa mở (click sẽ mở khóa) -->
+                      <LockOpenIcon v-else class="w-4 h-4 text-green-600" />
                     </button>
                   </div>
                 </td>
@@ -498,27 +502,46 @@
           <p
             class="font-nunito text-sm leading-5 text-[#4a5565] tracking-tight"
           >
-            Hiển thị 1 - {{ customerList.length }} của
-            {{ customerList.length }} khách hàng
+            Hiển thị {{ customerStartIndex }} - {{ customerEndIndex }} của
+            {{ filteredCustomerList.length }} khách hàng
           </p>
           <div class="flex items-center gap-1">
             <button
-              class="opacity-50 rounded-lg h-9 px-3 py-2 flex items-center gap-2"
-              disabled
+              @click="prevCustomerPage"
+              :disabled="customerPagesShownCount === 1"
+              :class="[
+                'rounded-lg h-9 px-3 py-2 flex items-center gap-2 text-[#6b7280]',
+                customerPagesShownCount === 1 ? 'opacity-50' : 'hover:bg-gray-50',
+              ]"
             >
               <ChevronLeftIcon class="w-4 h-4" />
             </button>
-            <button
-              class="bg-white border !border-[#009689] rounded-lg w-9 h-9 flex items-center justify-center"
-            >
-              <span
-                class="font-nunito font-medium text-sm leading-5 text-[#009689] tracking-tight"
-                >1</span
+
+            <div class="flex items-center gap-2">
+              <button
+                v-for="p in customerPagesToShow"
+                :key="p"
+                @click="customerCurrentPage = p"
+                :class="[
+                  'w-9 h-9 rounded-lg flex items-center justify-center border',
+                  customerCurrentPage === p
+                    ? 'border-[#009689] text-[#009689] bg-white'
+                    : 'border-gray-200 text-[#101828] bg-white',
+                ]"
               >
-            </button>
+                <span class="font-medium text-sm leading-5">{{ p }}</span>
+              </button>
+            </div>
+
             <button
-              class="opacity-50 rounded-lg h-9 px-3 py-2 flex items-center gap-2"
-              disabled
+              @click="nextCustomerPage"
+              :disabled="customerPagesShownCount >= customerTotalPages"
+              :class="[
+                'rounded-lg h-9 px-3 py-2 flex items-center gap-2 text-[#6b7280]',
+                customerPagesShownCount >= customerTotalPages
+                  ? 'opacity-50'
+                  : 'hover:bg-gray-50',
+              ]"
             >
               <ChevronRightIcon class="w-4 h-4" />
             </button>
@@ -588,6 +611,7 @@ import ChevronRightIcon from "@/assets/svg/chevron-right.svg";
 import UpdateIcon from "@/assets/svg/update.svg";
 import EyeIcon from "@/assets/svg/eye.svg";
 import PasswordIcon from "@/assets/svg/password.svg";
+import LockOpenIcon from "@/assets/svg/lock-open.svg";
 
 // Active Tab
 const activeTab = ref("staff"); // 'staff' or 'customer'
@@ -798,111 +822,111 @@ onMounted(async () => {
   } catch (e) {
     console.error("Failed to load staff list", e);
   }
+  // Load customer list from API
+  await loadCustomerList();
+
 });
 
 // Customer List Data
-const customerList = ref([
-  {
-    id: 1,
-    name: "Trần Thị Hương",
-    phone: "0912345678",
-    zalo: "0912345678",
-    petCount: "2 bé",
-    totalSpent: 5200000,
-    joinDate: "2024-11-20",
-    status: "active",
-    avatar:
-      "https://www.figma.com/api/mcp/asset/69ab4ed0-d5a9-4482-8a8e-baeaf0347487",
-    email: "huong.tran@email.com",
-    rank: "Gold",
-    rankIcon: "🥇",
-    address: "123 Lê Lợi, Quận 1, TP.HCM",
-    pets: ["Milo", "Luna"],
-    recentVisits: [
-      {
-        service: "Khám tổng quát",
-        date: "15/11/2024",
-        doctor: "BS. Nguyễn Văn A",
-        cost: 500000,
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: "Nguyễn Văn Kiên",
-    phone: "0923456789",
-    zalo: null,
-    petCount: "1 bé",
-    totalSpent: 2800000,
-    joinDate: "2024-10-15",
-    status: "active",
-    avatar:
-      "https://www.figma.com/api/mcp/asset/69ab4ed0-d5a9-4482-8a8e-baeaf0347487",
-    email: "kien.nguyen@email.com",
-    rank: "Silver",
-    rankIcon: "🥈",
-    address: "456 Nguyễn Trãi, Quận 5, TP.HCM",
-    pets: ["Lu"],
-    recentVisits: [
-      {
-        service: "Tiêm phòng",
-        date: "10/10/2024",
-        doctor: "BS. Phạm Minh D",
-        cost: 300000,
-      },
-    ],
-  },
-  {
-    id: 3,
-    name: "Lê Thị Mai",
-    phone: "0934567890",
-    zalo: "0934567890",
-    petCount: "3 bé",
-    totalSpent: 8900000,
-    joinDate: "2024-09-01",
-    status: "active",
-    avatar:
-      "https://www.figma.com/api/mcp/asset/69ab4ed0-d5a9-4482-8a8e-baeaf0347487",
-    email: "mai.le@email.com",
-    rank: "Gold",
-    rankIcon: "🥇",
-    address: "789 Võ Văn Kiệt, Quận 1, TP.HCM",
-    pets: ["Mimi", "Nunu", "Kiki"],
-    recentVisits: [
-      {
-        service: "Spa trọn gói",
-        date: "01/11/2024",
-        doctor: "KTV. Trần Thị B",
-        cost: 800000,
-      },
-    ],
-  },
-  {
-    id: 4,
-    name: "Phạm Thanh Nam",
-    phone: "0945678901",
-    zalo: null,
-    petCount: "1 bé",
-    totalSpent: 450000,
-    joinDate: "2024-11-10",
-    status: "blocked",
-    avatar:
-      "https://www.figma.com/api/mcp/asset/69ab4ed0-d5a9-4482-8a8e-baeaf0347487",
-    email: "nam.pham@email.com",
-    rank: "Bronze",
-    rankIcon: "🥉",
-    address: "321 Điện Biên Phủ, Bình Thạnh, TP.HCM",
-    pets: ["Rex"],
-    recentVisits: [
-      {
-        service: "Tư vấn dinh dưỡng",
-        date: "10/11/2024",
-        doctor: "BS. Nguyễn Văn A",
-        cost: 0,
-      },
-    ],
-  },
-]);
+const customerList = ref([]);
+const customerLoading = ref(false);
+
+// Customer Pagination
+const customerPageSize = ref(10);
+const customerCurrentPage = ref(1);
+const customerPagesShownCount = ref(1);
+
+const loadCustomerList = async () => {
+  customerLoading.value = true;
+  try {
+    const res = await api.get("/khach-hang");
+    console.log("[loadCustomerList] raw response:", res.data);
+    const items = res.data?.data || [];
+    customerList.value = items.map((it) => {
+      const mapped = {
+        id: it.id,
+        name: it.full_name || "—",
+        phone: it.so_dien_thoai || it.phone || "",
+        zalo: null,
+        petCount: it.thu_cung?.length ? `${it.thu_cung.length} bé` : "0 bé",
+        totalSpent: 0,
+        joinDate: it.updated_at ? formatDate(it.updated_at) : "—",
+        status: it.trang_thai === "blocked" ? "blocked" : "active",
+        avatar: it.anh_dai_dien || "https://www.gravatar.com/avatar?d=mp",
+        email: it.email || "",
+        address: it.dia_chi || it.address || "",
+        pets: (it.thu_cung || []).map((p) => p.ten_thu_cung),
+        _raw: it,
+      };
+      console.log(`[loadCustomerList] id=${it.id} trang_thai="${it.trang_thai}" → status="${mapped.status}"`);
+      return mapped;
+    });
+  } catch (e) {
+    console.error("[loadCustomerList] error:", e);
+  } finally {
+    customerLoading.value = false;
+  }
+};
+
+// Filter customer by search query (client-side)
+// Match by word-start so "an" matches "An" in "Nguyễn Văn An" but not "Giang", "Lan", etc.
+const filteredCustomerList = computed(() => {
+  const q = normalize(customerSearchQuery.value).trim();
+  if (!q) return customerList.value;
+  return customerList.value.filter((c) => {
+    // Phone: exact substring match is fine
+    if (normalize(c.phone).includes(q)) return true;
+    // Name: match only at word boundaries (start of any word)
+    const nameParts = normalize(c.name).split(/\s+/);
+    return nameParts.some((part) => part.startsWith(q));
+  });
+});
+
+const customerTotalPages = computed(() =>
+  Math.max(1, Math.ceil(filteredCustomerList.value.length / customerPageSize.value))
+);
+
+const pagedCustomers = computed(() => {
+  const start = (customerCurrentPage.value - 1) * customerPageSize.value;
+  return filteredCustomerList.value.slice(start, start + customerPageSize.value);
+});
+
+const customerStartIndex = computed(() =>
+  filteredCustomerList.value.length === 0
+    ? 0
+    : (customerCurrentPage.value - 1) * customerPageSize.value + 1
+);
+const customerEndIndex = computed(() =>
+  Math.min(filteredCustomerList.value.length, customerCurrentPage.value * customerPageSize.value)
+);
+
+// Reset customer pagination when search changes
+watch(customerSearchQuery, () => {
+  customerCurrentPage.value = 1;
+  customerPagesShownCount.value = 1;
+});
+
+const prevCustomerPage = () => {
+  if (customerPagesShownCount.value > 1) {
+    customerPagesShownCount.value -= 1;
+    if (customerCurrentPage.value > customerPagesShownCount.value)
+      customerCurrentPage.value = customerPagesShownCount.value;
+  }
+};
+
+const nextCustomerPage = () => {
+  if (customerPagesShownCount.value < customerTotalPages.value) {
+    customerPagesShownCount.value += 1;
+    customerCurrentPage.value = customerPagesShownCount.value;
+  }
+};
+
+const customerPagesToShow = computed(() => {
+  const max = Math.max(1, Math.min(customerPagesShownCount.value, customerTotalPages.value));
+  const arr = [];
+  for (let i = 1; i <= max; i++) arr.push(i);
+  return arr;
+});
 
 // Methods
 const formatCurrency = (amount) => {
@@ -1008,17 +1032,31 @@ const handleViewCustomer = (customer) => {
   isViewCustomerModalOpen.value = true;
 };
 
-// Toggle customer status locally (no backend endpoint provided in the repo attachments)
-const handleToggleCustomerStatus = (customer) => {
+// Toggle customer status — call backend
+const handleToggleCustomerStatus = async (customer) => {
   if (!customer) return;
-  // assume statuses: 'active' or 'blocked'
-  customer.status = customer.status === "active" ? "blocked" : "active";
-  showSuccessToast(
-    "Thành công",
-    customer.status === "active"
-      ? "Khách hàng đã được kích hoạt."
-      : "Khách hàng đã bị chặn."
-  );
+  const newStatus = customer.status === "active" ? "blocked" : "active";
+  console.log("[toggleCustomerStatus] customer:", customer);
+  console.log("[toggleCustomerStatus] newStatus:", newStatus);
+  try {
+    const res = await api.patch(`/khach-hang/${customer.id}/trang-thai`, {
+      trang_thai: newStatus,
+    });
+    console.log("[toggleCustomerStatus] response:", res.data);
+    customer.status = newStatus;
+    showSuccessToast(
+      "Thành công",
+      newStatus === "active"
+        ? "Khách hàng đã được kích hoạt."
+        : "Khách hàng đã bị chặn."
+    );
+  } catch (e) {
+    console.error("[toggleCustomerStatus] error:", e);
+    console.error("[toggleCustomerStatus] response data:", e?.response?.data);
+    console.error("[toggleCustomerStatus] status code:", e?.response?.status);
+    const msg = e?.response?.data?.message || "Không thể thay đổi trạng thái.";
+    showErrorToast("Lỗi", msg);
+  }
 };
 </script>
 
