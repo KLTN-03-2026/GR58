@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class NhanVienRequest extends FormRequest
 {
@@ -14,9 +15,17 @@ class NhanVienRequest extends FormRequest
 
     public function rules(): array
     {
+        // When updating, ignore the current NhanVien's email in the unique check.
+        $nhanVien = $this->route('nhanVien');
+        $ignoreId = $nhanVien?->id;
+
         $rules = [
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:nhan_viens,email',
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('nhan_viens', 'email')->ignore($ignoreId),
+            ],
             'phone' => 'required|digits:10',
             'address' => 'required|string',
             'anh_dai_dien' => 'required|string',

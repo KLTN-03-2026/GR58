@@ -539,10 +539,18 @@
       :staff="selectedStaffForView"
       @close="isViewStaffModalOpen = false"
       @edit="
-        () => {
-          isViewStaffModalOpen = false; /* Add logic to open edit modal */
+        (s) => {
+          isViewStaffModalOpen = false;
+          handleOpenEditStaff(s || selectedStaffForView);
         }
       "
+    />
+
+    <ChinhSuaNhanVien
+      v-if="isEditStaffModalOpen"
+      :staff="selectedStaffForEdit"
+      @close="isEditStaffModalOpen = false"
+      @updated="handleStaffUpdated"
     />
 
     <DatMatKhau
@@ -564,6 +572,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import ThemNhanVien from "./add-staff/index.vue";
 import ChiTietNhanVien from "./staff-detail/index.vue";
+import ChinhSuaNhanVien from "./edit-staff/index.vue";
 import DatMatKhau from "./set-password/index.vue";
 import ChiTietKhachHang from "./customer-detail/index.vue";
 import { listNhanVien } from "@/utils/nhanVien";
@@ -585,6 +594,8 @@ const activeTab = ref("staff"); // 'staff' or 'customer'
 const isAddStaffModalOpen = ref(false);
 const isViewStaffModalOpen = ref(false);
 const selectedStaffForView = ref(null);
+const isEditStaffModalOpen = ref(false);
+const selectedStaffForEdit = ref(null);
 const isResetPasswordModalOpen = ref(false);
 const selectedStaffForReset = ref(null);
 const isViewCustomerModalOpen = ref(false);
@@ -766,7 +777,18 @@ const populateStaffList = (items) => {
       : it.last_login
       ? formatDateTime(it.last_login)
       : "Chưa đăng nhập",
+    // Keep the original backend record so detail/edit modals can prefill all fields
+    _raw: it,
   }));
+};
+
+const reloadStaffList = async () => {
+  try {
+    const items = await listNhanVien();
+    populateStaffList(items);
+  } catch (e) {
+    console.error("Failed to reload staff list", e);
+  }
 };
 
 onMounted(async () => {
@@ -894,8 +916,29 @@ const handleAddStaff = (data) => {
 };
 
 const handleViewStaff = (staff) => {
-  selectedStaffForView.value = staff;
+  // Prefer the original backend record so the detail modal shows all fields.
+  selectedStaffForView.value = {
+    ...(staff?._raw || {}),
+    // Keep the FE-mapped fields the modal already uses (joinDate label, lastLogin, etc.)
+    joinDate: staff?.joinDate,
+    lastLogin: staff?.lastLogin,
+    status: staff?.status,
+    name: staff?.name,
+    avatar: staff?.avatar,
+    roles: staff?.roles,
+  };
   isViewStaffModalOpen.value = true;
+};
+
+const handleOpenEditStaff = (staff) => {
+  selectedStaffForEdit.value = staff?._raw
+    ? { ...staff._raw, id: staff.id }
+    : { ...staff };
+  isEditStaffModalOpen.value = true;
+};
+
+const handleStaffUpdated = async () => {
+  await reloadStaffList();
 };
 
 const handleOpenResetPassword = (staff) => {

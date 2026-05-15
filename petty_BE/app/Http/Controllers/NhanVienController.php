@@ -179,10 +179,50 @@ class NhanVienController extends Controller
 
     /**
      * Update the specified resource in storage.
+     * Admin / staff (with permission nhan_vien_sua) can update an employee profile.
      */
-    public function update(Request $request, NhanVien $nhanVien)
+    public function update(NhanVienRequest $request, NhanVien $nhanVien)
     {
-        //
+        $data = $request->validated();
+
+        // Never overwrite password through this endpoint — use changePassword instead.
+        unset($data['password'], $data['password_confirmation']);
+
+        // Re-map vai_tro -> phan_quyen_id if vai_tro changed
+        if (array_key_exists('vai_tro', $data) && $data['vai_tro'] !== null) {
+            $vaiTroMap = [
+                'bac_si' => PhanQuyen::VAI_TRO_BAC_SI,
+                'y_ta'   => PhanQuyen::VAI_TRO_DIEU_DUONG,
+            ];
+            $maVaiTro = $vaiTroMap[$data['vai_tro']] ?? null;
+            if ($maVaiTro) {
+                $phanQuyen = PhanQuyen::where('ma_vai_tro', $maVaiTro)->first();
+                if ($phanQuyen) {
+                    $data['phan_quyen_id'] = $phanQuyen->id;
+                }
+            }
+        }
+
+        $nhanVien->fill($data);
+        $nhanVien->save();
+
+        // If account was just locked, revoke tokens to invalidate active sessions
+        if (($data['trang_thai'] ?? null) === 'da_khoa') {
+            try {
+                $nhanVien->tokens()->delete();
+            } catch (\Throwable $e) {
+                // ignore token deletion errors
+            }
+        }
+
+        $payload = $nhanVien->fresh()->toArray();
+        $payload['anh_dai_dien_url'] = UserImageHelper::getAvatarUrl($nhanVien->anh_dai_dien);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Cập nhật nhân viên thành công.',
+            'data' => $payload,
+        ]);
     }
 
     /**
