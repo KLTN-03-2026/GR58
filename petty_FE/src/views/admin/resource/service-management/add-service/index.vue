@@ -180,23 +180,8 @@
             <textarea
               v-model="formData.description"
               placeholder="Nhập mô tả chi tiết về dịch vụ..."
-              rows="3"
-              class="bg-[#f3f3f5] border-none rounded-lg px-3 py-2 font-nunito text-sm text-neutral-950 tracking-tight outline-none placeholder:text-[#717182] resize-none"
-            ></textarea>
-          </div>
-
-          <!-- Instructions -->
-          <div class="flex flex-col gap-2">
-            <label
-              class="font-nunito font-medium text-sm leading-[14px] text-neutral-950 tracking-tight"
-            >
-              Hướng dẫn
-            </label>
-            <textarea
-              v-model="formData.instructions"
-              placeholder="Nhập hướng dẫn sử dụng dịch vụ..."
-              rows="3"
-              class="bg-[#f3f3f5] border-none rounded-lg px-3 py-2 font-nunito text-sm text-neutral-950 tracking-tight outline-none placeholder:text-[#717182] resize-none"
+              rows="6"
+              class="bg-[#f3f3f5] border-none rounded-lg px-3 py-2 font-nunito text-sm text-neutral-950 tracking-tight outline-none placeholder:text-[#717182] resize-y min-h-[120px]"
             ></textarea>
           </div>
 
@@ -255,7 +240,7 @@
                   />
                 </svg>
                 <p class="text-sm leading-6 text-[#4a5565] tracking-tight">Click để chọn ảnh</p>
-                <p class="text-xs leading-4 text-[#99a1af]">PNG, JPG, GIF (Max 5MB)</p>
+                <p class="text-xs leading-4 text-[#99a1af]">PNG, JPG, GIF (Max 10MB)</p>
               </template>
 
               <!-- Nút xóa ảnh -->
@@ -319,7 +304,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, toRaw } from "vue";
 import api, { attachToken } from "@/utils/api";
 import { showErrorToast, showSuccessToast } from "@/utils/toast";
 import ChevronDownIcon from "@/assets/svg/chevron-down.svg";
@@ -347,7 +332,6 @@ const formData = reactive({
   price:        null,
   duration:     null,
   description:  "",
-  instructions: "",
   isActive:     true,
 });
 
@@ -426,8 +410,8 @@ const handleFileUpload = (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
 
-  if (file.size > 5 * 1024 * 1024) {
-    showErrorToast("Lỗi", "Kích thước file phải nhỏ hơn 5MB");
+  if (file.size > 10 * 1024 * 1024) {
+    showErrorToast("Lỗi", "Kích thước file phải nhỏ hơn 10MB");
     return;
   }
 
@@ -475,21 +459,19 @@ const handleSave = async () => {
     try { attachToken(); } catch (_) {}
 
     // ✅ Gửi thẳng file vào store() — không cần endpoint /upload riêng
-    if (imageFile.value) {
+    const rawFile = toRaw(imageFile.value);
+    if (rawFile) {
       const fd = new FormData();
-      fd.append("anh_dich_vu_file", imageFile.value); // field BE đã hỗ trợ
+      fd.append("anh_dich_vu_file", rawFile); // field BE đã hỗ trợ
       fd.append("ten",                  formData.name);
       fd.append("ma_dich_vu",           formData.code);
       fd.append("gia_tien",             formData.price);
       fd.append("thoi_gian_thuc_hien",  formData.duration);
       fd.append("mo_ta",                formData.description  || "");
-      fd.append("huong_dan",            formData.instructions || "");
       fd.append("trang_thai",           formData.isActive ? "kinh_doanh" : "ngung");
       fd.append("danh_muc_id",          selectedCategoryId.value || "");
 
-      const res = await api.post("/dich-vu", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await api.post("/dich-vu", fd);
 
       if (res?.data?.status) {
         showSuccessToast("Thành công", "Tạo dịch vụ thành công.");
@@ -506,7 +488,6 @@ const handleSave = async () => {
         thoi_gian_thuc_hien: formData.duration,
         mo_ta:               formData.description  || null,
         ma_dich_vu:          formData.code         || null,
-        huong_dan:           formData.instructions || null,
         trang_thai:          formData.isActive ? "kinh_doanh" : "ngung",
         danh_muc_id:         selectedCategoryId.value || null,
       };

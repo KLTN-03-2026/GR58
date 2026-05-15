@@ -92,17 +92,9 @@
           <!-- Description -->
           <div class="flex flex-col gap-2">
             <label class="font-nunito font-medium text-sm leading-[14px] text-neutral-950 tracking-tight">Mô tả</label>
-            <textarea v-model="formData.mo_ta" rows="3"
+            <textarea v-model="formData.mo_ta" rows="6"
               placeholder="Nhập mô tả chi tiết về dịch vụ..."
-              class="bg-[#f3f3f5] border-none rounded-lg px-3 py-2 font-nunito text-sm text-neutral-950 tracking-tight outline-none placeholder:text-[#717182] resize-none"></textarea>
-          </div>
-
-          <!-- Instructions -->
-          <div class="flex flex-col gap-2">
-            <label class="font-nunito font-medium text-sm leading-[14px] text-neutral-950 tracking-tight">Hướng dẫn</label>
-            <textarea v-model="formData.huong_dan" rows="3"
-              placeholder="Nhập hướng dẫn hoặc lưu ý cho khách hàng..."
-              class="bg-[#f3f3f5] border-none rounded-lg px-3 py-2 font-nunito text-sm text-neutral-950 tracking-tight outline-none placeholder:text-[#717182] resize-none"></textarea>
+              class="bg-[#f3f3f5] border-none rounded-lg px-3 py-2 font-nunito text-sm text-neutral-950 tracking-tight outline-none placeholder:text-[#717182] resize-y min-h-[120px]"></textarea>
           </div>
 
           <!-- Status -->
@@ -139,7 +131,7 @@
                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <p class="text-sm text-[#4a5565]">Click để chọn ảnh</p>
-                <p class="text-xs text-[#99a1af]">PNG, JPG, GIF (Max 5MB)</p>
+                <p class="text-xs text-[#99a1af]">PNG, JPG, GIF (Max 10MB)</p>
               </template>
 
               <!-- Delete button -->
@@ -186,7 +178,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from "vue";
+import { ref, reactive, watch, onMounted, toRaw } from "vue";
 import api, { attachToken } from "@/utils/api";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
 import ChevronDownIcon from "@/assets/svg/chevron-down.svg";
@@ -214,7 +206,6 @@ const formData = reactive({
   priceDisplay: "",
   duration:     null,
   mo_ta:        "",
-  huong_dan:    "",
   isActive:     true,
 });
 
@@ -231,10 +222,16 @@ const formatVND = (value) => {
 };
 
 // ─── Sync props → formData (sau khi formatVND đã được khai báo) ───────
+const lastServiceId = ref(null);
+
 watch(
   () => props.service,
   (s) => {
     if (!s) return;
+    const newId = s.id ?? null;
+    if (newId === lastServiceId.value) return;
+    lastServiceId.value = newId;
+
     formData.category   = s.category   ?? s.ten_nhom ?? "";
     formData.categoryId = s.danh_muc_id ?? s.categoryId ?? null;
     formData.name       = s.name  ?? s.ten         ?? "";
@@ -243,7 +240,6 @@ watch(
     formData.priceDisplay = formData.price !== null ? formatVND(formData.price) : "";
     formData.duration   = s.duration ?? s.thoi_gian_thuc_hien ?? null;
     formData.mo_ta      = s.mo_ta    ?? s.description ?? "";
-    formData.huong_dan  = s.huong_dan ?? "";
     formData.isActive   = s.trang_thai === "kinh_doanh"
       || s.status === "active"
       || (typeof s.isActive === "boolean" ? s.isActive : true);
@@ -292,8 +288,8 @@ const handleFileUpload = (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
 
-  if (file.size > 5 * 1024 * 1024) {
-    showErrorToast("Lỗi", "Kích thước file phải nhỏ hơn 5MB");
+  if (file.size > 10 * 1024 * 1024) {
+    showErrorToast("Lỗi", "Kích thước file phải nhỏ hơn 10MB");
     return;
   }
   const validTypes = ["image/png", "image/jpeg", "image/gif", "image/webp"];
@@ -341,23 +337,21 @@ const handleUpdate = async () => {
 
     const trangThai = formData.isActive ? "kinh_doanh" : "ngung";
 
-    if (imageFile.value) {
+    const rawFile = toRaw(imageFile.value);
+    if (rawFile) {
       // Có ảnh mới → multipart
       const fd = new FormData();
       fd.append("_method",             "PUT");
-      fd.append("anh_dich_vu_file",    imageFile.value);
+      fd.append("anh_dich_vu_file",    rawFile);
       fd.append("ten",                 formData.name);
       fd.append("ma_dich_vu",          formData.code);
       fd.append("gia_tien",            formData.price);
       fd.append("thoi_gian_thuc_hien", formData.duration);
       fd.append("mo_ta",               formData.mo_ta     || "");
-      fd.append("huong_dan",           formData.huong_dan || "");
       fd.append("trang_thai",          trangThai);
       if (formData.categoryId) fd.append("danh_muc_id", formData.categoryId);
 
-      const res = await api.post(`/dich-vu/${props.service.id}`, fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await api.post(`/dich-vu/${props.service.id}`, fd);
       if (res?.data?.status) {
         showSuccessToast("Thành công", "Cập nhật dịch vụ thành công.");
         emit("update", res.data.data);
@@ -373,7 +367,6 @@ const handleUpdate = async () => {
         gia_tien:             formData.price,
         thoi_gian_thuc_hien:  formData.duration,
         mo_ta:                formData.mo_ta     || null,
-        huong_dan:            formData.huong_dan || null,
         trang_thai:           trangThai,
         danh_muc_id:          formData.categoryId || null,
         anh_dich_vu:          imageRemoved.value ? null : (imagePreview.value || null),

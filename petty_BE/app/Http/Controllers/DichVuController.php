@@ -76,7 +76,7 @@ class DichVuController extends Controller
         // ✅ Xử lý upload ảnh (nếu có)
         if ($request->hasFile('anh_dich_vu_file')) {
             $fileValidator = Validator::make($request->all(), [
-                'anh_dich_vu_file' => 'file|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
+                'anh_dich_vu_file' => 'file|image|mimes:jpg,jpeg,png,gif,webp|max:10240',
             ]);
 
             if ($fileValidator->fails()) {
@@ -154,7 +154,7 @@ class DichVuController extends Controller
 
             if ($uploadField) {
                 $fileValidator = Validator::make($request->all(), [
-                    $uploadField => 'file|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
+                    $uploadField => 'file|image|mimes:jpg,jpeg,png,gif,webp|max:10240',
                 ]);
 
                 if ($fileValidator->fails()) {

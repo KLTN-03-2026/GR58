@@ -23,11 +23,115 @@
       </div>
     </div>
 
+    <!-- Service Detail Modal -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div
+          v-if="showModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
+          @keydown.escape="closeModal"
+        >
+          <div class="absolute inset-0 bg-black/50" @click="closeModal"></div>
+
+          <div
+            class="relative bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-lg z-10"
+            role="dialog"
+            aria-modal="true"
+          >
+            <!-- Close Button -->
+            <button
+              @click="closeModal"
+              class="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-white/90 text-[#393E46] hover:bg-gray-100 transition-colors"
+            >
+              <X class="w-5 h-5" />
+            </button>
+
+            <!-- Modal Image -->
+            <div class="relative w-full h-64 sm:h-72 bg-[#e5e7eb]">
+              <img
+                v-if="selectedService?.imageUrl"
+                :src="selectedService.imageUrl"
+                :alt="selectedService.ten"
+                class="w-full h-full object-cover"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center">
+                <svg class="w-20 h-20 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              </div>
+              <!-- Popular badge -->
+              <div
+                v-if="selectedService?.isPopular"
+                class="absolute top-4 left-4 bg-[#ff6900] text-white text-xs font-semibold px-3 py-1 rounded-lg"
+              >
+                Phổ biến
+              </div>
+              <!-- Status badge -->
+              <div
+                v-if="selectedService?.trang_thai !== 'kinh_doanh'"
+                class="absolute top-4 right-14 bg-gray-700/80 text-white text-xs font-medium px-3 py-1 rounded-lg"
+              >
+                Tạm ngưng
+              </div>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-6">
+              <!-- Category -->
+              <span class="inline-block text-xs font-medium text-[#5A9690] bg-[#5A9690]/10 px-2.5 py-1 rounded-lg mb-3">
+                {{ selectedService?.ten_nhom || 'Dịch vụ' }}
+              </span>
+
+              <!-- Name -->
+              <h2 class="text-2xl font-bold text-[#432323] leading-8 mb-4">
+                {{ selectedService?.ten }}
+              </h2>
+
+              <!-- Description -->
+              <p v-if="selectedService?.mo_ta" class="text-[#393E46] leading-6 mb-6">
+                {{ selectedService.mo_ta }}
+              </p>
+
+              <!-- Info Grid -->
+              <div class="flex flex-wrap gap-6 mb-6 pb-6 border-b border-[#E0D9D9]">
+                <div class="flex items-center gap-2">
+                  <div class="w-9 h-9 rounded-lg bg-[#009689]/10 flex items-center justify-center">
+                    <span class="text-[#009689] text-sm font-bold">₫</span>
+                  </div>
+                  <div>
+                    <p class="text-xs text-[#393E46]">Giá dịch vụ</p>
+                    <p class="text-lg font-bold text-[#f54900]">{{ formatPrice(selectedService?.gia_tien) }}</p>
+                  </div>
+                </div>
+                <div v-if="selectedService?.thoi_gian_thuc_hien" class="flex items-center gap-2">
+                  <div class="w-9 h-9 rounded-lg bg-[#009689]/10 flex items-center justify-center">
+                    <Clock class="w-4 h-4 text-[#009689]" />
+                  </div>
+                  <div>
+                    <p class="text-xs text-[#393E46]">Thời gian</p>
+                    <p class="text-sm font-semibold text-[#432323]">{{ formatDuration(selectedService.thoi_gian_thuc_hien) }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Book Button -->
+              <button
+                :disabled="selectedService?.trang_thai !== 'kinh_doanh'"
+                class="w-full h-11 bg-[#009689] text-white font-semibold rounded-lg flex items-center justify-center gap-2 hover:bg-[#008177] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                @click="bookFromModal"
+              >
+                <Calendar class="w-5 h-5" />
+                Đặt Lịch Ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Services Section with Filters -->
     <div class="flex gap-6 w-full max-w-[1216px] mx-auto">
       <!-- Sidebar Filters -->
       <div class="w-[304px] shrink-0">
-        <div class="bg-white border !border-gray-300 rounded-[14px] p-6">
+        <div class="sticky top-24 bg-white border !border-gray-300 rounded-lg p-6">
           <!-- Search -->
           <div class="flex flex-col gap-2 mb-6">
             <label class="text-sm font-medium text-[#364153] leading-[14px] tracking-[-0.15px]">
@@ -91,14 +195,13 @@
       <!-- Services Grid -->
       <div class="flex-1 flex flex-col gap-4">
         <!-- Loading State -->
-        <div v-if="isLoading" class="grid grid-cols-3 gap-6">
-          <div v-for="i in 6" :key="i" class="bg-white border border-gray-200 rounded-[14px] overflow-hidden animate-pulse">
+        <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div v-for="i in 4" :key="i" class="bg-white border border-gray-200 rounded-lg overflow-hidden animate-pulse">
             <div class="h-48 bg-gray-200"></div>
-            <div class="p-4 space-y-3">
+            <div class="p-4 space-y-2">
               <div class="h-4 bg-gray-200 rounded w-3/4"></div>
               <div class="h-3 bg-gray-200 rounded w-1/2"></div>
-              <div class="h-5 bg-gray-200 rounded w-1/3"></div>
-              <div class="h-9 bg-gray-200 rounded"></div>
+              <div class="h-9 bg-gray-200 rounded mt-2"></div>
             </div>
           </div>
         </div>
@@ -132,14 +235,15 @@
           </div>
 
           <!-- Service Cards Grid -->
-          <div v-else class="grid grid-cols-3 gap-6">
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div
               v-for="service in paginatedServices"
               :key="service.id"
-              class="bg-white border !border-gray-300 shadow-sm rounded-[14px] overflow-hidden flex flex-col"
+              class="bg-white border !border-gray-300 shadow-sm rounded-lg overflow-hidden flex flex-col cursor-pointer hover:shadow-md transition-shadow duration-200"
+              @click="openModal(service)"
             >
               <!-- Service Image -->
-              <div class="relative h-48 bg-[#e5e7eb]">
+              <div class="relative h-44 bg-[#e5e7eb]">
                 <img
                   v-if="service.imageUrl"
                   :src="service.imageUrl"
@@ -147,49 +251,39 @@
                   class="w-full h-full object-cover"
                 />
                 <div v-else class="w-full h-full flex items-center justify-center">
-                  <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                  <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 </div>
                 <div
                   v-if="service.isPopular"
-                  class="absolute top-3 left-3 bg-[#ff6900] text-white text-xs font-medium px-2.5 py-1 rounded-lg leading-4"
+                  class="absolute top-2 left-2 bg-[#ff6900] text-white text-xs font-medium px-2 py-0.5 rounded-lg"
                 >
                   Phổ biến
                 </div>
-                <!-- Status badge -->
                 <div
                   v-if="service.trang_thai !== 'kinh_doanh'"
-                  class="absolute top-3 right-3 bg-gray-700/80 text-white text-xs font-medium px-2.5 py-1 rounded-lg"
+                  class="absolute top-2 right-2 bg-gray-700/80 text-white text-xs font-medium px-2 py-0.5 rounded-lg"
                 >
                   Tạm ngưng
                 </div>
               </div>
 
               <!-- Service Content -->
-              <div class="p-4 flex flex-col flex-1">
-                <h3 class="text-base font-semibold text-[#101828] leading-6 tracking-[-0.31px] mb-1 line-clamp-2">
+              <div class="p-3 flex flex-col flex-1">
+                <h3 class="text-sm font-semibold text-[#432323] leading-5 mb-0.5 line-clamp-1">
                   {{ service.ten }}
                 </h3>
-                <p class="text-xs text-[#6a7282] leading-4 mb-3">
+                <p class="text-xs text-[#6a7282] leading-4 mb-2">
                   {{ service.ten_nhom || 'Dịch vụ' }}
                 </p>
-                <p v-if="service.mo_ta" class="text-xs text-gray-500 leading-4 mb-3 line-clamp-2">
-                  {{ service.mo_ta }}
-                </p>
-                <p class="text-xl font-semibold text-[#f54900] leading-7 tracking-[-0.45px] mb-4">
+                <p class="text-lg font-bold text-[#f54900] leading-6 mb-3">
                   {{ formatPrice(service.gia_tien) }}
                 </p>
-                <div v-if="service.thoi_gian_thuc_hien" class="flex items-center gap-2 mb-4">
-                  <Clock class="w-4 h-4 text-green-600" />
-                  <span class="text-sm text-[#4a5565] leading-5 tracking-[-0.15px]">
-                    {{ formatDuration(service.thoi_gian_thuc_hien) }}
-                  </span>
-                </div>
                 <button
                   :disabled="service.trang_thai !== 'kinh_doanh'"
-                  class="mt-auto w-full h-9 bg-[#009689] text-white text-sm font-medium rounded-lg flex items-center justify-center gap-2 hover:bg-[#00897b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  @click="bookService(service)"
+                  class="mt-auto w-full h-8 bg-[#009689] text-white text-sm font-medium rounded-lg flex items-center justify-center gap-2 hover:bg-[#008177] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  @click.stop="bookService(service)"
                 >
-                  <Calendar class="w-4 h-4" />
+                  <Calendar class="w-3.5 h-3.5" />
                   Đặt Lịch
                 </button>
               </div>
@@ -235,9 +329,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { Search, Clock, Calendar, ChevronLeft, ChevronRight } from 'lucide-vue-next';
+import { Search, Clock, Calendar, ChevronLeft, ChevronRight, X } from 'lucide-vue-next';
 import { dichVuService } from '@/services/dichVuService';
 
 const router = useRouter();
@@ -302,10 +396,6 @@ const loadServices = async () => {
   }
 };
 
-onMounted(() => {
-  loadServices();
-});
-
 const filteredServices = computed(() => {
   return services.value.filter(s => {
     const matchSearch = !searchQuery.value || s.ten.toLowerCase().includes(searchQuery.value.toLowerCase());
@@ -336,6 +426,42 @@ const bookService = (service) => {
     query: { service_id: service.id },
   });
 };
+
+const selectedService = ref(null);
+const showModal = ref(false);
+
+const openModal = (service) => {
+  selectedService.value = service;
+  showModal.value = true;
+  document.body.style.overflow = 'hidden';
+};
+
+const closeModal = () => {
+  showModal.value = false;
+  selectedService.value = null;
+  document.body.style.overflow = '';
+};
+
+const bookFromModal = () => {
+  if (selectedService.value) {
+    bookService(selectedService.value);
+    closeModal();
+  }
+};
+
+const handleEscape = (e) => {
+  if (e.key === 'Escape' && showModal.value) closeModal();
+};
+
+onMounted(() => {
+  loadServices();
+  document.addEventListener('keydown', handleEscape);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleEscape);
+  document.body.style.overflow = '';
+});
 </script>
 
 <style scoped>
@@ -350,5 +476,33 @@ const bookService = (service) => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-enter-active > div:last-child,
+.modal-leave-active > div:last-child {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from > div:last-child,
+.modal-leave-to > div:last-child {
+  transform: scale(0.95);
+  opacity: 0;
 }
 </style>

@@ -55,30 +55,55 @@
           />
         </div>
 
-        <button
-          @click="toggleGroupFilter"
-          class="bg-[#f3f3f5] rounded-lg h-9 px-3 py-px flex items-center justify-between gap-2 opacity-50 cursor-not-allowed"
-          disabled
-        >
-          <span
-            class="font-nunitoSans text-sm text-[#09090b] whitespace-nowrap"
+        <!-- Category Filter -->
+        <div class="relative">
+          <button
+            @click="showCategoryFilter = !showCategoryFilter"
+            class="bg-[#f3f3f5] rounded-lg h-9 px-3 py-px flex items-center justify-between gap-2 hover:bg-gray-200 transition-colors"
           >
-            Tất cả Danh Mục
-          </span>
-          <ChevronDownIcon />
-        </button>
+            <span class="font-nunitoSans text-sm text-[#09090b] whitespace-nowrap">
+              {{ selectedCategory || 'Tất cả Danh Mục' }}
+            </span>
+            <ChevronDownIcon />
+          </button>
+          <div v-if="showCategoryFilter" class="absolute top-10 left-0 w-48 z-50 bg-white border border-gray-200 rounded-lg shadow overflow-hidden">
+            <button @click="selectedCategory = ''; showCategoryFilter = false"
+              class="w-full text-left px-3 py-2 hover:bg-gray-100 text-sm transition-colors">
+              Tất cả Danh Mục
+            </button>
+            <button v-for="cat in categoryOptions" :key="cat" @click="selectedCategory = cat; showCategoryFilter = false"
+              class="w-full text-left px-3 py-2 hover:bg-gray-100 text-sm transition-colors">
+              {{ cat }}
+            </button>
+          </div>
+        </div>
 
-        <button
-          @click="toggleStatusFilter"
-          class="bg-[#f3f3f5] rounded-lg h-9 px-3 py-px flex items-center justify-between gap-2 hover:bg-gray-200 transition-colors"
-        >
-          <span
-            class="font-nunitoSans text-sm text-[#09090b] whitespace-nowrap"
+        <!-- Status Filter -->
+        <div class="relative">
+          <button
+            @click="showStatusFilter = !showStatusFilter"
+            class="bg-[#f3f3f5] rounded-lg h-9 px-3 py-px flex items-center justify-between gap-2 hover:bg-gray-200 transition-colors"
           >
-            Tất cả trạng thái
-          </span>
-          <ChevronDownIcon />
-        </button>
+            <span class="font-nunitoSans text-sm text-[#09090b] whitespace-nowrap">
+              {{ selectedStatus === '' ? 'Tất cả trạng thái' : (selectedStatus === 'active' ? 'Kinh doanh' : 'Ngừng') }}
+            </span>
+            <ChevronDownIcon />
+          </button>
+          <div v-if="showStatusFilter" class="absolute top-10 left-0 w-44 z-50 bg-white border border-gray-200 rounded-lg shadow overflow-hidden">
+            <button @click="selectedStatus = ''; showStatusFilter = false"
+              class="w-full text-left px-3 py-2 hover:bg-gray-100 text-sm transition-colors">
+              Tất cả trạng thái
+            </button>
+            <button @click="selectedStatus = 'active'; showStatusFilter = false"
+              class="w-full text-left px-3 py-2 hover:bg-gray-100 text-sm transition-colors">
+              Kinh doanh
+            </button>
+            <button @click="selectedStatus = 'inactive'; showStatusFilter = false"
+              class="w-full text-left px-3 py-2 hover:bg-gray-100 text-sm transition-colors">
+              Ngừng
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Services Table -->
@@ -125,7 +150,7 @@
           </thead>
           <tbody>
             <tr
-              v-for="service in services"
+              v-for="service in paginatedServices"
               :key="service.id"
               class="border-b border-black/10"
             >
@@ -153,14 +178,12 @@
               </td>
 
               <!-- Category -->
-              <td class="py-2 px-2 h-[65px] align-middle">
+              <td class="py-2 px-2 h-[65px] align-middle max-w-[220px]">
                 <div class="flex flex-col">
-                  <p class="font-nunitoSans text-sm text-[#101828] m-0">
+                  <p class="font-nunitoSans text-sm text-[#101828] m-0 font-medium">
                     {{ service.category }}
                   </p>
-                  <p
-                    class="font-nunitoSans text-xs text-[#6a7282] m-0 whitespace-pre-wrap"
-                  >
+                  <p class="font-nunitoSans text-xs text-[#6a7282] m-0 line-clamp-2">
                     {{ service.mo_ta }}
                   </p>
                 </div>
@@ -226,26 +249,25 @@
         <div class="h-10 flex items-center">
           <p class="font-nunitoSans text-sm text-[#4a5565] m-0">
             Hiển thị
-            <span v-if="totalItems === 0">0</span>
+            <span v-if="filteredServices.length === 0">0</span>
             <span v-else>
               {{ (currentPage - 1) * perPage + 1 }} -
-              {{ Math.min(currentPage * perPage, totalItems) }}
+              {{ Math.min(currentPage * perPage, filteredServices.length) }}
             </span>
-            của {{ totalItems }} dịch vụ
+            của {{ filteredServices.length }} dịch vụ
           </p>
         </div>
         <div class="flex items-center gap-1 h-9">
           <button
-            @click="handlePrevPage"
-            :disabled="currentPage <= 1 || loadingServices"
+            @click="currentPage--"
+            :disabled="currentPage <= 1"
             class="bg-transparent rounded-lg px-3 py-2 h-9 flex items-center gap-1 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronLeftIcon class="w-4 h-4" />
           </button>
-          <template v-for="p in pages" :key="p">
+          <template v-for="p in totalPages" :key="p">
             <button
-              @click="goToPage(p)"
-              :disabled="p === currentPage || loadingServices"
+              @click="currentPage = p"
               class="bg-white border rounded-lg w-9 h-9 flex items-center justify-center font-nunitoSans font-medium text-sm text-[#09090b] hover:bg-gray-50 transition-colors"
               :class="{
                 '!border-[#5a9690]': p === currentPage,
@@ -256,8 +278,8 @@
             </button>
           </template>
           <button
-            @click="handleNextPage"
-            :disabled="currentPage >= lastPage || loadingServices"
+            @click="currentPage++"
+            :disabled="currentPage >= totalPages"
             class="bg-transparent rounded-lg px-3 py-2 h-9 flex items-center gap-1 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronRightIcon class="w-4 h-4" />
@@ -317,14 +339,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import api, { attachToken } from "@/utils/api";
 import { showErrorToast } from "@/utils/toast";
 import DanhMucDichVu from "./service-category/index.vue";
 import ThemDichVu from "./add-service/index.vue";
 import ChinhSuaDichVu from "./edit-service/index.vue";
 import XoaDichVu from "./delete-service/index.vue";
-// Icon SVG
 import FolderIcon from "@/assets/svg/folder.svg";
 import AddIcon from "@/assets/svg/add.svg";
 import ChevronDownIcon from "@/assets/svg/chevron-down.svg";
@@ -337,24 +358,24 @@ import ChevronRightIcon from "@/assets/svg/chevron-right.svg";
 const services = ref([]);
 const loadingServices = ref(false);
 
-// Pagination state
 const currentPage = ref(1);
-const perPage = ref(6); // show 6 per page by default
-const totalItems = ref(0);
-const lastPage = ref(1);
+const perPage = 5;
 
-// API origin used to build absolute image URLs when backend returns relative paths
+const searchQuery = ref("");
+const selectedCategory = ref("");
+const selectedStatus = ref("");
+const showCategoryFilter = ref(false);
+const showStatusFilter = ref(false);
+
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8001/api";
 const API_ORIGIN = API_BASE.replace(/\/api\/?$/, "");
 
 const mapApiToView = (item) => {
-  // decide image
   let img = item.anh_dich_vu || item.image || "";
   if (img && !/^https?:\/\//i.test(img)) {
     if (!img.startsWith("/")) img = "/" + img;
     img = API_ORIGIN + img;
   }
-
   return {
     id: item.id,
     name: item.ten || item.name || "",
@@ -368,117 +389,66 @@ const mapApiToView = (item) => {
   };
 };
 
-const fetchServices = async (page = currentPage.value) => {
+const fetchServices = async () => {
   loadingServices.value = true;
   try {
-    // Request paginated list
-    const res = await api.get(
-      `/dich-vu?per_page=${perPage.value}&page=${page}`
-    );
+    const res = await api.get("/dich-vu");
     const items = (res && res.data && res.data.data) || [];
     services.value = items.map(mapApiToView);
-
-    // read pagination meta when provided by backend
-    const meta = (res && res.data && res.data.meta) || null;
-    if (meta) {
-      currentPage.value = meta.current_page || page;
-      perPage.value = meta.per_page || perPage.value;
-      totalItems.value = meta.total || totalItems.value;
-      lastPage.value = meta.last_page || lastPage.value;
-    } else {
-      // fallback: if backend returned array without meta, set defaults
-      currentPage.value = page;
-      totalItems.value = services.value.length;
-      lastPage.value = 1;
-    }
   } catch (e) {
     console.error("fetchServices error", e);
-    // optional: show toast if utils/toast available
   } finally {
     loadingServices.value = false;
   }
 };
 
-onMounted(() => {
-  fetchServices();
+onMounted(() => { fetchServices(); });
+
+const categoryOptions = computed(() => {
+  const cats = services.value.map(s => s.category).filter(Boolean);
+  return [...new Set(cats)];
 });
 
-const handlePrevPage = () => {
-  if (currentPage.value > 1) {
-    fetchServices(currentPage.value - 1);
-  }
-};
-
-const handleNextPage = () => {
-  if (currentPage.value < lastPage.value) {
-    fetchServices(currentPage.value + 1);
-  }
-};
-
-const pages = computed(() => {
-  const n = Number(lastPage.value) || 1;
-  const arr = [];
-  for (let i = 1; i <= n; i++) arr.push(i);
-  return arr;
+const filteredServices = computed(() => {
+  return services.value.filter(s => {
+    const matchSearch = !searchQuery.value || s.name.toLowerCase().includes(searchQuery.value.toLowerCase());
+    const matchCategory = !selectedCategory.value || s.category === selectedCategory.value;
+    const matchStatus = !selectedStatus.value || s.status === selectedStatus.value;
+    return matchSearch && matchCategory && matchStatus;
+  });
 });
 
-const goToPage = (p) => {
-  if (p === currentPage.value || loadingServices.value) return;
-  fetchServices(p);
-};
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredServices.value.length / perPage)));
 
-const searchQuery = ref("");
+const paginatedServices = computed(() => {
+  const start = (currentPage.value - 1) * perPage;
+  return filteredServices.value.slice(start, start + perPage);
+});
+
+watch([searchQuery, selectedCategory, selectedStatus], () => {
+  currentPage.value = 1;
+});
+
 const isManageCategoriesModalOpen = ref(false);
 const isAddServiceModalOpen = ref(false);
 const isEditServiceModalOpen = ref(false);
 const selectedServiceForEdit = ref(null);
 const isDeleteServiceModalOpen = ref(false);
 const selectedServiceForDelete = ref(null);
-const deleteServiceModalType = ref("confirm"); // 'error' or 'confirm'
+const deleteServiceModalType = ref("confirm");
 const serviceAppointments = ref([]);
 
-// Methods
 const formatPrice = (price) => {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  })
-    .format(price)
-    .replace("₫", "₫");
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" })
+    .format(price).replace("₫", "₫");
 };
 
-const handleManageCategories = () => {
-  isManageCategoriesModalOpen.value = true;
-};
+const handleManageCategories = () => { isManageCategoriesModalOpen.value = true; };
+const handleAddService = () => { isAddServiceModalOpen.value = true; };
 
-const handleAddService = () => {
-  isAddServiceModalOpen.value = true;
-};
-
-const handleSaveService = (data) => {
-  // data is the backend-created item (controller returns created resource)
-  try {
-    const view = mapApiToView(data);
-    services.value.unshift(view);
-    // update total count if we have a server-side total
-    totalItems.value = (Number(totalItems.value) || 0) + 1;
-  } catch (e) {
-    console.error("handleSaveService mapping error", e);
-  } finally {
-    isAddServiceModalOpen.value = false;
-  }
-};
-
-const toggleDepartmentFilter = () => {
-  console.log("Toggle department filter");
-};
-
-const toggleGroupFilter = () => {
-  console.log("Toggle group filter");
-};
-
-const toggleStatusFilter = () => {
-  console.log("Toggle status filter");
+const handleSaveService = () => {
+  isAddServiceModalOpen.value = false;
+  fetchServices();
 };
 
 const handleEdit = (service) => {
@@ -486,18 +456,9 @@ const handleEdit = (service) => {
   isEditServiceModalOpen.value = true;
 };
 
-const handleUpdateService = (data) => {
-  try {
-    const view = mapApiToView(data);
-    const index = services.value.findIndex((s) => s.id === view.id);
-    if (index !== -1) {
-      services.value[index] = { ...services.value[index], ...view };
-    }
-  } catch (e) {
-    console.error("handleUpdateService error", e);
-  } finally {
-    isEditServiceModalOpen.value = false;
-  }
+const handleUpdateService = () => {
+  isEditServiceModalOpen.value = false;
+  fetchServices();
 };
 
 const handleOpenCreateCategoryFromEdit = () => {
@@ -507,51 +468,16 @@ const handleOpenCreateCategoryFromEdit = () => {
 
 const handleDelete = (service) => {
   selectedServiceForDelete.value = service;
-  // Always allow deletion from the UI (open confirm modal)
   deleteServiceModalType.value = "confirm";
   serviceAppointments.value = [];
   isDeleteServiceModalOpen.value = true;
 };
 
-const handleSubmitDeleteService = async (data) => {
-  try {
-    try {
-      attachToken();
-    } catch (_) {}
-    const res = await api.delete(`/dich-vu/${data.serviceId}`);
-    if (res && res.data && res.data.status) {
-      const index = services.value.findIndex((s) => s.id === data.serviceId);
-      if (index !== -1) services.value.splice(index, 1);
-      // decrement totalItems to keep pagination info in sync
-      totalItems.value = Math.max((Number(totalItems.value) || 0) - 1, 0);
-    } else {
-      // Try to show backend message when delete failed
-      const msg =
-        (res && res.data && res.data.message) || "Có lỗi khi xóa dịch vụ.";
-      showErrorToast("Lỗi", msg);
-      console.warn("Delete failed", res);
-    }
-  } catch (e) {
-    console.error("handleSubmitDeleteService error", e);
-    // Extract message from error response if available and show to user
-    const msg =
-      e && e.response && e.response.data && e.response.data.message
-        ? e.response.data.message
-        : "Có lỗi khi xóa dịch vụ.";
-    showErrorToast("Lỗi", msg);
-  } finally {
-    isDeleteServiceModalOpen.value = false;
-  }
-};
-
-// Handler for when XoaDichVu emits 'deleted' after successful delete
 const handleModalDeleted = (data) => {
   try {
     const id = data && data.serviceId;
     const index = services.value.findIndex((s) => s.id === id);
     if (index !== -1) services.value.splice(index, 1);
-    // decrement totalItems so the UI shows the updated total
-    totalItems.value = Math.max((Number(totalItems.value) || 0) - 1, 0);
   } catch (e) {
     console.error("handleModalDeleted error", e);
   } finally {
@@ -561,5 +487,10 @@ const handleModalDeleted = (data) => {
 </script>
 
 <style scoped>
-/* Minimal custom styles - most styling is now in Tailwind classes */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 </style>

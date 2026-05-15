@@ -22,7 +22,7 @@ class UploadController extends Controller
         ]);
 
         $validator = Validator::make($request->all(), [
-            'image' => 'sometimes|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
+            'image' => 'sometimes|image|mimes:jpg,jpeg,png,gif,webp|max:10240',
             'file'  => 'sometimes|mimes:jpg,jpeg,png,gif,webp,pdf|max:10240',
         ]);
 
