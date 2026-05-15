@@ -46,7 +46,7 @@ class NhanVienCreatedNotification extends Notification
             'y_ta'   => 'Y tá',
             default  => 'Nhân viên',
         };
-        $loginUrl = config('app.url', 'http://localhost:5173') . '/staff/login';
+        $loginUrl = config('app.frontend_url', 'http://localhost:5173') . '/staff/login';
 
         return (new MailMessage)
             ->subject('🎉 Chào mừng bạn gia nhập đội ngũ Petty Care!')
