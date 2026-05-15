@@ -31,7 +31,7 @@
               class="border-4 border-[#cbfbf1] rounded-full w-20 h-20 overflow-hidden"
             >
               <img
-                :src="customer.avatar"
+                :src="customer.avatar || 'https://www.gravatar.com/avatar?d=mp'"
                 alt="Avatar"
                 class="w-full h-full object-cover"
               />
@@ -50,7 +50,7 @@
               >
               <span
                 class="font-nunitoSans text-base leading-6 text-[#101828] tracking-[-0.3125px]"
-                >{{ customer.name }}</span
+                >{{ customer.name || '—' }}</span
               >
             </div>
 
@@ -62,7 +62,7 @@
               >
               <span
                 class="font-nunitoSans text-base leading-6 text-[#101828] tracking-[-0.3125px]"
-                >{{ customer.phone }}</span
+                >{{ customer.phone || '—' }}</span
               >
             </div>
 
@@ -74,7 +74,7 @@
               >
               <span
                 class="font-nunitoSans text-base leading-6 text-[#101828] tracking-[-0.3125px]"
-                >{{ customer.email }}</span
+                >{{ customer.email || '—' }}</span
               >
             </div>
 
@@ -94,7 +94,7 @@
                     : 'bg-orange-100 text-orange-700',
                 ]"
               >
-                {{ customer.rankIcon }} {{ customer.rank }}
+                {{ customer.rank || 'Silver' }}
               </span>
             </div>
 
@@ -106,7 +106,7 @@
               >
               <span
                 class="font-nunitoSans text-base leading-6 text-[#101828] tracking-[-0.3125px]"
-                >{{ customer.address }}</span
+                >{{ customer.address || '—' }}</span
               >
             </div>
 
@@ -118,7 +118,7 @@
               >
               <span
                 class="font-nunitoSans text-base leading-6 text-[#009689] tracking-[-0.3125px]"
-                >{{ formatCurrency(customer.totalSpent) }}</span
+                >{{ formatCurrency(customer.totalSpent || 0) }}</span
               >
             </div>
 
@@ -130,30 +130,12 @@
               >
               <span
                 class="font-nunitoSans text-base leading-6 text-[#101828] tracking-[-0.3125px]"
-                >{{ customer.joinDate }}</span
+                >{{ customer.joinDate || '—' }}</span
               >
-            </div>
-
-            <!-- Password -->
-            <div class="flex flex-col gap-1">
-              <span
-                class="font-nunitoSans text-sm leading-5 text-[#4a5565] tracking-[-0.1504px]"
-                >Mật khẩu</span
-              >
-              <div class="flex items-center gap-2">
-                <span class="font-nunitoSans text-sm leading-5 text-[#101828]"
-                  >••••••••</span
-                >
-                <button
-                  class="w-6 h-6 flex items-center justify-center hover:bg-gray-100 rounded transition-colors"
-                >
-                  <EyeIcon class="w-4 h-4" />
-                </button>
-              </div>
             </div>
 
             <!-- Status -->
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col gap-1 col-span-2">
               <span
                 class="font-nunitoSans text-sm leading-5 text-[#4a5565] tracking-[-0.1504px]"
                 >Trạng thái</span
@@ -163,10 +145,10 @@
                   'inline-flex items-center gap-2 px-2 py-[3px] rounded-lg text-xs leading-4 font-nunitoSans font-medium w-fit',
                   customer.status === 'active'
                     ? 'bg-green-100 text-[#008236]'
-                    : 'bg-gray-100 text-[#364153]',
+                    : 'bg-[#ffe2e2] text-[#c10007]',
                 ]"
               >
-                {{ customer.status === "active" ? "Hoạt động" : "Đã khóa" }}
+                {{ customer.status === 'active' ? 'Hoạt động' : 'Bị chặn' }}
               </span>
             </div>
           </div>
@@ -176,58 +158,27 @@
             <label
               class="font-nunitoSans font-medium text-sm leading-[14px] text-neutral-950 tracking-[-0.1504px]"
             >
-              Thú cưng
+              Thú cưng ({{ petList.length }} bé)
             </label>
             <div
-              class="border !border-gray-300 rounded-[10px] h-[91px] relative"
+              v-if="petList.length > 0"
+              class="border !border-gray-300 rounded-[10px] divide-y divide-gray-200"
             >
               <div
-                class="border-b !border-gray-300 pt-[12px] pb-px px-3 h-[45px]"
+                v-for="(pet, i) in petList"
+                :key="i"
+                class="px-3 py-2.5"
               >
-                <p
-                  class="font-nunitoSans text-sm leading-5 text-[#101828] tracking-[-0.1504px]"
-                >
-                  {{ customer.pets[0] }}
-                </p>
-              </div>
-              <div class="px-[13px] pt-[13px]">
-                <p
-                  class="font-nunitoSans text-sm leading-5 text-[#101828] tracking-[-0.1504px]"
-                >
-                  {{ customer.pets[1] }}
+                <p class="font-nunitoSans text-sm leading-5 text-[#101828] tracking-[-0.1504px]">
+                  {{ pet }}
                 </p>
               </div>
             </div>
-          </div>
-
-          <!-- Recent Visit History Section -->
-          <div class="flex flex-col gap-2">
-            <label
-              class="font-nunitoSans font-medium text-sm leading-[14px] text-neutral-950 tracking-[-0.1504px]"
-            >
-              Lịch sử khám gần đây
-            </label>
             <div
-              class="border !border-gray-300 rounded-[10px] pt-[13px] pb-px px-[13px] h-[62px]"
+              v-else
+              class="border !border-gray-300 rounded-[10px] px-3 py-3 text-sm text-[#717182]"
             >
-              <div class="flex items-center justify-between h-9">
-                <div class="flex flex-col h-9">
-                  <p
-                    class="font-nunitoSans text-sm leading-5 text-[#101828] tracking-[-0.1504px]"
-                  >
-                    {{ customer.recentVisits[0].service }}
-                  </p>
-                  <p class="font-nunitoSans text-xs leading-4 text-[#6a7282]">
-                    {{ customer.recentVisits[0].date }} -
-                    {{ customer.recentVisits[0].doctor }}
-                  </p>
-                </div>
-                <p
-                  class="font-nunitoSans text-base leading-6 text-[#009689] tracking-[-0.3125px]"
-                >
-                  {{ formatCurrency(customer.recentVisits[0].cost) }}
-                </p>
-              </div>
+              Chưa có thú cưng
             </div>
           </div>
         </div>
@@ -252,52 +203,29 @@
 </template>
 
 <script setup>
-//Icon SVG
-import EyeIcon from "@/assets/svg/eye.svg";
+import { computed } from "vue";
 
 // Props
 const props = defineProps({
   customer: {
     type: Object,
-    default: () => ({
-      avatar:
-        "https://www.figma.com/api/mcp/asset/69ab4ed0-d5a9-4482-8a8e-baeaf0347487",
-      name: "Trần Thị Hương",
-      phone: "0912345678",
-      email: "huong.tran@email.com",
-      rank: "Gold",
-      rankIcon: "🥇",
-      address: "123 Lê Lợi, Quận 1, TP.HCM",
-      totalSpent: 5200000,
-      joinDate: "2024-11-20",
-      status: "active",
-      pets: ["Milo", "Luna"],
-      recentVisits: [
-        {
-          service: "Khám tổng quát",
-          date: "15/11/2024",
-          doctor: "BS. Nguyễn Văn A",
-          cost: 500000,
-        },
-      ],
-    }),
+    required: true,
   },
 });
 
 // Emits
 const emit = defineEmits(["close"]);
 
-// Icons (from Figma - expire in 7 days)
-const iconEye =
-  "https://www.figma.com/api/mcp/asset/a5d78160-8824-4f43-94ef-f0a7bc907df0";
-const iconCheck =
-  "https://www.figma.com/api/mcp/asset/017923aa-6e03-4882-81a0-94827e125b5b";
-const iconX =
-  "https://www.figma.com/api/mcp/asset/1d86c67f-830e-4ef0-a6fe-45849993acf4";
+// Normalize pets — có thể là array of string hoặc array of object
+const petList = computed(() => {
+  const pets = props.customer?.pets;
+  if (!Array.isArray(pets) || pets.length === 0) return [];
+  return pets.map((p) => (typeof p === "string" ? p : p?.ten_thu_cung || p?.name || "—"));
+});
 
 // Methods
 const formatCurrency = (amount) => {
-  return amount.toLocaleString("vi-VN") + " ₫";
+  return Number(amount || 0).toLocaleString("vi-VN") + " ₫";
 };
 </script>
 

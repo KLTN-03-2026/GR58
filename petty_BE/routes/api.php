@@ -105,6 +105,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/khach-hang/cap-nhat', [KhachHangController::class, 'capNhat']);
     Route::post('/khach-hang/doi-mat-khau', [KhachHangController::class, 'doiMatKhau']);
     Route::put('/khach-hang/{id}', [KhachHangController::class, 'update']);
+    Route::patch('/khach-hang/{id}/trang-thai', [KhachHangController::class, 'toggleTrangThai'])->middleware('staff.only');
     Route::get('/khach-hang', [KhachHangController::class, 'index'])->middleware('staff.only');
 
     // Thông báo khách hàng
