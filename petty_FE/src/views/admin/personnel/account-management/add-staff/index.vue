@@ -96,39 +96,13 @@
               </div>
             </div>
 
-            <!-- Password -->
-            <div class="flex flex-col gap-2">
-              <label class="font-medium text-sm text-black">
-                Mật khẩu khởi tạo *
-              </label>
-              <input
-                v-model="formData.password"
-                type="password"
-                placeholder="Nhập mật khẩu khởi tạo"
-                class="bg-[#f3f3f5] border-none rounded-lg h-9 px-3 py-1 font-nunito text-sm text-neutral-950 outline-none placeholder:text-[#717182]"
-              />
-              <p class="text-xs text-[#6a7282]">Mật khẩu tối thiểu 8 ký tự</p>
-            </div>
-
-            <!-- Confirm Password -->
-            <div class="flex flex-col gap-2">
-              <label class="font-medium text-sm text-black">
-                Xác nhận mật khẩu *
-              </label>
-              <input
-                v-model="formData.passwordConfirmation"
-                type="password"
-                placeholder="Xác nhận mật khẩu"
-                class="bg-[#f3f3f5] border-none rounded-lg h-9 px-3 py-1 font-nunito text-sm text-neutral-950 outline-none placeholder:text-[#717182]"
-              />
-              <p
-                v-if="
-                  formData.passwordConfirmation &&
-                  formData.password !== formData.passwordConfirmation
-                "
-                class="text-xs text-[#e53e3e]"
-              >
-                Xác nhận mật khẩu không khớp.
+            <!-- Password info -->
+            <div class="flex items-start gap-2 bg-blue-50 border !border-blue-200 rounded-lg p-3">
+              <svg class="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+              </svg>
+              <p class="text-xs text-blue-700">
+                Mật khẩu ngẫu nhiên sẽ được tạo tự động và gửi đến email của nhân viên sau khi tạo tài khoản.
               </p>
             </div>
           </div>
@@ -363,8 +337,6 @@ const formData = ref({
   yearsOfExperience: null,
   practiceCertificate: null,
   professionalDegree: null,
-  password: "",
-  passwordConfirmation: "",
   status: "active",
 });
 
@@ -377,11 +349,7 @@ const isFormValid = computed(() => {
     formData.value.fullName &&
     formData.value.email &&
     formData.value.phone &&
-    formData.value.selectedRoles.length > 0 &&
-    formData.value.password &&
-    formData.value.password.length >= 8 &&
-    formData.value.passwordConfirmation &&
-    formData.value.password === formData.value.passwordConfirmation
+    formData.value.selectedRoles.length > 0
   );
 });
 
