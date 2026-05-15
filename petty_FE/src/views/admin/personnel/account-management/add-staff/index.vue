@@ -467,9 +467,7 @@ const handleSubmit = async () => {
       try {
         const fd = new FormData();
         fd.append("file", formData.value.avatar);
-        const upRes = await api.post("/upload", fd, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        const upRes = await api.post("/upload", fd);
         let avatarPath = null;
         if (upRes && upRes.data) {
           avatarPath =
@@ -501,9 +499,7 @@ const handleSubmit = async () => {
       try {
         const fd = new FormData();
         fd.append("file", formData.value.practiceCertificate);
-        const upRes = await api.post("/upload", fd, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        const upRes = await api.post("/upload", fd);
         let pPath = null;
         if (upRes && upRes.data)
           pPath =
@@ -534,9 +530,7 @@ const handleSubmit = async () => {
       try {
         const fd = new FormData();
         fd.append("file", formData.value.professionalDegree);
-        const upRes = await api.post("/upload", fd, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        const upRes = await api.post("/upload", fd);
         let dPath = null;
         if (upRes && upRes.data)
           dPath =

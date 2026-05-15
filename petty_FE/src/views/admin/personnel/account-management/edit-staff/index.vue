@@ -395,9 +395,7 @@ const shortFileName = (urlOrName) => {
 const uploadFile = async (file) => {
   const fd = new FormData();
   fd.append("file", file);
-  const upRes = await api.post("/upload", fd, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  const upRes = await api.post("/upload", fd);
   let p = null;
   if (upRes && upRes.data) {
     p =
