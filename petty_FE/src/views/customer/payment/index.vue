@@ -592,39 +592,20 @@ const getStatusColor = (status) => {
 };
 
 // --- Map backend trạng thái to frontend status ---
-const mapTrangThaiToStatus = (trangThai, daThanhToan) => {
-  if (trangThai === 'completed') return 'completed';
+const mapTrangThaiToStatus = (trangThai, daThanhToan, thanhToan) => {
   if (trangThai === 'cancelled') return 'refunded';
-  if (daThanhToan) return 'prepaid';
+  if (daThanhToan || (thanhToan && thanhToan.trang_thai === 'da_thanh_toan')) return 'completed';
   return 'pending';
 };
 
-const getStatusText = (trangThai, tongTien, daThanhToan) => {
-  if (daThanhToan && trangThai !== 'completed' && trangThai !== 'cancelled') return 'Đã thanh toán trước';
-  const map = {
-    pending: `Cần thanh toán: ${formatCurrency(tongTien)}`,
-    cho_xac_nhan: `Cần thanh toán: ${formatCurrency(tongTien)}`,
-    confirmed: `Cần thanh toán: ${formatCurrency(tongTien)}`,
-    confirmed_by_staff: `Cần thanh toán: ${formatCurrency(tongTien)}`,
-    'in-progress': `Cần thanh toán: ${formatCurrency(tongTien)}`,
-    completed: 'Đã hoàn thành',
-    cancelled: 'Đã hoàn tiền',
-  };
-  return map[trangThai] || `Cần thanh toán: ${formatCurrency(tongTien)}`;
+const getStatusText = (trangThai, tongTien, daThanhToan, thanhToan) => {
+  if (trangThai === 'cancelled') return 'Đã hủy';
+  if (daThanhToan || (thanhToan && thanhToan.trang_thai === 'da_thanh_toan') || trangThai === 'completed') return 'Đã thanh toán';
+  return `Cần thanh toán: ${formatCurrency(tongTien)}`;
 };
 
-const getAmountText = (trangThai, tongTien, daThanhToan) => {
-  if (daThanhToan && trangThai !== 'completed' && trangThai !== 'cancelled') return `(Đã trả: ${formatCurrency(tongTien)})`;
-  const map = {
-    pending: `(Tổng: ${formatCurrency(tongTien)})`,
-    cho_xac_nhan: `(Tổng: ${formatCurrency(tongTien)})`,
-    confirmed: `(Tổng: ${formatCurrency(tongTien)})`,
-    confirmed_by_staff: `(Tổng: ${formatCurrency(tongTien)})`,
-    'in-progress': `(Tổng: ${formatCurrency(tongTien)})`,
-    completed: `(Tổng: ${formatCurrency(tongTien)})`,
-    cancelled: `(+ ${formatCurrency(tongTien)})`,
-  };
-  return map[trangThai] || `(Tổng: ${formatCurrency(tongTien)})`;
+const getAmountText = (trangThai, tongTien, daThanhToan, thanhToan) => {
+  return `(Tổng: ${formatCurrency(tongTien)})`;
 };
 
 // Map payment method from backend to display label
@@ -635,7 +616,8 @@ const mapPaymentMethod = (phuongThuc) => {
     'tien_mat': 'Tiền mặt',
     'cash': 'Tiền mặt',
     'bank_transfer': 'Chuyển khoản',
-    'online': 'Thanh toán online',
+    'chuyen_khoan': 'Chuyển khoản QR',
+    'online': 'Chuyển khoản QR',
   };
   return methodMap[phuongThuc] || phuongThuc || 'Không rõ';
 };
@@ -653,11 +635,11 @@ const loadPaymentData = async () => {
           ? parseFloat(thanhToan.tong_tien_sau_giam) || 0
           : parseFloat(lichHen.tong_tien) || parseFloat(lichHen.dich_vu?.gia_tien) || 0;
         const ngayGio = lichHen.ngay_gio;
-        const phuongThucThanhToan = thanhToan?.phuong_thuc || lichHen.phuong_thuc_thanh_toan || null;
+        const phuongThucThanhToan = thanhToan?.hinh_thuc_thanh_toan || lichHen.phuong_thuc_thanh_toan || null;
 
         // Calculate actual paid amount from thanh_toan record
-        // Check if thanhToan exists AND (trang_thai is completed OR da_thanh_toan is truthy)
-        const paidAmount = thanhToan && (lichHen.trang_thai === 'completed' || lichHen.da_thanh_toan)
+        const isPaid = lichHen.da_thanh_toan || (thanhToan && thanhToan.trang_thai === 'da_thanh_toan');
+        const paidAmount = thanhToan && (lichHen.trang_thai === 'completed' || isPaid)
           ? parseFloat(thanhToan.tong_tien_sau_giam) || 0
           : 0;
 
@@ -667,14 +649,14 @@ const loadPaymentData = async () => {
           service: lichHen.dich_vus?.length ? lichHen.dich_vus.map(d => d.ten).join(", ") : (lichHen.dich_vu?.ten || lichHen.dich_vu?.ten_dich_vu || 'Dịch vụ'),
           date: ngayGio ? new Date(ngayGio).toLocaleDateString('vi-VN') : 'N/A',
           rawDate: ngayGio || null,
-          status: mapTrangThaiToStatus(lichHen.trang_thai, lichHen.da_thanh_toan),
-          statusText: getStatusText(lichHen.trang_thai, tongTien, lichHen.da_thanh_toan),
-          amountText: getAmountText(lichHen.trang_thai, tongTien, lichHen.da_thanh_toan),
+          status: mapTrangThaiToStatus(lichHen.trang_thai, lichHen.da_thanh_toan, thanhToan),
+          statusText: getStatusText(lichHen.trang_thai, tongTien, lichHen.da_thanh_toan, thanhToan),
+          amountText: getAmountText(lichHen.trang_thai, tongTien, lichHen.da_thanh_toan, thanhToan),
           totalAmount: tongTien,
           paidAmount: paidAmount,
           phuongThuc: mapPaymentMethod(phuongThucThanhToan),
-          petName: lichHen.thu_cung?.ten || null,
-          doctor: lichHen.nhan_vien?.ho_ten || null,
+          petName: lichHen.thu_cung?.ten_thu_cung || lichHen.thu_cung?.ten || null,
+          doctor: lichHen.nhan_vien?.full_name || lichHen.nhan_vien?.ho_ten || null,
           dich_vus: lichHen.dich_vus || [],
         };
       });
@@ -706,7 +688,7 @@ const calculateStatistics = () => {
   const thisYear = now.getFullYear();
 
   payments.value.forEach(payment => {
-    const isPaid = payment.status === 'completed' || payment.status === 'prepaid';
+    const isPaid = payment.status === 'completed';
 
     // Tổng đã thanh toán: chỉ tháng hiện tại
     if (isPaid && payment.rawDate) {

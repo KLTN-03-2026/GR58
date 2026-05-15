@@ -33,6 +33,7 @@ class StoreLichHenRequest extends FormRequest
             'dich_vu_ids.*' => ['required', 'exists:dich_vus,id'],
             'nhan_vien_id' => ['nullable', 'exists:nhan_viens,id'],
             'thanh_toan_id' => ['nullable', 'exists:thanh_toans,id'],
+            'phuong_thuc_thanh_toan' => ['nullable', 'string', 'in:online,offline'],
         ];
     }
 }

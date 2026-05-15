@@ -6,7 +6,9 @@ use App\Http\Requests\StoreLichHenRequest;
 use App\Models\DichVu;
 use App\Models\LichHen;
 use App\Models\LichLamViec;
+use App\Models\ThanhToan;
 use App\Models\ThuCung;
+use App\Services\SepayService;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -100,7 +102,8 @@ class LichHenController extends Controller
     {
         $data = $request->validated();
         $dichVuIds = $data['dich_vu_ids'];
-        unset($data['dich_vu_ids']);
+        $phuongThucThanhToan = $data['phuong_thuc_thanh_toan'] ?? 'offline';
+        unset($data['dich_vu_ids'], $data['phuong_thuc_thanh_toan']);
 
         // Backward compat: set dich_vu_id = first service
         $data['dich_vu_id'] = $dichVuIds[0];
@@ -110,6 +113,8 @@ class LichHenController extends Controller
         }
 
         $user = $request->user();
+        $paymentInfo = null;
+        $paymentWarning = null;
 
         if ($user instanceof \App\Models\KhachHang) {
             $data['khach_hang_id'] = $user->id;
@@ -126,7 +131,7 @@ class LichHenController extends Controller
             }
 
             // Auto-confirm với slot check + lock để tránh race condition
-            $lichHen = DB::transaction(function () use ($data, $dichVuIds) {
+            $result = DB::transaction(function () use ($data, $dichVuIds, $phuongThucThanhToan, $user) {
                 $ngayGio  = Carbon::parse($data['ngay_gio']);
                 $dateStr  = $ngayGio->toDateString();
                 $hour     = (int) $ngayGio->format('H');
@@ -164,7 +169,6 @@ class LichHenController extends Controller
                     ]);
                 }
 
-                // Một thú cưng không thể có 2 lịch hẹn trong cùng khung giờ
                 $petConflict = LichHen::whereIn('trang_thai', ['confirmed', 'in-progress'])
                     ->where('thu_cung_id', $data['thu_cung_id'])
                     ->where('ngay_gio', '>=', $ngayGio->copy()->subMinutes(59)->format('Y-m-d H:i:s'))
@@ -184,8 +188,44 @@ class LichHenController extends Controller
 
                 $this->syncPivotServices($lichHen, $dichVuIds);
 
-                return $lichHen;
+                $thanhToan = null;
+                if ($phuongThucThanhToan === 'online') {
+                    $sepayService = app(SepayService::class);
+                    if ($sepayService->isConfigured()) {
+                        $tongTien = $lichHen->fresh()->tong_tien ?? 0;
+                        if ($tongTien > 0) {
+                            $thanhToan = ThanhToan::create([
+                                'ma_thanh_toan' => 'TT' . now()->format('ymdHis') . rand(10, 99),
+                                'lich_hen_id' => $lichHen->id,
+                                'khach_hang_id' => $user->id,
+                                'tong_tien_goc' => $tongTien,
+                                'so_tien_giam' => 0,
+                                'tong_tien_sau_giam' => $tongTien,
+                                'hinh_thuc_thanh_toan' => 'chuyen_khoan',
+                                'tien_mat' => 0,
+                                'tien_online' => $tongTien,
+                                'trang_thai' => 'cho_thanh_toan',
+                                'het_han_luc' => now()->addMinutes($sepayService->getExpiryMinutes()),
+                            ]);
+                        }
+                    }
+                }
+
+                return ['lichHen' => $lichHen, 'thanhToan' => $thanhToan];
             });
+
+            $lichHen = $result['lichHen'];
+            $thanhToan = $result['thanhToan'];
+
+            if ($phuongThucThanhToan === 'online') {
+                if ($thanhToan) {
+                    $sepayService = app(SepayService::class);
+                    $paymentInfo = $sepayService->getPaymentInfo($thanhToan);
+                    $paymentInfo['thanh_toan_id'] = $thanhToan->id;
+                } else {
+                    $paymentWarning = 'Chức năng thanh toán online tạm không khả dụng. Vui lòng thanh toán tại phòng khám.';
+                }
+            }
         } elseif ($user instanceof \App\Models\Admin || $user instanceof \App\Models\NhanVien) {
             $data['nguon_goc'] = $data['nguon_goc'] ?? 'walk-in';
             if (empty($data['khach_hang_id'])) {
@@ -202,10 +242,20 @@ class LichHenController extends Controller
 
         $payload = new \App\Http\Resources\LichHenResource($lichHen->fresh()->load(['thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'khachHang']));
 
-        return response()->json([
+        $response = [
             'status' => true,
             'data'   => $payload,
-        ], 201);
+        ];
+
+        if ($paymentInfo) {
+            $response['payment_info'] = $paymentInfo;
+        }
+
+        if ($paymentWarning) {
+            $response['payment_warning'] = $paymentWarning;
+        }
+
+        return response()->json($response, 201);
     }
 
     private function syncPivotServices(LichHen $lichHen, array $dichVuIds): void

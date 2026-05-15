@@ -172,7 +172,10 @@ class SepayController extends Controller
         if ($thanhToan->lich_hen_id) {
             LichHen::where('id', $thanhToan->lich_hen_id)
                 ->whereNull('thanh_toan_id')
-                ->update(['thanh_toan_id' => $thanhToan->id]);
+                ->update([
+                    'thanh_toan_id' => $thanhToan->id,
+                    'da_thanh_toan' => true,
+                ]);
         }
 
         Log::info('SePay webhook: payment confirmed', [
@@ -223,7 +226,10 @@ class SepayController extends Controller
         if ($thanhToan->lich_hen_id) {
             LichHen::where('id', $thanhToan->lich_hen_id)
                 ->whereNull('thanh_toan_id')
-                ->update(['thanh_toan_id' => $thanhToan->id]);
+                ->update([
+                    'thanh_toan_id' => $thanhToan->id,
+                    'da_thanh_toan' => true,
+                ]);
         }
 
         return response()->json([

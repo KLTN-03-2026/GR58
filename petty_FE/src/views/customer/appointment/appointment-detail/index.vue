@@ -222,11 +222,16 @@
                 </p>
               </div>
               <div
+                v-if="getPaymentStatus(selectedAppt) === 'da_thanh_toan'"
+                class="bg-green-50 border !border-black/5 rounded-lg px-3 py-1"
+              >
+                <span class="text-green-700 font-medium text-lg">Đã thanh toán</span>
+              </div>
+              <div
+                v-else
                 class="bg-red-50 border !border-black/5 rounded-lg px-3 py-1"
               >
-                <span class="text-red-700 font-medium text-lg"
-                  >Chưa thanh toán</span
-                >
+                <span class="text-red-700 font-medium text-lg">Chưa thanh toán</span>
               </div>
             </div>
             <!-- <hr class="border-black/5" />
@@ -323,6 +328,15 @@ const getServicesList = (appt) => {
   const name = raw.dich_vu?.ten || raw.dich_vu?.ten_dich_vu || raw.dichVu?.ten || appt.service || "Dịch vụ";
   const price = raw.dich_vu?.gia_tien || raw.dich_vu?.price || raw.dichVu?.gia_tien || raw.tong_tien || 0;
   return [{ ten: name, gia: price }];
+};
+
+const getPaymentStatus = (appt) => {
+  if (!appt) return null;
+  const raw = appt.raw || appt || {};
+  const tt = raw.thanh_toan || raw.thanhToan;
+  if (tt && tt.trang_thai === 'da_thanh_toan') return 'da_thanh_toan';
+  if (raw.thanh_toan_id) return 'da_thanh_toan';
+  return null;
 };
 
 const getServicePrice = (appt) => {

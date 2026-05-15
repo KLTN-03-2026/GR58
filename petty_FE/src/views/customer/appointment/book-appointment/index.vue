@@ -126,7 +126,7 @@
                   {{ service.name }}
                 </p>
               </div>
-              <p class="text-sm font-medium text-gray-600 ml-7">
+              <p class="text-sm font-medium text-gray-600 ml-7 line-clamp-1">
                 {{ service.description }}
               </p>
               <div class="flex items-center gap-4 mt-1 ml-7">
@@ -339,7 +339,7 @@
                 </div>
                 <div class="flex-1 flex items-center justify-between gap-2">
                   <span class="text-sm font-semibold text-black">
-                    Thanh toán trước (VNPay/Momo)
+                    Thanh toán trước (Chuyển khoản QR)
                   </span>
                 </div>
               </div>
@@ -432,6 +432,16 @@
       </div>
     </div>
   </div>
+
+  <!-- QR Payment Modal -->
+  <PaymentQrModal
+    :visible="showQrModal"
+    :initial-payment-info="qrPaymentInfo"
+    :initial-thanh-toan-id="qrThanhToanId"
+    :show-manual-confirm="false"
+    @success="onPaymentSuccess"
+    @close="onPaymentClose"
+  />
 </template>
 
 <script setup>
@@ -452,6 +462,7 @@ import SuccessIcon from "@/assets/svg/success.svg";
 import ChevronLeftIcon from "@/assets/svg/chevron-left.svg";
 import ChevronRightIcon from "@/assets/svg/chevron-right.svg";
 import TickIcon from "@/assets/svg/tick.svg";
+import PaymentQrModal from "@/components/payment/PaymentQrModal.vue";
 // Thuộc tính (props)
 const props = defineProps({
   isOpen: {
@@ -597,6 +608,11 @@ const selectedService = computed(() => selectedServices.value[0] || null);
 const isSubmitting = ref(false);
 const autoSkipToDateTime = ref(false);
 const bookingNote = ref("");
+
+// QR Payment state
+const showQrModal = ref(false);
+const qrPaymentInfo = ref(null);
+const qrThanhToanId = ref(null);
 
 // Tên khách hàng (ưu tiên tên người dùng đã đăng nhập)
 const customerNameLocal = ref(props.customerName || "");
@@ -890,15 +906,21 @@ const confirmBooking = async () => {
 
     const data = res.data && res.data.data ? res.data.data : null;
 
-    if (route.query.service_id) {
-      showSuccessToast("Đặt lịch thành công", "Lịch hẹn đã được tạo. Vào mục Lịch hẹn để xem chi tiết.");
+    if (res.data?.payment_info) {
+      qrPaymentInfo.value = res.data.payment_info;
+      qrThanhToanId.value = res.data.payment_info.thanh_toan_id;
+      closePopup();
+      showQrModal.value = true;
+      emit("confirm", data || payload);
     } else {
-      showSuccessToast("Đặt lịch thành công", "Lịch hẹn của bạn đã được tạo.");
+      if (route.query.service_id) {
+        showSuccessToast("Đặt lịch thành công", "Lịch hẹn đã được tạo. Vào mục Lịch hẹn để xem chi tiết.");
+      } else {
+        showSuccessToast("Đặt lịch thành công", "Lịch hẹn của bạn đã được tạo.");
+      }
+      closePopup();
+      emit("confirm", data || payload);
     }
-    closePopup();
-
-    // phát sự kiện kèm phản hồi server khi có
-    emit("confirm", data || payload);
   } catch (err) {
     let message = "Không thể tạo lịch hẹn. Vui lòng thử lại.";
     const errData = err.response?.data;
@@ -927,6 +949,21 @@ const confirmBooking = async () => {
   }
 };
 
+
+const onPaymentSuccess = () => {
+  showQrModal.value = false;
+  qrPaymentInfo.value = null;
+  qrThanhToanId.value = null;
+  router.push("/customer/appointments");
+};
+
+const onPaymentClose = () => {
+  showQrModal.value = false;
+  qrPaymentInfo.value = null;
+  qrThanhToanId.value = null;
+  showSuccessToast("Đặt lịch thành công", "Bạn có thể thanh toán sau tại phòng khám.");
+  router.push("/customer/appointments");
+};
 
 const formatPrice = (price) => {
   if (!price) return "";

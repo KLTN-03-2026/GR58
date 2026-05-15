@@ -31,7 +31,8 @@
               </svg>
             </div>
             <h3 class="text-lg font-bold text-gray-900 mb-1">Giao dịch hết hạn</h3>
-            <p class="text-sm text-gray-500 mb-6">Thời gian thanh toán đã hết. Vui lòng tạo lại.</p>
+            <p class="text-sm text-gray-500 mb-2">Thời gian thanh toán đã hết.</p>
+            <p class="text-sm text-gray-500 mb-6">Lịch hẹn vẫn có hiệu lực — bạn có thể thanh toán tại phòng khám.</p>
             <button
               @click="retry"
               class="h-10 px-6 bg-[#009689] text-white rounded-xl text-sm font-semibold hover:bg-[#007d72] transition-colors"
@@ -124,6 +125,7 @@
             <!-- Actions -->
             <div class="px-6 pb-5 flex flex-col gap-2.5">
               <button
+                v-if="showManualConfirm"
                 @click="confirmManualPayment"
                 :disabled="confirming"
                 class="w-full h-11 bg-[#009689] text-white rounded-xl text-sm font-semibold hover:bg-[#007d72] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
@@ -151,8 +153,11 @@ import sepayService from '@/services/sepayService'
 import { showSuccessToast, showErrorToast } from '@/utils/toast'
 
 const props = defineProps({
-  lichHenId: { type: Number, required: true },
+  lichHenId: { type: Number, default: null },
   visible: { type: Boolean, default: false },
+  initialPaymentInfo: { type: Object, default: null },
+  initialThanhToanId: { type: Number, default: null },
+  showManualConfirm: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['close', 'success'])
@@ -187,6 +192,24 @@ async function initPayment() {
   state.value = 'loading'
   qrError.value = false
   errorMessage.value = ''
+
+  if (props.initialPaymentInfo && props.initialThanhToanId) {
+    paymentInfo.value = props.initialPaymentInfo
+    thanhToanId.value = props.initialThanhToanId
+
+    const expiresAt = new Date(paymentInfo.value.expires_at)
+    remainingSeconds.value = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
+
+    if (remainingSeconds.value <= 0) {
+      state.value = 'expired'
+      return
+    }
+
+    state.value = 'qr'
+    startCountdown()
+    startPolling()
+    return
+  }
 
   try {
     const res = await sepayService.createPayment(props.lichHenId)

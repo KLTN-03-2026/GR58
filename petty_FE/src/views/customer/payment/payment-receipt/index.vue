@@ -63,10 +63,10 @@
         </div>
         <div class="flex flex-col gap-1">
           <p class="font-medium text-sm leading-6 text-gray-600">
-            Bác sĩ
+            Phương thức TT
           </p>
           <p class="font-semibold text-sm leading-6 text-black">
-            {{ receiptData.doctor }}
+            {{ receiptData.phuongThuc || 'N/A' }}
           </p>
         </div>
       </div>
@@ -133,18 +133,6 @@
           <p class="font-medium text-sm leading-6 text-gray-700">
             {{ formatCurrency(receiptData.paidAmount) }}
           </p>
-        </div>
-        <div class="bg-black/15 h-px w-full"></div>
-        <div class="flex justify-between items-center">
-          <p class="font-medium text-sm leading-6 text-teal-600">
-            Trạng thái:
-          </p>
-          <div class="flex items-center gap-2">
-            <CheckCircle class="w-4 h-4 text-teal-600" />
-            <p class="font-medium text-sm leading-5 text-teal-600">
-              Đã thanh toán trước {{ formatCurrency(receiptData.prepaidAmount) }}
-            </p>
-          </div>
         </div>
       </div>
 

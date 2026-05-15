@@ -817,6 +817,9 @@ const statusLabel = (s) => {
       return "Đã xác nhận";
     case "paid":
       return "Đã thanh toán";
+    case "in-progress":
+    case "dang_kham":
+      return "Đang khám";
     case "completed":
       return "Hoàn thành";
     case "cancelled":
