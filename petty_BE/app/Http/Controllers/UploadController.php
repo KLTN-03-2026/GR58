@@ -23,7 +23,7 @@ class UploadController extends Controller
 
         $validator = Validator::make($request->all(), [
             'image' => 'sometimes|image|mimes:jpg,jpeg,png,gif,webp|max:10240',
-            'file'  => 'sometimes|mimes:jpg,jpeg,png,gif,webp,pdf|max:10240',
+            'file'  => 'sometimes|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx|max:20480',
         ]);
 
         if ($validator->fails()) {
@@ -47,7 +47,12 @@ class UploadController extends Controller
                 ], 400);
             }
 
-            $folder = ($file->getMimeType() === 'application/pdf') ? 'staff/documents' : 'staff/images';
+            $mime = $file->getMimeType();
+            $docMimes = ['application/pdf', 'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+            $folder = in_array($mime, $docMimes) ? 'staff/documents' : 'staff/images';
             $path = $file->store($folder, 'public');
 
             Log::info('File stored successfully', [

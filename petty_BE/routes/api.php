@@ -106,6 +106,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/khach-hang/cap-nhat', [KhachHangController::class, 'capNhat']);
     Route::post('/khach-hang/doi-mat-khau', [KhachHangController::class, 'doiMatKhau']);
     Route::put('/khach-hang/{id}', [KhachHangController::class, 'update']);
+    Route::patch('/khach-hang/{id}/trang-thai', [KhachHangController::class, 'toggleTrangThai'])->middleware('staff.only');
     Route::get('/khach-hang', [KhachHangController::class, 'index'])->middleware('staff.only');
 
     // Thông báo khách hàng
@@ -262,6 +263,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/khoa', [KhoaController::class, 'store'])->middleware(['staff.only', 'permission:khoa_tao']);
     // Nhân viên: tạo mới (chỉ admin và nhân viên có quyền)
     Route::post('/nhan-vien', [NhanVienController::class, 'store'])->middleware(['staff.only', 'permission:nhan_vien_tao']);
+    // Nhân viên: cập nhật thông tin (chỉ admin và nhân viên có quyền)
+    Route::match(['put', 'patch'], '/nhan-vien/{nhanVien}', [NhanVienController::class, 'update'])->middleware(['staff.only', 'permission:nhan_vien_sua']);
     // Nhân viên: đổi mật khẩu (chỉ admin và nhân viên có quyền)
     Route::patch('/nhan-vien/{nhanVien}/mat-khau', [NhanVienController::class, 'changePassword'])->middleware(['staff.only', 'permission:nhan_vien_doi_mat_khau']);
     // Nhân viên: khóa tài khoản (chỉ admin và nhân viên có quyền)

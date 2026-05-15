@@ -17,7 +17,22 @@ class CheckPermission
      */
     public function handle(Request $request, Closure $next, string $permission): Response
     {
+        // Resolve user the same way StaffOnly does — via token lookup first
         $user = $request->user();
+
+        if (!$user) {
+            $token = $request->bearerToken();
+            if ($token) {
+                try {
+                    $tokenModel = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+                    if ($tokenModel && $tokenModel->tokenable) {
+                        $user = $tokenModel->tokenable;
+                    }
+                } catch (\Exception $e) {
+                    Log::error('CheckPermission token resolve error: ' . $e->getMessage());
+                }
+            }
+        }
 
         // Nếu chưa đăng nhập
         if (!$user) {

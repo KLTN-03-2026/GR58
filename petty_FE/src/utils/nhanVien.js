@@ -61,6 +61,37 @@ export async function createNhanVien(payload) {
   return res.data || null;
 }
 
+export async function updateNhanVien(id, payload) {
+  if (!id) throw new Error("Thiếu id nhân viên để cập nhật.");
+
+  // Same field mapping as createNhanVien but without password fields.
+  const body = {
+    full_name: payload.fullName || payload.full_name || null,
+    email: payload.email || null,
+    phone:
+      payload.phone || payload.so_dien_thoai || payload.phone_number || null,
+    address: payload.address || payload.dia_chi || null,
+    anh_dai_dien: payload.avatar || payload.anh_dai_dien || null,
+    vai_tro: normalizeRole(payload.selectedRoles) || payload.vai_tro || null,
+    chuc_danh: payload.position || payload.chuc_danh || null,
+    nam_kinh_nghiem:
+      payload.yearsOfExperience ?? payload.nam_kinh_nghiem ?? null,
+    chung_chi_hanh_nghe:
+      payload.practiceCertificate || payload.chung_chi_hanh_nghe || null,
+    bang_cap_chuyen_mon:
+      payload.professionalDegree || payload.bang_cap_chuyen_mon || null,
+    trang_thai:
+      (payload.status === "active" && "hoat_dong") ||
+      (payload.status === "locked" && "da_khoa") ||
+      payload.trang_thai ||
+      payload.status ||
+      null,
+  };
+
+  const res = await client.put(`${BASE}/${id}`, body);
+  return res.data || null;
+}
+
 export async function listNhanVien(params = {}) {
   const res = await client.get(BASE, { params });
   // backend returns { status: true, data: [...] }
@@ -74,6 +105,7 @@ export async function dangXuat() {
 
 export default {
   createNhanVien,
+  updateNhanVien,
   listNhanVien,
   dangXuat,
 };
