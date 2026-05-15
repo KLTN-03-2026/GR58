@@ -73,15 +73,43 @@
               class="w-full bg-[#f3f3f5] border-none rounded-lg h-9 pl-10 pr-3 py-1 font-nunito text-sm text-neutral-950 tracking-tight outline-none placeholder:text-[#717182]"
             />
           </div>
-          <button
-            class="bg-[#f3f3f5] border-none rounded-lg h-9 px-3 py-[1px] flex items-center justify-between gap-2 min-w-[192px]"
-          >
-            <span
-              class="font-medium text-sm leading-5 text-neutral-950 tracking-tight"
-              >Tất cả</span
+          <div class="relative" ref="roleDropdownRef">
+            <button
+              type="button"
+              @click="isRoleDropdownOpen = !isRoleDropdownOpen"
+              class="bg-[#f3f3f5] border-none rounded-lg h-9 px-3 py-[1px] flex items-center justify-between gap-2 min-w-[192px] cursor-pointer hover:bg-[#e9eaec] transition-colors"
             >
-            <ChevronDownIcon />
-          </button>
+              <span
+                class="font-medium text-sm leading-5 text-neutral-950 tracking-tight"
+                >{{ roleFilterLabel }}</span
+              >
+              <ChevronDownIcon
+                :class="[
+                  'transition-transform',
+                  isRoleDropdownOpen ? 'rotate-180' : '',
+                ]"
+              />
+            </button>
+            <div
+              v-if="isRoleDropdownOpen"
+              class="absolute right-0 top-full mt-1 w-full min-w-[192px] bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden"
+            >
+              <button
+                v-for="opt in roleFilterOptions"
+                :key="opt.value"
+                type="button"
+                @click="selectRoleFilter(opt.value)"
+                :class="[
+                  'w-full px-3 py-2 text-left text-sm font-medium transition-colors',
+                  roleFilter === opt.value
+                    ? 'bg-[#e6f4f3] text-[#0d9488]'
+                    : 'text-neutral-950 hover:bg-gray-50',
+                ]"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Staff Table -->
@@ -260,7 +288,7 @@
             class="font-nunito text-sm leading-5 text-[#4a5565] tracking-tight"
           >
             Hiển thị {{ startIndex }} - {{ endIndex }} của
-            {{ staffList.length }} nhân viên
+            {{ filteredStaffList.length }} nhân viên
           </p>
           <div class="flex items-center gap-1">
             <button
@@ -533,7 +561,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import ThemNhanVien from "./add-staff/index.vue";
 import ChiTietNhanVien from "./staff-detail/index.vue";
 import DatMatKhau from "./set-password/index.vue";
@@ -566,6 +594,39 @@ const selectedCustomerForView = ref(null);
 const staffSearchQuery = ref("");
 const customerSearchQuery = ref("");
 
+// Role filter dropdown
+const roleFilter = ref("all"); // 'all' | 'bac_si' | 'y_ta'
+const isRoleDropdownOpen = ref(false);
+const roleDropdownRef = ref(null);
+const roleFilterOptions = [
+  { value: "all", label: "Tất cả" },
+  { value: "bac_si", label: "Bác sĩ" },
+  { value: "y_ta", label: "Y tá" },
+];
+const roleFilterLabel = computed(
+  () =>
+    roleFilterOptions.find((o) => o.value === roleFilter.value)?.label ||
+    "Tất cả"
+);
+const selectRoleFilter = (value) => {
+  roleFilter.value = value;
+  isRoleDropdownOpen.value = false;
+};
+const handleClickOutsideRole = (e) => {
+  if (
+    roleDropdownRef.value &&
+    !roleDropdownRef.value.contains(e.target)
+  ) {
+    isRoleDropdownOpen.value = false;
+  }
+};
+onMounted(() => {
+  document.addEventListener("click", handleClickOutsideRole);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener("click", handleClickOutsideRole);
+});
+
 // Staff List Data (populated from API)
 const staffList = ref([]);
 
@@ -576,22 +637,55 @@ const currentPage = ref(1);
 const pagesShownCount = ref(1);
 
 const totalPages = computed(() =>
-  Math.max(1, Math.ceil(staffList.value.length / pageSize.value))
+  Math.max(1, Math.ceil(filteredStaffList.value.length / pageSize.value))
 );
+
+// Filter staff by search query + role
+const normalize = (s) =>
+  String(s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+const filteredStaffList = computed(() => {
+  const q = normalize(staffSearchQuery.value).trim();
+  const role = roleFilter.value;
+  return staffList.value.filter((s) => {
+    // Role filter (compare against original backend role key stored in roles[0]?.name OR keep raw)
+    if (role !== "all") {
+      const matchedRole =
+        (role === "bac_si" && s.roles?.[0]?.name === "Bác sĩ") ||
+        (role === "y_ta" && s.roles?.[0]?.name === "Y tá");
+      if (!matchedRole) return false;
+    }
+    if (!q) return true;
+    return (
+      normalize(s.name).includes(q) ||
+      normalize(s.email).includes(q) ||
+      normalize(s.phone).includes(q)
+    );
+  });
+});
 
 const pagedStaff = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value;
-  return staffList.value.slice(start, start + pageSize.value);
+  return filteredStaffList.value.slice(start, start + pageSize.value);
 });
 
 const startIndex = computed(() =>
-  staffList.value.length === 0
+  filteredStaffList.value.length === 0
     ? 0
     : (currentPage.value - 1) * pageSize.value + 1
 );
 const endIndex = computed(() =>
-  Math.min(staffList.value.length, currentPage.value * pageSize.value)
+  Math.min(filteredStaffList.value.length, currentPage.value * pageSize.value)
 );
+
+// Reset pagination whenever filter/search changes
+watch([staffSearchQuery, roleFilter], () => {
+  currentPage.value = 1;
+  pagesShownCount.value = 1;
+});
 
 // Previous/Next here control the visible page buttons (not the current page selection)
 const prevPage = () => {
