@@ -32,18 +32,16 @@
       <!-- Scrollable Content -->
       <div class="flex-1 overflow-y-auto px-6 py-4 space-y-6">
         <!-- Dịch vụ -->
-        <div
-          class="bg-teal-50 rounded-xl p-4 flex justify-between items-center"
-        >
-          <div>
-            <p class="text-gray-500 font-medium">Dịch vụ</p>
-            <p class="font-medium text-black">{{ selectedAppt.service }}</p>
-          </div>
-          <div class="text-right">
-            <p class="text-gray-500 font-medium">Giá dịch vụ</p>
-            <p class="text-teal-600 font-medium">
-              {{ getServicePrice(selectedAppt) }}
-            </p>
+        <div class="bg-teal-50 rounded-xl p-4 flex flex-col gap-2">
+          <div v-for="dv in getServicesList(selectedAppt)" :key="dv.ten" class="flex justify-between items-center">
+            <div>
+              <p class="text-gray-500 font-medium text-sm">Dịch vụ</p>
+              <p class="font-medium text-black">{{ dv.ten }}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-gray-500 font-medium text-sm">Giá dịch vụ</p>
+              <p class="text-teal-600 font-medium">{{ formatVNCurrency(dv.gia) }}</p>
+            </div>
           </div>
         </div>
 
@@ -313,9 +311,24 @@ const formatVNCurrency = (val) => {
   return `${s}đ`;
 };
 
+const getServicesList = (appt) => {
+  if (!appt) return [];
+  const raw = appt.raw || appt || {};
+  if (raw.dich_vus?.length) {
+    return raw.dich_vus.map(d => ({
+      ten: d.ten || d.ten_dich_vu || "Dịch vụ",
+      gia: d.don_gia || d.gia_tien || d.price || 0,
+    }));
+  }
+  const name = raw.dich_vu?.ten || raw.dich_vu?.ten_dich_vu || raw.dichVu?.ten || appt.service || "Dịch vụ";
+  const price = raw.dich_vu?.gia_tien || raw.dich_vu?.price || raw.dichVu?.gia_tien || raw.tong_tien || 0;
+  return [{ ten: name, gia: price }];
+};
+
 const getServicePrice = (appt) => {
   if (!appt) return "-";
   const raw = appt.raw || appt || {};
+  if (raw.tong_tien) return formatVNCurrency(raw.tong_tien);
   const priceCandidates = [
     raw?.dichVu?.gia_tien,
     raw?.dichVu?.price,

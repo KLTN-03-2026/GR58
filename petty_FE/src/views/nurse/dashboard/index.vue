@@ -397,20 +397,28 @@ const loadDashboardData = async () => {
     const today = new Date(Date.now() + 7 * 60 * 60 * 1000)
       .toISOString().split('T')[0];
 
-    const res = await getAllAppointments({
-      per_page: 100,
-      from_date: today + ' 00:00:00',
-      to_date: today + ' 23:59:59',
-    });
+    // Fetch song song: lịch hẹn hôm nay + tất cả chưa thanh toán
+    const [res, unpaidRes] = await Promise.all([
+      getAllAppointments({
+        per_page: 100,
+        from_date: today + ' 00:00:00',
+        to_date: today + ' 23:59:59',
+      }),
+      getAllAppointments({
+        per_page: 100,
+        trang_thai: 'completed',
+        chua_thanh_toan: true,
+      }),
+    ]);
+
     const data = res.data || [];
+    const unpaidData = unpaidRes.data || [];
 
     let upcoming = 0;
     let waiting = 0;
-    let payment = 0;
 
     appointments.value = data
       .map((item) => {
-        // Phân loại đúng theo trang_thai
         const trangThai = item.trang_thai;
         const statusGroup =
           trangThai === 'pending' || trangThai === 'confirmed'
@@ -418,20 +426,16 @@ const loadDashboardData = async () => {
             : trangThai === 'checked_in'
             ? 'arrived'
             : trangThai === 'in-progress' || trangThai === 'dang_kham'
-            ? 'examining'          // đang khám — không hiện "Thu tiền"
+            ? 'examining'
             : trangThai === 'completed' || trangThai === 'cho_thanh_toan'
-            ? 'payment'            // khám xong, chờ thanh toán
-            : 'done';              // da_thanh_toan, cancelled — ẩn khỏi hàng chờ
+            ? 'payment'
+            : 'done';
 
         if (statusGroup === 'upcoming') upcoming++;
         if (statusGroup === 'arrived') waiting++;
-        if (statusGroup === 'payment') payment++;
 
       return {
-        // Raw API data — dùng cho modal
         raw: item,
-
-        // Flat fields — dùng cho card hiển thị
         id: item.id,
         type: "scheduled",
         status: statusGroup,
@@ -448,7 +452,7 @@ const loadDashboardData = async () => {
         checkInTime: item.thoi_gian_checkin
           ? new Date(item.thoi_gian_checkin).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
           : null,
-        service: item.dich_vu?.ten_dich_vu || item.dich_vu?.ten || 'N/A',
+        service: item.dich_vus?.length ? item.dich_vus.map(d => d.ten).join(", ") : (item.dich_vu?.ten_dich_vu || item.dich_vu?.ten || 'N/A'),
         doctor: item.nhan_vien?.full_name || 'N/A',
         room: item.nhan_vien?.phong_kham || null,
         delay: null,
@@ -458,11 +462,14 @@ const loadDashboardData = async () => {
     // Chỉ hiển thị trong hàng chờ: bỏ qua trạng thái "done" (đã thanh toán / hủy)
     appointments.value = appointments.value.filter(a => a.status !== 'done');
 
+    // "Chờ thanh toán" = tất cả lịch hẹn completed chưa thanh toán (không lọc ngày)
+    const payment = unpaidData.length;
+
     stats.value = {
       upcoming,
       waiting,
       payment,
-      total: data.length,   // Tổng = tất cả records trong ngày
+      total: data.length,
     };
   } catch (error) {
     console.error("Dashboard data error:", error);

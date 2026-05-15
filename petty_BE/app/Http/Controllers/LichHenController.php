@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreLichHenRequest;
+use App\Models\DichVu;
 use App\Models\LichHen;
 use App\Models\LichLamViec;
 use App\Models\ThuCung;
@@ -98,6 +99,11 @@ class LichHenController extends Controller
     public function store(StoreLichHenRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $dichVuIds = $data['dich_vu_ids'];
+        unset($data['dich_vu_ids']);
+
+        // Backward compat: set dich_vu_id = first service
+        $data['dich_vu_id'] = $dichVuIds[0];
 
         if (!empty($data['ngay_gio'])) {
             $data['ngay_gio'] = Carbon::parse($data['ngay_gio'])->format('Y-m-d H:i:s');
@@ -120,7 +126,7 @@ class LichHenController extends Controller
             }
 
             // Auto-confirm với slot check + lock để tránh race condition
-            $lichHen = DB::transaction(function () use ($data) {
+            $lichHen = DB::transaction(function () use ($data, $dichVuIds) {
                 $ngayGio  = Carbon::parse($data['ngay_gio']);
                 $dateStr  = $ngayGio->toDateString();
                 $hour     = (int) $ngayGio->format('H');
@@ -174,7 +180,11 @@ class LichHenController extends Controller
                 }
 
                 $data['trang_thai'] = 'confirmed';
-                return LichHen::create($data);
+                $lichHen = LichHen::create($data);
+
+                $this->syncPivotServices($lichHen, $dichVuIds);
+
+                return $lichHen;
             });
         } elseif ($user instanceof \App\Models\Admin || $user instanceof \App\Models\NhanVien) {
             $data['nguon_goc'] = $data['nguon_goc'] ?? 'walk-in';
@@ -184,16 +194,43 @@ class LichHenController extends Controller
                 ]);
             }
             $lichHen = LichHen::create($data);
+            $this->syncPivotServices($lichHen, $dichVuIds);
         } else {
             $lichHen = LichHen::create($data);
+            $this->syncPivotServices($lichHen, $dichVuIds);
         }
 
-        $payload = new \App\Http\Resources\LichHenResource($lichHen->fresh()->load(['thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'khachHang']));
+        $payload = new \App\Http\Resources\LichHenResource($lichHen->fresh()->load(['thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'khachHang']));
 
         return response()->json([
             'status' => true,
             'data'   => $payload,
         ], 201);
+    }
+
+    private function syncPivotServices(LichHen $lichHen, array $dichVuIds): void
+    {
+        $services = DichVu::whereIn('id', $dichVuIds)->get()->keyBy('id');
+        $pivotData = [];
+        $tongTien = 0;
+
+        foreach ($dichVuIds as $id) {
+            $service = $services->get($id);
+            if (!$service) {
+                continue;
+            }
+            $donGia = $service->gia_tien;
+            $thanhTien = $donGia * 1;
+            $pivotData[$id] = [
+                'so_luong' => 1,
+                'don_gia' => $donGia,
+                'thanh_tien' => $thanhTien,
+            ];
+            $tongTien += $thanhTien;
+        }
+
+        $lichHen->dichVus()->sync($pivotData);
+        $lichHen->update(['tong_tien' => $tongTien]);
     }
 
     /**
@@ -202,7 +239,7 @@ class LichHenController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $query = LichHen::with(['thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'thanhToan'])
+        $query = LichHen::with(['thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'thanhToan'])
             ->where('khach_hang_id', $user->id);
 
         // Filter by pet name (thu_cung.ten_thu_cung)
@@ -271,7 +308,7 @@ class LichHenController extends Controller
      */
     public function indexAll(Request $request): JsonResponse
     {
-        $query = LichHen::with(['thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'thanhToan', 'khachHang']);
+        $query = LichHen::with(['thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'thanhToan', 'khachHang']);
 
         // Filter by customer
         if ($request->filled('khach_hang_id')) {
@@ -366,7 +403,7 @@ class LichHenController extends Controller
         }
         // Staff (Admin/NhanVien) có thể xem bất kỳ lịch hẹn nào
 
-        $payload = new \App\Http\Resources\LichHenResource($lichHen->load(['thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'thanhToan', 'khachHang']));
+        $payload = new \App\Http\Resources\LichHenResource($lichHen->load(['thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'thanhToan', 'khachHang']));
 
         return response()->json([
             'status' => true,
@@ -382,7 +419,6 @@ class LichHenController extends Controller
         try {
             $validated = $request->validated();
 
-            // Cập nhật các trường được phép
             if (isset($validated['nhan_vien_id'])) {
                 $lichHen->nhan_vien_id = $validated['nhan_vien_id'];
             }
@@ -397,8 +433,13 @@ class LichHenController extends Controller
 
             $lichHen->save();
 
-            // Load relationships để trả lại dữ liệu đầy đủ
-            $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'thanhToan']);
+            if (isset($validated['dich_vu_ids'])) {
+                $lichHen->dich_vu_id = $validated['dich_vu_ids'][0];
+                $lichHen->save();
+                $this->syncPivotServices($lichHen, $validated['dich_vu_ids']);
+            }
+
+            $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'thanhToan']);
 
             $payload = new \App\Http\Resources\LichHenResource($lichHen);
 
@@ -440,7 +481,7 @@ class LichHenController extends Controller
             $lichHen->save();
 
             // Load relationships để trả lại dữ liệu đầy đủ
-            $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'thanhToan']);
+            $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'thanhToan']);
 
             $payload = new \App\Http\Resources\LichHenResource($lichHen);
 
@@ -538,7 +579,7 @@ class LichHenController extends Controller
             $lichHen->save();
         });
 
-        $payload = new \App\Http\Resources\LichHenResource($lichHen->fresh()->load(['thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'khachHang']));
+        $payload = new \App\Http\Resources\LichHenResource($lichHen->fresh()->load(['thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'khachHang']));
 
         return response()->json([
             'status' => true,
@@ -634,7 +675,7 @@ class LichHenController extends Controller
             $lichHen->save();
 
             // Load relationships để trả lại dữ liệu đầy đủ
-            $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'nhanVien', 'yTaCheckin', 'thanhToan']);
+            $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'thanhToan']);
 
             $payload = new \App\Http\Resources\LichHenResource($lichHen);
 
@@ -675,7 +716,7 @@ class LichHenController extends Controller
                 ], 403);
             }
 
-            $query = LichHen::with(['khachHang', 'thuCung', 'dichVu', 'nhanVien', 'yTaCheckin'])
+            $query = LichHen::with(['khachHang', 'thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin'])
                 ->whereIn('trang_thai', ['pending', 'confirmed'])
                 ->whereNull('thoi_gian_checkin');
 
@@ -733,7 +774,7 @@ class LichHenController extends Controller
                 ], 403);
             }
 
-            $query = LichHen::with(['khachHang', 'thuCung', 'dichVu', 'nhanVien', 'yTaCheckin'])
+            $query = LichHen::with(['khachHang', 'thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin'])
                 ->whereNotNull('thoi_gian_checkin');
 
             // Filter theo ngày nếu có
@@ -796,7 +837,7 @@ class LichHenController extends Controller
                 ], 403);
             }
 
-            $query = LichHen::with(['khachHang', 'thuCung', 'dichVu', 'nhanVien', 'yTaCheckin'])
+            $query = LichHen::with(['khachHang', 'thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin'])
                 ->whereNotNull('thoi_gian_checkin') // Đã check-in
                 ->whereIn('trang_thai', ['in-progress', 'dang_kham']) // Đang chờ khám
                 ->whereNull('thoi_gian_bat_dau_kham'); // Chưa bắt đầu khám
@@ -915,7 +956,7 @@ class LichHenController extends Controller
             $lichHen->save();
 
             // Load relationships
-            $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'nhanVien', 'thanhToan']);
+            $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'dichVus', 'nhanVien', 'thanhToan']);
 
             $payload = new \App\Http\Resources\LichHenResource($lichHen);
 
@@ -954,7 +995,7 @@ class LichHenController extends Controller
                 ], 403);
             }
 
-            $query = LichHen::with(['khachHang', 'thuCung', 'dichVu', 'nhanVien'])
+            $query = LichHen::with(['khachHang', 'thuCung', 'dichVu', 'dichVus', 'nhanVien'])
                 ->whereNotNull('thoi_gian_bat_dau_kham') // Đã bắt đầu khám
                 ->whereNull('thoi_gian_hoan_thanh') // Chưa hoàn thành
                 ->whereIn('trang_thai', ['in-progress', 'dang_kham']);
@@ -1068,7 +1109,7 @@ class LichHenController extends Controller
             $lichHen->save();
 
             // Load relationships
-            $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'nhanVien', 'thanhToan']);
+            $lichHen->load(['khachHang', 'thuCung', 'dichVu', 'dichVus', 'nhanVien', 'thanhToan']);
 
             $payload = new \App\Http\Resources\LichHenResource($lichHen);
 

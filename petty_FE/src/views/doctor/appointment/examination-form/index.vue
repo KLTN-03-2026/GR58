@@ -122,6 +122,42 @@
       <div class="ef-body">
         <!-- Left Column -->
         <div class="ef-col-left">
+          <!-- Dịch vụ đã thực hiện -->
+          <section v-if="serviceChecklist.length > 0" class="ef-card">
+            <div class="ef-card-header">
+              <span class="ef-icon" style="background: #e0f2fe; color: #0369a1;">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+              </span>
+              <h3 class="ef-card-title">Dịch vụ đã thực hiện</h3>
+              <span class="ml-auto text-xs font-medium" :class="allServicesCompleted ? 'text-emerald-600' : 'text-amber-600'">
+                {{ completedServicesCount }}/{{ serviceChecklist.length }}
+              </span>
+            </div>
+            <div class="flex flex-col gap-2 mt-1">
+              <label
+                v-for="(svc, idx) in serviceChecklist"
+                :key="idx"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors"
+                :class="svc.done ? 'bg-emerald-50 !border-emerald-200' : '!border-slate-200 hover:bg-slate-50'"
+              >
+                <input
+                  type="checkbox"
+                  v-model="svc.done"
+                  class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span class="text-sm font-medium" :class="svc.done ? 'text-emerald-700' : 'text-slate-700'">
+                  {{ svc.name }}
+                </span>
+                <span v-if="svc.done" class="ml-auto text-xs text-emerald-500 font-medium">Xong</span>
+              </label>
+            </div>
+            <p v-if="!allServicesCompleted" class="text-xs text-amber-600 mt-2">
+              * Tick tất cả dịch vụ trước khi hoàn tất khám
+            </p>
+          </section>
+
           <!-- Vital Signs -->
           <section class="ef-card">
             <div class="ef-card-header">
@@ -298,6 +334,7 @@
               placeholder="Phác đồ, lưu ý đặc biệt sau khám..."
             ></textarea>
           </section>
+
         </div>
 
         <!-- Right: Action Panel -->
@@ -384,7 +421,8 @@
             <div class="border-t border-slate-100 my-1"></div>
 
             <button
-              class="ef-action-btn ef-action-btn--complete"
+              :class="['ef-action-btn', allServicesCompleted ? 'ef-action-btn--complete' : 'ef-action-btn--disabled']"
+              :disabled="!allServicesCompleted"
               @click="hoanTatVaChuyenThuNgan"
             >
               <span class="ef-action-icon">
@@ -402,12 +440,12 @@
                   />
                 </svg>
               </span>
-              <div class="text-left text-white">
-                <p class="text-sm font-semibold leading-5 text-white">
+              <div class="text-left" :class="allServicesCompleted ? 'text-white' : 'text-slate-400'">
+                <p class="text-sm font-semibold leading-5">
                   Hoàn tất & Chuyển thu ngân
                 </p>
-                <p class="text-xs opacity-70 leading-4 text-white">
-                  Kết thúc ca khám, tạo hóa đơn
+                <p class="text-xs opacity-70 leading-4">
+                  {{ allServicesCompleted ? 'Kết thúc ca khám, tạo hóa đơn' : 'Tick tất cả dịch vụ trước' }}
                 </p>
               </div>
             </button>
@@ -540,6 +578,11 @@ const symptoms = ref("");
 const diagnosis = ref("");
 const notes = ref("");
 
+// Service checklist
+const serviceChecklist = ref([]);
+const allServicesCompleted = computed(() => serviceChecklist.value.length > 0 && serviceChecklist.value.every(s => s.done));
+const completedServicesCount = computed(() => serviceChecklist.value.filter(s => s.done).length);
+
 // Loại chỉ định được chọn
 const selectedPrescriptionType = ref("don_thuoc"); // default to prescription
 
@@ -661,8 +704,15 @@ const loadAppointmentData = async () => {
           : appointmentDateTime
           ? format(appointmentDateTime, "HH:mm", { locale: vi })
           : "",
-        service: data.dich_vu?.ten || data.dichVu?.ten || "Khám tổng quát",
+        service: data.dich_vus?.length ? data.dich_vus.map(d => d.ten).join(", ") : (data.dich_vu?.ten || data.dichVu?.ten || "Khám tổng quát"),
       };
+
+      // Populate service checklist
+      if (data.dich_vus?.length) {
+        serviceChecklist.value = data.dich_vus.map(d => ({ name: d.ten, done: false }));
+      } else if (data.dich_vu?.ten || data.dichVu?.ten) {
+        serviceChecklist.value = [{ name: data.dich_vu?.ten || data.dichVu?.ten, done: false }];
+      }
 
       // Load existing notes if any
       if (data.ghi_chu) {
@@ -693,9 +743,9 @@ const handleBack = () => {
 };
 
 const handleSave = async () => {
-  // Validate required fields
-  if (!diagnosis.value.trim()) {
-    showErrorToast("Vui lòng nhập chẩn đoán bệnh");
+  const hasAnyMedicalInput = vitalSigns.value.temperature || vitalSigns.value.weight || symptoms.value.trim() || reasonForVisit.value.trim();
+  if (hasAnyMedicalInput && !diagnosis.value.trim()) {
+    showErrorToast("Đã nhập thông tin khám — vui lòng nhập chẩn đoán bệnh");
     return;
   }
 
@@ -784,41 +834,50 @@ const handleFollowUpSave = (data) => {
   showSuccessToast("Đã lưu lịch hẹn tái khám");
 };
 const hoanTatVaChuyenThuNgan = async () => {
-  if (!diagnosis.value.trim()) {
-    showErrorToast("Vui lòng nhập chẩn đoán trước khi hoàn tất");
+  const hasAnyMedicalInput = vitalSigns.value.temperature || vitalSigns.value.weight || symptoms.value.trim() || reasonForVisit.value.trim();
+  if (hasAnyMedicalInput && !diagnosis.value.trim()) {
+    showErrorToast("Đã nhập thông tin khám — vui lòng nhập chẩn đoán trước khi hoàn tất");
     return;
+  }
+  if (!hasAnyMedicalInput && !diagnosis.value.trim()) {
+    const confirmed = window.confirm("Bạn chưa nhập chẩn đoán. Xác nhận hoàn tất mà không có phiếu khám?");
+    if (!confirmed) return;
   }
 
   saving.value = true;
   try {
-    // Bước 1: Lưu phiếu khám
-    const phieuKhamData = {
-      lich_hen_id: appointmentId.value,
-      nhiet_do: vitalSigns.value.temperature
-        ? parseFloat(vitalSigns.value.temperature)
-        : null,
-      can_nang: vitalSigns.value.weight
-        ? parseFloat(vitalSigns.value.weight)
-        : null,
-      nhip_tim: vitalSigns.value.heartRate
-        ? parseInt(vitalSigns.value.heartRate)
-        : null,
-      nhip_tho: vitalSigns.value.respiratoryRate
-        ? parseInt(vitalSigns.value.respiratoryRate)
-        : null,
-      ly_do_den_kham: reasonForVisit.value || null,
-      trieu_chung: symptoms.value || null,
-      chan_doan: diagnosis.value,
-      ghi_chu: notes.value || null,
-      loai_chi_dinh: selectedPrescriptionType.value,
-    };
-    const phieuKhamResponse = await api.post("/phieu-kham", phieuKhamData);
-    const phieuKhamId = phieuKhamResponse.data?.data?.id;
+    // Bước 1: Lưu phiếu khám (chỉ khi có nhập thông tin y tế)
+    if (diagnosis.value.trim()) {
+      const phieuKhamData = {
+        lich_hen_id: appointmentId.value,
+        nhiet_do: vitalSigns.value.temperature
+          ? parseFloat(vitalSigns.value.temperature)
+          : null,
+        can_nang: vitalSigns.value.weight
+          ? parseFloat(vitalSigns.value.weight)
+          : null,
+        nhip_tim: vitalSigns.value.heartRate
+          ? parseInt(vitalSigns.value.heartRate)
+          : null,
+        nhip_tho: vitalSigns.value.respiratoryRate
+          ? parseInt(vitalSigns.value.respiratoryRate)
+          : null,
+        ly_do_den_kham: reasonForVisit.value || null,
+        trieu_chung: symptoms.value || null,
+        chan_doan: diagnosis.value,
+        ghi_chu: notes.value || null,
+        loai_chi_dinh: selectedPrescriptionType.value,
+      };
+      const phieuKhamResponse = await api.post("/phieu-kham", phieuKhamData);
+      const phieuKhamId = phieuKhamResponse.data?.data?.id;
 
-    // Bước 2: Hoàn tất phiếu khám (chuyển trạng thái sang chờ thanh toán)
-    if (phieuKhamId) {
-      await phieuKhamService.hoanTat(phieuKhamId);
+      if (phieuKhamId) {
+        await phieuKhamService.hoanTat(phieuKhamId);
+      }
     }
+
+    // Bước 2: Hoàn thành lịch hẹn (chuyển trạng thái sang completed)
+    await api.post(`/lich-hen/${appointmentId.value}/hoan-thanh-kham`);
 
     showSuccessToast("Hoàn tất khám thành công!");
 
@@ -1262,6 +1321,15 @@ onMounted(() => {
 }
 .ef-action-btn--complete .ef-action-icon {
   background: rgba(255, 255, 255, 0.15);
+}
+.ef-action-btn--disabled {
+  background: #e2e8f0;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+.ef-action-btn--disabled .ef-action-icon {
+  background: #cbd5e1;
 }
 
 /* Modal */

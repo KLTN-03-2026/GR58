@@ -675,10 +675,9 @@ const mapPatient = (appointment) => {
       defaultPetImage
     ),
     ownerName: appointment?.khach_hang?.full_name || "Chưa có chủ nuôi",
-    service:
-      appointment?.dich_vu?.ten_dich_vu ||
-      appointment?.dich_vu?.ten ||
-      "Khám tổng quát",
+    service: appointment?.dich_vus?.length
+      ? appointment.dich_vus.map(d => d.ten).join(", ")
+      : (appointment?.dich_vu?.ten_dich_vu || appointment?.dich_vu?.ten || "Khám tổng quát"),
     badge: getBadge(appointment),
     status: appointment?.thoi_gian_checkin ? "Đã đến" : null,
     appointmentTime: formatTime(appointment?.ngay_gio),

@@ -10,8 +10,8 @@
         <div class="flex-1">
           <div class="flex items-center gap-3 mb-2">
             <h2 class="text-xl font-bold text-black">{{ lichHen.thu_cung?.ten_thu_cung || 'N/A' }}</h2>
-            <span class="bg-white border !border-gray-300 rounded-lg px-2 py-0.5 text-xs text-gray-600">
-              {{ lichHen.dich_vu?.ten || 'N/A' }}
+            <span v-for="dv in (lichHen.dich_vus?.length ? lichHen.dich_vus : (lichHen.dich_vu ? [lichHen.dich_vu] : []))" :key="dv.id" class="bg-white border !border-gray-300 rounded-lg px-2 py-0.5 text-xs text-gray-600">
+              {{ dv.ten || 'N/A' }}
             </span>
           </div>
           <div class="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
@@ -246,26 +246,30 @@ const rankColor = computed(() => {
 
 // Load dữ liệu ban đầu
 onMounted(async () => {
-  // Dịch vụ gốc từ lịch hẹn
-  if (props.lichHen.dich_vu) {
-  dichVuList.value = [{
-    ...props.lichHen.dich_vu,
-    gia_tien: parseFloat(props.lichHen.dich_vu.gia_tien) || 0
-  }]
-} else if (props.lichHen.dich_vu_id) {
-  // Fetch dịch vụ nếu chưa load
-  try {
-    const res = await api.get(`/dich-vu/${props.lichHen.dich_vu_id}`)
-    if (res.data?.data) {
-      dichVuList.value = [{
-        ...res.data.data,
-        gia_tien: parseFloat(res.data.data.gia_tien) || 0
-      }]
+  // Dịch vụ gốc từ lịch hẹn — ưu tiên dich_vus (multi-service)
+  if (props.lichHen.dich_vus?.length) {
+    dichVuList.value = props.lichHen.dich_vus.map(dv => ({
+      ...dv,
+      gia_tien: parseFloat(dv.don_gia || dv.gia_tien) || 0
+    }))
+  } else if (props.lichHen.dich_vu) {
+    dichVuList.value = [{
+      ...props.lichHen.dich_vu,
+      gia_tien: parseFloat(props.lichHen.dich_vu.gia_tien) || 0
+    }]
+  } else if (props.lichHen.dich_vu_id) {
+    try {
+      const res = await api.get(`/dich-vu/${props.lichHen.dich_vu_id}`)
+      if (res.data?.data) {
+        dichVuList.value = [{
+          ...res.data.data,
+          gia_tien: parseFloat(res.data.data.gia_tien) || 0
+        }]
+      }
+    } catch (e) {
+      console.error('Lỗi load dịch vụ:', e)
     }
-  } catch (e) {
-    console.error('Lỗi load dịch vụ:', e)
   }
-}
 
   // Load tất cả dịch vụ để thêm
   try {

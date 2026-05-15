@@ -224,10 +224,17 @@
                 </div>
               </div>
 
-              <div
-                class="inline-flex px-3 py-1 bg-blue-50 border !border-[#bedbff] rounded-lg text-xs text-[#1447e6] w-fit"
-              >
-                {{ appt.dich_vu?.ten_dich_vu || appt.dich_vu?.ten || "Khám tổng quát" }}
+              <div class="flex flex-wrap gap-1">
+                <span
+                  v-for="dv in (appt.dich_vus?.length ? appt.dich_vus : (appt.dich_vu ? [appt.dich_vu] : []))"
+                  :key="dv.id"
+                  class="inline-flex px-3 py-1 bg-blue-50 border !border-[#bedbff] rounded-lg text-xs text-[#1447e6] w-fit"
+                >
+                  {{ dv.ten || dv.ten_dich_vu || "Dịch vụ" }}
+                </span>
+                <span v-if="!appt.dich_vus?.length && !appt.dich_vu" class="inline-flex px-3 py-1 bg-blue-50 border !border-[#bedbff] rounded-lg text-xs text-[#1447e6] w-fit">
+                  Khám tổng quát
+                </span>
               </div>
 
               <!-- Ghi chú -->

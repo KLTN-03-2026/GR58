@@ -99,7 +99,7 @@
             <div class="flex-1">
               <p class="font-nunito text-sm text-gray-600">Dịch vụ</p>
               <p class="font-nunito font-semibold text-base text-gray-900">
-                {{ appointment?.dich_vu?.ten_dich_vu || appointment?.dich_vu?.ten || "N/A" }}
+                {{ appointment?.dich_vus?.length ? appointment.dich_vus.map(d => d.ten).join(", ") : (appointment?.dich_vu?.ten_dich_vu || appointment?.dich_vu?.ten || "N/A") }}
               </p>
             </div>
           </div>

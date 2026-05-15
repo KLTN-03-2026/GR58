@@ -60,50 +60,6 @@
         <button
           :class="[
             'flex-1 h-14 flex items-center justify-center gap-2 border-b-2 transition-colors',
-            activeTab === 'check-in'
-              ? 'bg-blue-50 border-[#1447e6]'
-              : 'border-transparent hover:bg-gray-50',
-          ]"
-          @click="activeTab = 'check-in'"
-        >
-          <span
-            :class="[
-              'text-sm font-medium',
-              activeTab === 'check-in' ? 'text-[#1447e6]' : 'text-gray-600',
-            ]"
-          >
-            Chờ Check-in
-          </span>
-          <span
-            v-if="waitingCheckInCount > 0"
-            class="bg-[#e7000b] rounded-lg px-2 py-1 min-w-[31px] text-center"
-          >
-            <span class="text-xs font-medium text-white">
-              {{ waitingCheckInCount }}
-            </span>
-          </span>
-        </button>
-        <button
-          :class="[
-            'flex-1 h-14 flex items-center justify-center gap-2 border-b-2 transition-colors',
-            activeTab === 'checked-in'
-              ? 'bg-blue-50 border-[#1447e6]'
-              : 'border-transparent hover:bg-gray-50',
-          ]"
-          @click="activeTab = 'checked-in'"
-        >
-          <span
-            :class="[
-              'text-sm font-medium',
-              activeTab === 'checked-in' ? 'text-[#1447e6]' : 'text-gray-600',
-            ]"
-          >
-            Đã Check-in
-          </span>
-        </button>
-        <button
-          :class="[
-            'flex-1 h-14 flex items-center justify-center gap-2 border-b-2 transition-colors',
             activeTab === 'reminders'
               ? 'bg-blue-50 border-[#1447e6]'
               : 'border-transparent hover:bg-gray-50',
@@ -210,14 +166,32 @@
           <div class="bg-gray-300 w-px h-8" />
 
           <!-- Date Selector -->
-          <button
-            class="bg-[#4f39f6] rounded-full shadow-sm h-9 px-4 flex items-center gap-2 hover:bg-[#3d2ac4] transition-colors"
-            @click="selectDate"
-          >
-            <!-- <img :src="iconCalendar" alt="Calendar" class="w-4 h-4" /> -->
-            <span class="text-sm font-medium text-white"> Hôm nay </span>
-            <!-- <img :src="iconChevronDown" alt="Expand" class="w-4 h-4" /> -->
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              :class="[
+                'rounded-full shadow-sm h-9 px-4 flex items-center gap-2 transition-colors',
+                selectedDateFilter === 'today' ? 'bg-[#4f39f6] hover:bg-[#3d2ac4]' : 'bg-gray-100 hover:bg-gray-200',
+              ]"
+              @click="setDateFilter('today')"
+            >
+              <span :class="['text-sm font-medium', selectedDateFilter === 'today' ? 'text-white' : 'text-gray-700']">Hôm nay</span>
+            </button>
+            <button
+              :class="[
+                'rounded-full shadow-sm h-9 px-4 flex items-center gap-2 transition-colors',
+                selectedDateFilter === 'all' ? 'bg-[#4f39f6] hover:bg-[#3d2ac4]' : 'bg-gray-100 hover:bg-gray-200',
+              ]"
+              @click="setDateFilter('all')"
+            >
+              <span :class="['text-sm font-medium', selectedDateFilter === 'all' ? 'text-white' : 'text-gray-700']">Tất cả sắp tới</span>
+            </button>
+            <input
+              type="date"
+              :value="customDate"
+              @change="setDateFilter('custom', $event.target.value)"
+              class="h-9 px-3 border !border-gray-300 rounded-full text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#009689]"
+            />
+          </div>
         </div>
       </div>
 
@@ -299,7 +273,7 @@
           <!-- Table Body -->
           <tbody>
             <tr
-              v-for="(appointment, index) in filteredAppointments"
+              v-for="(appointment, index) in paginatedAppointments"
               :key="index"
               :class="['border-b !border-gray-300', appointment.rowColor || '']"
             >
@@ -426,7 +400,9 @@
                 <span
                   :class="[
                     'border rounded-lg px-4 py-1 inline-block',
-                    appointment.status === 'upcoming'
+                    appointment.status === 'cancelled'
+                      ? 'bg-red-100 !border-red-300 text-red-600'
+                      : appointment.status === 'upcoming'
                       ? 'bg-blue-100 !border-blue-300 text-blue-700'
                       : appointment.status === 'arrived'
                       ? 'bg-green-100 !border-[#7bf1a8] text-[#008236]'
@@ -437,7 +413,9 @@
                 >
                   <span class="text-xs font-medium">
                     {{
-                      appointment.status === "upcoming"
+                      appointment.status === "cancelled"
+                        ? "Đã huỷ"
+                        : appointment.status === "upcoming"
                         ? "Sắp đến"
                         : appointment.status === "arrived"
                         ? "Đã đến"
@@ -483,12 +461,43 @@
             </tr>
           </tbody>
         </table>
+
+        <!-- Pagination -->
+        <div class="flex items-center justify-between mt-4 pt-4 border-t !border-gray-200">
+          <p class="text-sm text-gray-500">
+            Hiển thị {{ paginationStart }}-{{ paginationEnd }} trong {{ filteredAppointments.length }} lịch hẹn
+          </p>
+          <div class="flex items-center gap-1">
+            <button
+              @click="listCurrentPage > 1 && listCurrentPage--"
+              :disabled="listCurrentPage <= 1"
+              :class="['w-9 h-9 rounded-lg flex items-center justify-center transition-colors', listCurrentPage <= 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100']"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button
+              v-for="page in totalPages"
+              :key="page"
+              @click="listCurrentPage = page"
+              :class="['w-9 h-9 rounded-lg flex items-center justify-center text-sm font-medium transition-colors', listCurrentPage === page ? 'bg-[#009689] text-white' : 'text-gray-600 hover:bg-gray-100']"
+            >
+              {{ page }}
+            </button>
+            <button
+              @click="listCurrentPage < totalPages && listCurrentPage++"
+              :disabled="listCurrentPage >= totalPages"
+              :class="['w-9 h-9 rounded-lg flex items-center justify-center transition-colors', listCurrentPage >= totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100']"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Chờ Check-in Tab -->
+    <!-- Chờ Check-in Tab (hidden - merged into main list) -->
     <div
-      v-else-if="activeTab === 'check-in'"
+      v-if="false"
       class="bg-white border border-black/10 rounded-[14px] px-px py-6 flex flex-col gap-[30px]"
     >
       <!-- Card Title -->
@@ -668,7 +677,7 @@
               </td>
               <td class="px-2 py-3">
                 <span class="font-nunito text-sm text-gray-700">
-                  {{ appointment.dich_vu?.ten_dich_vu || "N/A" }}
+                  {{ appointment.dich_vus?.length ? appointment.dich_vus.map(d => d.ten).join(", ") : (appointment.dich_vu?.ten_dich_vu || "N/A") }}
                 </span>
               </td>
               <td class="px-2 py-3">
@@ -745,9 +754,9 @@
       </div>
     </div>
 
-    <!-- Đã Check-in Tab -->
+    <!-- Đã Check-in Tab (hidden - merged into main list) -->
     <div
-      v-else-if="activeTab === 'checked-in'"
+      v-if="false"
       class="bg-white border border-black/10 rounded-[14px] px-px py-6 flex flex-col gap-[30px]"
     >
       <!-- Card Title -->
@@ -927,7 +936,7 @@
               </td>
               <td class="px-2 py-3">
                 <span class="font-nunito text-sm text-gray-700">
-                  {{ appointment.dich_vu?.ten_dich_vu || "N/A" }}
+                  {{ appointment.dich_vus?.length ? appointment.dich_vus.map(d => d.ten).join(", ") : (appointment.dich_vu?.ten_dich_vu || "N/A") }}
                 </span>
               </td>
               <td class="px-2 py-3">
@@ -1384,6 +1393,10 @@ const activeTab = ref("list");
 const activeFilter = ref("all");
 const activeReminderType = ref("all");
 const activeTimeFilter = ref("today");
+const selectedDateFilter = ref("today");
+const customDate = ref("");
+const listCurrentPage = ref(1);
+const listPageSize = 4;
 const isCheckInModalOpen = ref(false);
 const isCreateAppointmentModalOpen = ref(false);
 const selectedAppointment = ref(null);
@@ -1565,6 +1578,13 @@ const filteredAppointments = computed(() => {
     filtered = filtered.filter((app) => app.status === activeFilter.value);
   }
 
+  // Sort by nearest date/time first
+  filtered = [...filtered].sort((a, b) => {
+    const dateA = a.originalData?.ngay_gio ? new Date(a.originalData.ngay_gio) : new Date(0);
+    const dateB = b.originalData?.ngay_gio ? new Date(b.originalData.ngay_gio) : new Date(0);
+    return dateA - dateB;
+  });
+
   // Filter by search query
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
@@ -1577,6 +1597,17 @@ const filteredAppointments = computed(() => {
 
   return filtered;
 });
+
+const totalPages = computed(() => Math.ceil(filteredAppointments.value.length / listPageSize) || 1);
+const paginatedAppointments = computed(() => {
+  const start = (listCurrentPage.value - 1) * listPageSize;
+  return filteredAppointments.value.slice(start, start + listPageSize);
+});
+const paginationStart = computed(() => filteredAppointments.value.length === 0 ? 0 : (listCurrentPage.value - 1) * listPageSize + 1);
+const paginationEnd = computed(() => Math.min(listCurrentPage.value * listPageSize, filteredAppointments.value.length));
+
+// Reset page khi filter thay đổi
+watch([activeFilter, searchQuery], () => { listCurrentPage.value = 1; });
 
 const filteredReminders = computed(() => {
   let filtered = reminders.value;
@@ -1756,15 +1787,35 @@ const refreshCheckedInList = () => {
   fetchCheckedInList();
 };
 
+const setDateFilter = (type, dateValue = '') => {
+  selectedDateFilter.value = type;
+  if (type === 'custom') {
+    customDate.value = dateValue;
+  } else {
+    customDate.value = '';
+  }
+  fetchAllAppointments();
+};
+
 // Fetch all appointments for main list
 const fetchAllAppointments = async () => {
   loadingAppointments.value = true;
   try {
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-    const response = await getAllAppointments({
-      per_page: 100,
-      from_date: today, // Lấy lịch từ hôm nay
-    });
+    const today = new Date().toISOString().split("T")[0];
+    const params = { per_page: 100 };
+
+    if (selectedDateFilter.value === 'today') {
+      params.from_date = today;
+      params.to_date = today;
+    } else if (selectedDateFilter.value === 'custom' && customDate.value) {
+      params.from_date = customDate.value;
+      params.to_date = customDate.value;
+    } else {
+      // 'all' — tất cả từ hôm nay trở đi
+      params.from_date = today;
+    }
+
+    const response = await getAllAppointments(params);
 
     if (response.status && response.data) {
       let appointmentsList = [];
@@ -1816,7 +1867,11 @@ const fetchAllAppointments = async () => {
         let action = "checkin";
         let rowColor = "";
 
-        if (app.trang_thai === "pending" || app.trang_thai === "confirmed") {
+        if (app.trang_thai === "cancelled") {
+          status = "cancelled";
+          rowColor = "bg-red-50";
+          action = "none";
+        } else if (app.trang_thai === "pending" || app.trang_thai === "confirmed") {
           status = checkInTime ? "arrived" : "upcoming";
           rowColor = checkInTime ? "" : "bg-blue-50";
           action = "checkin";
@@ -1839,7 +1894,7 @@ const fetchAllAppointments = async () => {
           hasMale:
             app.thu_cung?.giong_loai?.toLowerCase().includes("đực") || false,
           ownerName: app.khach_hang?.full_name || "N/A",
-          service: app.dich_vu?.ten_dich_vu || "N/A",
+          service: app.dich_vus?.length ? app.dich_vus.map(d => d.ten).join(", ") : (app.dich_vu?.ten_dich_vu || "N/A"),
           doctor: app.nhan_vien?.full_name || "Chưa phân công",
           room: "Phòng 102", // Mock - có thể thêm từ backend
           status,
@@ -1881,6 +1936,9 @@ const updateFilterCounts = () => {
   const payment = appointments.value.filter(
     (a) => a.status === "payment"
   ).length;
+  const cancelled = appointments.value.filter(
+    (a) => a.status === "cancelled"
+  ).length;
 
   filters.value = [
     { key: "all", label: "Tất cả", count: all, icon: null },
@@ -1897,6 +1955,12 @@ const updateFilterCounts = () => {
       label: "Chờ thanh toán",
       count: payment,
       icon: iconPayment,
+    },
+    {
+      key: "cancelled",
+      label: "Đã huỷ",
+      count: cancelled,
+      icon: null,
     },
   ];
 };

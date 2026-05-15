@@ -983,7 +983,7 @@ const fetchAppointmentsForWeek = async () => {
               item.khach_hang?.full_name ||
               item.khach_hang?.name ||
               "Khách hàng",
-        service: item.dich_vu?.ten || item.dich_vu?.name || "Dịch vụ",
+        service: item.dich_vus?.length ? item.dich_vus.map(d => d.ten).join(", ") : (item.dich_vu?.ten || item.dich_vu?.name || "Dịch vụ"),
         pet: item.thu_cung?.ten_thu_cung || item.thu_cung?.name || "Thú cưng",
         time: item.ngay_gio
           ? new Date(item.ngay_gio).toLocaleTimeString("vi-VN", {

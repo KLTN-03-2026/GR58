@@ -740,12 +740,14 @@ const mapAppointment = (item) => {
   return {
     id: item.id || item.ma || `LH${item.id}`,
     raw: item,
-    service:
-      item.dichVu?.name ||
-      item.dichVu?.ten_dich_vu ||
-      item.dich_vu?.ten ||
-      item.dich_vu?.name ||
-      "Dịch vụ",
+    service: (() => {
+      if (item.dich_vus?.length) {
+        const names = item.dich_vus.map(d => d.ten);
+        if (names.length <= 2) return names.join(", ");
+        return `${names[0]}, ${names[1]} +${names.length - 2}`;
+      }
+      return item.dichVu?.name || item.dichVu?.ten_dich_vu || item.dich_vu?.ten || item.dich_vu?.name || "Dịch vụ";
+    })(),
     date: ngayGio
       ? `${String(ngayGio.getDate()).padStart(2, "0")}/${String(
           ngayGio.getMonth() + 1

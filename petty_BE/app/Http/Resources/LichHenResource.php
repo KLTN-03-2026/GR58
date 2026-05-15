@@ -62,6 +62,22 @@ class LichHenResource extends JsonResource
                     'mo_ta'      => $this->dichVu->mo_ta,
                 ];
             }),
+            'dich_vus' => $this->whenLoaded('dichVus', function () {
+                return $this->dichVus->map(function ($dv) {
+                    return [
+                        'id'         => $dv->id,
+                        'ten'        => $dv->ten,
+                        'gia_tien'   => (float) $dv->gia_tien,
+                        'thoi_gian_thuc_hien' => $dv->thoi_gian_thuc_hien,
+                        'so_luong'   => (int) $dv->pivot->so_luong,
+                        'don_gia'    => (float) $dv->pivot->don_gia,
+                        'thanh_tien' => (float) $dv->pivot->thanh_tien,
+                    ];
+                });
+            }),
+            'tong_thoi_gian_uoc_tinh' => $this->whenLoaded('dichVus', function () {
+                return $this->dichVus->sum('thoi_gian_thuc_hien');
+            }),
             'nhan_vien' => $this->whenLoaded('nhanVien', function () {
                 return [
                     'id' => $this->nhanVien->id,

@@ -319,7 +319,7 @@
                     class="text-sm font-medium text-[#155dfc]"
                     style="font-family: 'Inter', sans-serif"
                   >
-                    {{ appointment.dich_vu || "N/A" }}
+                    {{ appointment.dich_vus_display || appointment.dich_vu || "N/A" }}
                   </p>
                 </div>
 

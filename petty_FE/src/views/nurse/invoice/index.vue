@@ -84,7 +84,7 @@
             </div>
             <div class="flex items-center gap-4 mt-1">
               <p class="text-xs text-gray-500">
-                Dịch vụ: {{ item.dich_vu?.ten || 'N/A' }}
+                Dịch vụ: {{ item.dich_vus?.length ? item.dich_vus.map(d => d.ten).join(", ") : (item.dich_vu?.ten || 'N/A') }}
               </p>
               <p class="text-xs text-gray-500">
                 Khám xong: {{ formatTime(item.thoi_gian_hoan_thanh) }}
@@ -168,7 +168,8 @@ const filteredList = computed(() => {
   return lichHenList.value.filter(item =>
     item.khach_hang?.full_name?.toLowerCase().includes(q) ||
     item.thu_cung?.ten_thu_cung?.toLowerCase().includes(q) ||
-    item.dich_vu?.ten?.toLowerCase().includes(q)
+    item.dich_vu?.ten?.toLowerCase().includes(q) ||
+    item.dich_vus?.some(d => d.ten?.toLowerCase().includes(q))
   )
 })
 

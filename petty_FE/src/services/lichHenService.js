@@ -65,7 +65,7 @@ export const getAppointmentById = async (id) => {
  * Tạo lịch hẹn mới
  * @param {Object} data - Appointment data
  * @param {number} data.thu_cung_id - Pet ID (required)
- * @param {number} data.dich_vu_id - Service ID (required)
+ * @param {number[]} data.dich_vu_ids - Service IDs (required, array)
  * @param {string} data.ngay_gio - Appointment datetime (required)
  * @param {string} data.ghi_chu - Notes (optional)
  * @param {number} data.khach_hang_id - Customer ID (required for staff creating appointment)

@@ -22,7 +22,7 @@
             </div>
             <div class="flex flex-col gap-1 pb-[25px]">
               <p class="font-semibold text-4xl leading-6 text-teal-500">{{ formatCurrency(totalPaid) }}</p>
-              <p class="font-medium text-base leading-6 text-gray-700">{{ paidInvoiceCount }} hóa đơn</p>
+              <p class="font-medium text-base leading-6 text-gray-700">{{ paidInvoiceCount }} hóa đơn — Tháng này</p>
             </div>
           </div>
 
@@ -694,7 +694,7 @@ const loadPaymentData = async () => {
         return {
           id: lichHen.id,
           invoiceCode: `HD${String(lichHen.id).padStart(6, '0')}`,
-          service: lichHen.dich_vu?.ten || lichHen.dich_vu?.ten_dich_vu || 'Dịch vụ',
+          service: lichHen.dich_vus?.length ? lichHen.dich_vus.map(d => d.ten).join(", ") : (lichHen.dich_vu?.ten || lichHen.dich_vu?.ten_dich_vu || 'Dịch vụ'),
           date: ngayGio ? new Date(ngayGio).toLocaleDateString('vi-VN') : 'N/A',
           rawDate: ngayGio || null,
           status: mapTrangThaiToStatus(lichHen.trang_thai, lichHen.da_thanh_toan),
@@ -705,9 +705,11 @@ const loadPaymentData = async () => {
           phuongThuc: mapPaymentMethod(phuongThucThanhToan),
           petName: lichHen.thu_cung?.ten || null,
           doctor: lichHen.nhan_vien?.ho_ten || null,
+          dich_vus: lichHen.dich_vus || [],
         };
       });
 
+      payments.value.sort((a, b) => a.id - b.id);
       calculateStatistics();
     } else {
       payments.value = [];
@@ -729,19 +731,32 @@ const calculateStatistics = () => {
   debtInvoiceCount.value = 0;
   totalSpending.value = 0;
 
+  const now = new Date();
+  const thisMonth = now.getMonth();
+  const thisYear = now.getFullYear();
+
   payments.value.forEach(payment => {
-    if (payment.status === 'completed' || payment.status === 'prepaid') {
-      totalPaid.value += payment.paidAmount;
-      paidInvoiceCount.value++;
+    const isPaid = payment.status === 'completed' || payment.status === 'prepaid';
+
+    // Tổng đã thanh toán: chỉ tháng hiện tại
+    if (isPaid && payment.rawDate) {
+      const d = new Date(payment.rawDate);
+      if (d.getMonth() === thisMonth && d.getFullYear() === thisYear) {
+        totalPaid.value += payment.paidAmount;
+        paidInvoiceCount.value++;
+      }
     }
+
+    // Tổng dư nợ: tất cả hóa đơn chưa trả (không lọc thời gian)
     if (payment.status === 'pending') {
       totalDebt.value += (payment.totalAmount - payment.paidAmount);
       debtInvoiceCount.value++;
     }
-    // Only count current year for spending
-    if (payment.rawDate) {
+
+    // Tổng chi tiêu: chỉ hóa đơn đã thanh toán xong trong năm
+    if (isPaid && payment.rawDate) {
       const y = new Date(payment.rawDate).getFullYear();
-      if (y === currentYear.value) totalSpending.value += payment.totalAmount;
+      if (y === thisYear) totalSpending.value += payment.paidAmount;
     }
   });
 };
@@ -759,7 +774,9 @@ const goToPage = (page) => { currentPage.value = page; };
 const handlePayNow = (payment) => {
   selectedPayment.value = {
     invoiceCode: payment.invoiceCode,
-    services: [{ id: 1, name: payment.service, note: '(Dịch vụ đã đặt)', price: payment.totalAmount }],
+    services: payment.dich_vus?.length
+      ? payment.dich_vus.map(d => ({ id: d.id, name: d.ten, note: '(Dịch vụ đã đặt)', price: parseFloat(d.don_gia || d.gia_tien || 0) }))
+      : [{ id: 1, name: payment.service, note: '(Dịch vụ đã đặt)', price: payment.totalAmount }],
     totalAmount: payment.totalAmount,
     paidAmount: payment.paidAmount || 0,
     remainingAmount: payment.totalAmount - (payment.paidAmount || 0),

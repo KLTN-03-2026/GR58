@@ -29,6 +29,8 @@ class UpdateLichHenRequest extends FormRequest
             'huong_dan' => 'nullable|string',
             'thu_cung_id' => 'nullable|exists:thu_cungs,id',
             'dich_vu_id' => 'nullable|exists:dich_vus,id',
+            'dich_vu_ids' => 'nullable|array|min:1',
+            'dich_vu_ids.*' => 'required|exists:dich_vus,id',
             'ngay_gio' => 'nullable|date',
             'ly_do_huy' => 'nullable|string',
         ];

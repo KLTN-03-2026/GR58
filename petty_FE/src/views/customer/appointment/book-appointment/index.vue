@@ -6,7 +6,7 @@
   >
     <!-- Modal đặt lịch chính -->
     <div
-      class="bg-white rounded-lg border !border-black/15 w-full max-w-[512px] max-h-[90vh] shadow-xl flex flex-col"
+      class="bg-white rounded-lg border !border-black/15 w-full max-w-[580px] max-h-[90vh] shadow-xl flex flex-col"
     >
       <!-- Fixed Header: Tiêu đề + Thanh tiến độ -->
       <div
@@ -84,34 +84,52 @@
           </div>
         </div>
 
-        <!-- Bước 2: Chọn dịch vụ -->
+        <!-- Bước 2: Chọn dịch vụ (multi-select) -->
         <div v-if="currentStep === 1" class="flex flex-col gap-3">
+          <!-- Running total bar -->
+          <div v-if="selectedServices.length > 0" class="bg-teal-50 border border-teal-200 rounded-lg p-3 flex items-center justify-between sticky top-0 z-10">
+            <span class="text-sm font-medium text-teal-800">
+              Đã chọn {{ selectedServices.length }} dịch vụ
+            </span>
+            <div class="flex items-center gap-3">
+              <span class="text-sm font-medium text-gray-600">
+                ~{{ totalDuration }} phút
+              </span>
+              <span class="text-sm font-semibold text-teal-700">
+                {{ formatPrice(totalPrice) }}
+              </span>
+            </div>
+          </div>
+
           <div
             v-for="service in services"
             :key="service.id"
-            @click="selectService(service)"
+            @click="toggleService(service)"
             :class="[
               'border-2 rounded-lg p-[18px] cursor-pointer transition-all',
-              selectedService?.id === service.id
+              isServiceSelected(service.id)
                 ? 'border-teal-500 bg-teal-50'
                 : 'border-gray-300 hover:border-gray-400',
             ]"
           >
             <div class="flex flex-col gap-1">
               <div class="flex items-center gap-2">
+                <div
+                  class="w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors"
+                  :class="isServiceSelected(service.id) ? 'border-teal-500 bg-teal-500' : 'border-gray-400'"
+                >
+                  <svg v-if="isServiceSelected(service.id)" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                  </svg>
+                </div>
                 <p class="text-sm font-medium text-black">
                   {{ service.name }}
                 </p>
-                <SuccessIcon
-                  v-if="selectedService?.id === service.id"
-                  alt="Selected"
-                  class="w-5 h-5"
-                />
               </div>
-              <p class="text-sm font-medium text-gray-600">
+              <p class="text-sm font-medium text-gray-600 ml-7">
                 {{ service.description }}
               </p>
-              <div class="flex items-center gap-4 mt-1">
+              <div class="flex items-center gap-4 mt-1 ml-7">
                 <div class="flex items-center gap-2">
                   <ClockIcon class="w-4 h-4 text-gray-500" />
                   <span class="text-sm font-medium text-gray-500">
@@ -259,11 +277,14 @@
                   selectedPet?.name
                 }}</span>
               </div>
-              <div class="flex items-center justify-between">
+              <div class="flex flex-col gap-1">
                 <span class="text-sm font-medium text-gray-600">Dịch vụ:</span>
-                <span class="text-sm font-medium text-black">{{
-                  selectedService?.name
-                }}</span>
+                <div class="flex flex-col gap-1 ml-2">
+                  <div v-for="svc in selectedServices" :key="svc.id" class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-black">{{ svc.name }}</span>
+                    <span class="text-sm font-medium text-gray-600">{{ formatPrice(svc.price) }}</span>
+                  </div>
+                </div>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-sm font-medium text-gray-600"
@@ -273,11 +294,15 @@
                   formattedDateTime
                 }}</span>
               </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-600">Thời lượng ước tính:</span>
+                <span class="text-sm font-medium text-black">~{{ totalDuration }} phút</span>
+              </div>
               <div class="w-full h-px bg-gray-300"></div>
               <div class="flex items-center justify-between">
                 <span class="text-sm font-medium text-black">Tạm tính:</span>
                 <span class="text-sm font-medium text-teal-600">{{
-                  formatPrice(selectedService?.price)
+                  formatPrice(totalPrice)
                 }}</span>
               </div>
             </div>
@@ -349,6 +374,20 @@
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- Ghi chú cho bác sĩ -->
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-semibold text-black">
+              Ghi chú cho bác sĩ
+              <span class="text-gray-400 font-normal">(không bắt buộc)</span>
+            </label>
+            <textarea
+              v-model="bookingNote"
+              rows="3"
+              placeholder="Mô tả triệu chứng, yêu cầu đặc biệt..."
+              class="w-full border !border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#5A9690]"
+            ></textarea>
           </div>
         </div>
       </div>
@@ -486,15 +525,10 @@ const services = ref([]);
 
 const mapBackendServiceSimple = (item) => ({
   id: item.id,
-  name: item.ten_dich_vu || item.name || item.title || item.ten || "Dịch vụ",
-  description: item.mo_ta || item.description || item.desc || "",
-  duration:
-    item.thoi_luong ||
-    item.duration ||
-    item.duration_min ||
-    item.duration_minutes ||
-    30,
-  price: item.gia || item.price || item.cost || 0,
+  name: item.ten || item.ten_dich_vu || item.name || "Dịch vụ",
+  description: item.mo_ta || item.description || "",
+  duration: Number(item.thoi_gian_thuc_hien || item.thoi_luong || item.duration || 30),
+  price: Number(item.gia_tien || item.gia || item.price || 0),
 });
 
 const fetchServices = async () => {
@@ -507,9 +541,24 @@ const fetchServices = async () => {
     }
 
     services.value = list.map(mapBackendServiceSimple);
+
+    // Auto-select service from query param and skip to step 3
+    if (route.query.service_id) {
+      const serviceId = Number(route.query.service_id);
+      const found = services.value.find(s => s.id === serviceId);
+      if (found && !isServiceSelected(found.id)) {
+        selectedServices.value = [found];
+        // Skip to step 3 (date/time) if pet is also selected
+        if (selectedPet.value) {
+          currentStep.value = 2;
+        } else {
+          // Will auto-advance after pet selection
+          autoSkipToDateTime.value = true;
+        }
+      }
+    }
   } catch (err) {
     console.warn("Lỗi khi lấy danh sách dịch vụ:", err);
-    // keep services empty so UI indicates no services; optionally fallback could be added
   }
 };
 
@@ -521,13 +570,33 @@ const slotsMessage = ref('');
 
 // Trạng thái lựa chọn
 const selectedPet = ref(null);
-const selectedService = ref(null);
+const selectedServices = ref([]);
 const selectedDate = ref(null);
 const selectedTime = ref(null);
 const paymentMethod = ref("online");
 
+// Computed for multi-service
+const totalPrice = computed(() => selectedServices.value.reduce((sum, s) => sum + (s.price || 0), 0));
+const totalDuration = computed(() => selectedServices.value.reduce((sum, s) => sum + (s.duration || 0), 0));
+
+const isServiceSelected = (id) => selectedServices.value.some(s => s.id === id);
+
+const toggleService = (service) => {
+  const idx = selectedServices.value.findIndex(s => s.id === service.id);
+  if (idx >= 0) {
+    selectedServices.value.splice(idx, 1);
+  } else {
+    selectedServices.value.push(service);
+  }
+};
+
+// Legacy compat
+const selectedService = computed(() => selectedServices.value[0] || null);
+
 // Trạng thái thành công
 const isSubmitting = ref(false);
+const autoSkipToDateTime = ref(false);
+const bookingNote = ref("");
 
 // Tên khách hàng (ưu tiên tên người dùng đã đăng nhập)
 const customerNameLocal = ref(props.customerName || "");
@@ -653,7 +722,7 @@ const canProceed = computed(() => {
     case 0:
       return selectedPet.value !== null;
     case 1:
-      return selectedService.value !== null;
+      return selectedServices.value.length > 0;
     case 2:
       return selectedDate.value !== null && selectedTime.value !== null;
     default:
@@ -664,7 +733,7 @@ const canProceed = computed(() => {
 const canConfirm = computed(() => {
   return (
     selectedPet.value &&
-    selectedService.value &&
+    selectedServices.value.length > 0 &&
     selectedDate.value &&
     selectedTime.value &&
     paymentMethod.value
@@ -682,11 +751,13 @@ const formattedDateTime = computed(() => {
 // Các phương thức
 const selectPet = (pet) => {
   selectedPet.value = pet;
+  // If service was auto-selected from query param, skip directly to step 3
+  if (autoSkipToDateTime.value && selectedServices.value.length > 0) {
+    autoSkipToDateTime.value = false;
+    currentStep.value = 2;
+  }
 };
 
-const selectService = (service) => {
-  selectedService.value = service;
-};
 
 const fetchAvailableSlots = async (date) => {
   if (!date) return;
@@ -705,11 +776,19 @@ const fetchAvailableSlots = async (date) => {
     if (slots.length === 0) {
       slotsMessage.value = res.data?.message || 'Phòng khám không có lịch làm việc cho ngày này, vui lòng chọn ngày khác';
     } else {
-      timeSlots.value = slots.map((s) => ({
-        value:    s.time,
-        label:    s.time,
-        isBooked: !s.available,
-      }));
+      const now = new Date();
+      const isToday = date.toDateString() === now.toDateString();
+      const currentHour = now.getHours();
+
+      timeSlots.value = slots.map((s) => {
+        const slotHour = parseInt(s.time.split(':')[0], 10);
+        const isPast = isToday && slotHour <= currentHour;
+        return {
+          value:    s.time,
+          label:    s.time,
+          isBooked: !s.available || isPast,
+        };
+      });
     }
   } catch (err) {
     slotsMessage.value = err.response?.data?.message || 'Không thể tải lịch khám cho ngày này';
@@ -768,37 +847,41 @@ const previousStep = () => {
 const closePopup = () => {
   emit("close");
   if (route.path.includes("/appointments/book")) {
-    router.push("/customer/appointments");
+    if (route.query.service_id && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/customer/appointments");
+    }
   }
   // Đặt lại sau khi animation kết thúc
   setTimeout(() => {
     currentStep.value = 0;
     selectedPet.value = null;
-    selectedService.value = null;
+    selectedServices.value = [];
     selectedDate.value = null;
     selectedTime.value = null;
     paymentMethod.value = "online";
+    autoSkipToDateTime.value = false;
+    bookingNote.value = "";
   }, 300);
 };
 
 const confirmBooking = async () => {
   if (!canConfirm.value) return;
 
-  // chuẩn bị payload mà backend mong đợi
-  // backend expects: thu_cung_id, dich_vu_id, ngay_gio (Y-m-d H:i:s), optional ghi_chu
   const pad = (n) => String(n).padStart(2, "0");
   const day = pad(selectedDate.value.getDate());
   const month = pad(selectedDate.value.getMonth() + 1);
   const year = selectedDate.value.getFullYear();
 
-  // selectedTime is like '08:30'
   const ngay_gio = `${year}-${month}-${day} ${selectedTime.value}:00`;
 
   const payload = {
     thu_cung_id: selectedPet.value.id,
-    dich_vu_id: selectedService.value.id,
+    dich_vu_ids: selectedServices.value.map(s => s.id),
     ngay_gio,
-    ghi_chu: `Phương thức: ${paymentMethod.value}`,
+    phuong_thuc_thanh_toan: paymentMethod.value,
+    ...(bookingNote.value.trim() && { ghi_chu: bookingNote.value.trim() }),
   };
 
   isSubmitting.value = true;
@@ -807,7 +890,11 @@ const confirmBooking = async () => {
 
     const data = res.data && res.data.data ? res.data.data : null;
 
-    showSuccessToast("Đặt lịch thành công", "Lịch hẹn của bạn đã được tạo.");
+    if (route.query.service_id) {
+      showSuccessToast("Đặt lịch thành công", "Lịch hẹn đã được tạo. Vào mục Lịch hẹn để xem chi tiết.");
+    } else {
+      showSuccessToast("Đặt lịch thành công", "Lịch hẹn của bạn đã được tạo.");
+    }
     closePopup();
 
     // phát sự kiện kèm phản hồi server khi có
@@ -885,7 +972,7 @@ watch(
       );
 
       if (pet) selectedPet.value = pet;
-      if (service) selectedService.value = service;
+      if (service) selectedServices.value = [service];
 
       // Handle pre-selected date if provided (for vaccination reminders)
       if (props.initialData.dueDate) {
