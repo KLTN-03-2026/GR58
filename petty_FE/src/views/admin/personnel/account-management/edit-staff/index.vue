@@ -60,16 +60,6 @@
             </div>
 
             <div class="flex flex-col gap-2">
-              <label class="font-medium text-sm text-black">Chức danh *</label>
-              <input
-                v-model="formData.position"
-                type="text"
-                placeholder="VD: Trưởng khoa"
-                class="bg-[#f3f3f5] border-none rounded-lg h-9 px-3 py-1 font-nunito text-sm text-neutral-950 outline-none placeholder:text-[#717182]"
-              />
-            </div>
-
-            <div class="flex flex-col gap-2">
               <label class="font-medium text-sm text-black">Năm kinh nghiệm *</label>
               <div class="flex items-center gap-2">
                 <input
@@ -265,7 +255,6 @@ const formData = ref({
   address: "",
   avatar: null, // string url or File
   selectedRoles: [],
-  position: "",
   yearsOfExperience: null,
   practiceCertificate: null, // string url or File
   professionalDegree: null,
@@ -295,7 +284,6 @@ const fillFromStaff = (s) => {
   formData.value.phone = s.so_dien_thoai || s.phone || "";
   formData.value.address = s.dia_chi || s.address || "";
   formData.value.avatar = s.anh_dai_dien || s.avatar || null;
-  formData.value.position = s.chuc_danh || s.position || "";
   formData.value.yearsOfExperience =
     s.nam_kinh_nghiem ?? s.yearsOfExperience ?? null;
   formData.value.practiceCertificate =
@@ -329,13 +317,6 @@ const isFormValid = computed(() => {
     formData.value.fullName &&
     formData.value.email &&
     formData.value.phone &&
-    formData.value.address &&
-    formData.value.position &&
-    formData.value.yearsOfExperience !== null &&
-    formData.value.yearsOfExperience !== "" &&
-    formData.value.practiceCertificate &&
-    formData.value.professionalDegree &&
-    formData.value.avatar &&
     formData.value.selectedRoles.length > 0
   );
 });
