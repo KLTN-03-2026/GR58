@@ -784,7 +784,7 @@ const populateStaffList = (items) => {
   staffList.value = items.map((it) => ({
     id: it.id,
     name: it.full_name || it.name || "—",
-    avatar: resolveImageUrl(it.avatar || it.anh_dai_dien, "https://www.gravatar.com/avatar?d=mp"),
+    avatar: resolveImageUrl(it.anh_dai_dien_url || it.avatar || it.anh_dai_dien, "https://www.gravatar.com/avatar?d=mp"),
     email: it.email || "",
     phone: it.so_dien_thoai || it.phone || "",
     roles: mapRole(it.vai_tro),
@@ -852,7 +852,7 @@ const loadCustomerList = async () => {
         totalSpent: 0,
         joinDate: it.updated_at ? formatDate(it.updated_at) : "—",
         status: it.trang_thai === "blocked" ? "blocked" : "active",
-        avatar: it.anh_dai_dien || "https://www.gravatar.com/avatar?d=mp",
+        avatar: resolveImageUrl(it.anh_dai_dien_url || it.anh_dai_dien, "https://www.gravatar.com/avatar?d=mp"),
         email: it.email || "",
         address: it.dia_chi || it.address || "",
         pets: (it.thu_cung || []).map((p) => p.ten_thu_cung),
