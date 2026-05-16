@@ -114,11 +114,90 @@
             <!-- Payment Info -->
             <div class="px-6 mb-4">
               <div class="bg-gray-50 rounded-xl p-4 space-y-2.5">
-                <InfoRow label="Ngân hàng" :value="paymentInfo.bank_code" @copy="copyText(paymentInfo.bank_code)" />
-                <InfoRow label="Số tài khoản" :value="paymentInfo.account_number" @copy="copyText(paymentInfo.account_number)" />
-                <InfoRow label="Chủ tài khoản" :value="paymentInfo.account_name" @copy="copyText(paymentInfo.account_name)" />
-                <InfoRow label="Số tiền" :value="formatCurrency(paymentInfo.amount)" @copy="copyText(String(Math.round(paymentInfo.amount)))" />
-                <InfoRow label="Nội dung CK" :value="paymentInfo.content" highlight @copy="copyText(paymentInfo.content)" />
+                <!-- Ngân hàng -->
+                <div class="flex items-center justify-between">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[11px] text-gray-400 uppercase tracking-wide">Ngân hàng</p>
+                    <p class="text-sm font-semibold truncate text-gray-800">{{ paymentInfo.bank_code }}</p>
+                  </div>
+                  <button
+                    @click="copyText(paymentInfo.bank_code)"
+                    class="ml-2 w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-90"
+                    title="Sao chép"
+                  >
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Số tài khoản -->
+                <div class="flex items-center justify-between">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[11px] text-gray-400 uppercase tracking-wide">Số tài khoản</p>
+                    <p class="text-sm font-semibold truncate text-gray-800">{{ paymentInfo.account_number }}</p>
+                  </div>
+                  <button
+                    @click="copyText(paymentInfo.account_number)"
+                    class="ml-2 w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-90"
+                    title="Sao chép"
+                  >
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Chủ tài khoản -->
+                <div class="flex items-center justify-between">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[11px] text-gray-400 uppercase tracking-wide">Chủ tài khoản</p>
+                    <p class="text-sm font-semibold truncate text-gray-800">{{ paymentInfo.account_name }}</p>
+                  </div>
+                  <button
+                    @click="copyText(paymentInfo.account_name)"
+                    class="ml-2 w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-90"
+                    title="Sao chép"
+                  >
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Số tiền -->
+                <div class="flex items-center justify-between">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[11px] text-gray-400 uppercase tracking-wide">Số tiền</p>
+                    <p class="text-sm font-semibold truncate text-gray-800">{{ formatCurrency(paymentInfo.amount) }}</p>
+                  </div>
+                  <button
+                    @click="copyText(String(Math.round(paymentInfo.amount)))"
+                    class="ml-2 w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-90"
+                    title="Sao chép"
+                  >
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Nội dung CK -->
+                <div class="flex items-center justify-between">
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[11px] text-gray-400 uppercase tracking-wide">Nội dung CK</p>
+                    <p class="text-sm font-semibold truncate text-[#009689]">{{ paymentInfo.content }}</p>
+                  </div>
+                  <button
+                    @click="copyText(paymentInfo.content)"
+                    class="ml-2 w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-90"
+                    title="Sao chép"
+                  >
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -260,10 +339,10 @@ function startPolling() {
 function onPaymentSuccess() {
   cleanup()
   state.value = 'success'
-  showSuccessToast('Thanh toán thành công!')
+  // Không hiển thị toast ở đây, để component cha xử lý
   setTimeout(() => {
     emit('success')
-    emit('close')
+    // KHÔNG emit('close') ở đây vì sẽ trigger onPaymentClose và tạo toast trùng
   }, 2000)
 }
 
@@ -319,32 +398,6 @@ function formatCurrency(val) {
 }
 
 onUnmounted(cleanup)
-</script>
-
-<script>
-const InfoRow = {
-  props: ['label', 'value', 'highlight'],
-  emits: ['copy'],
-  template: `
-    <div class="flex items-center justify-between">
-      <div class="flex-1 min-w-0">
-        <p class="text-[11px] text-gray-400 uppercase tracking-wide">{{ label }}</p>
-        <p class="text-sm font-semibold truncate" :class="highlight ? 'text-[#009689]' : 'text-gray-800'">{{ value }}</p>
-      </div>
-      <button
-        @click="$emit('copy')"
-        class="ml-2 w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-90"
-        title="Sao chép"
-      >
-        <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-      </button>
-    </div>
-  `
-}
-
-export default { components: { InfoRow } }
 </script>
 
 <style scoped>

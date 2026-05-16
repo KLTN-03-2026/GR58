@@ -127,6 +127,17 @@
       </Transition>
     </Teleport>
 
+    <!-- Booking Appointment Modal -->
+    <BookAppointment
+      :is-open="showBookingModal"
+      :initial-data="{
+        serviceId: selectedServiceForBooking?.id,
+        serviceName: selectedServiceForBooking?.ten
+      }"
+      @close="closeBookingModal"
+      @confirm="onBookingConfirm"
+    />
+
     <!-- Services Section with Filters -->
     <div class="flex gap-6 w-full max-w-[1216px] mx-auto">
       <!-- Sidebar Filters -->
@@ -333,6 +344,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { Search, Clock, Calendar, ChevronLeft, ChevronRight, X } from 'lucide-vue-next';
 import { dichVuService } from '@/services/dichVuService';
+import BookAppointment from '@/views/customer/appointment/book-appointment/index.vue';
 
 const router = useRouter();
 
@@ -421,14 +433,17 @@ const resetFilters = () => {
 };
 
 const bookService = (service) => {
-  router.push({
-    path: '/customer/appointments/book',
-    query: { service_id: service.id },
-  });
+  // Thay vì redirect, mở popup đặt lịch ngay tại đây
+  selectedServiceForBooking.value = service;
+  showBookingModal.value = true;
 };
 
 const selectedService = ref(null);
 const showModal = ref(false);
+
+// State cho booking modal
+const selectedServiceForBooking = ref(null);
+const showBookingModal = ref(false);
 
 const openModal = (service) => {
   selectedService.value = service;
@@ -447,6 +462,17 @@ const bookFromModal = () => {
     bookService(selectedService.value);
     closeModal();
   }
+};
+
+const closeBookingModal = () => {
+  showBookingModal.value = false;
+  selectedServiceForBooking.value = null;
+};
+
+const onBookingConfirm = () => {
+  // Booking đã thành công, đóng modal
+  showBookingModal.value = false;
+  selectedServiceForBooking.value = null;
 };
 
 const handleEscape = (e) => {

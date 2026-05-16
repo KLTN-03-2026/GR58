@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="isOpen"
+    v-if="isOpen && !showQrModal"
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
     @click.self="closePopup"
   >
@@ -862,14 +862,8 @@ const previousStep = () => {
 
 const closePopup = () => {
   emit("close");
-  if (route.path.includes("/appointments/book")) {
-    if (route.query.service_id && window.history.length > 1) {
-      router.back();
-    } else {
-      router.push("/customer/appointments");
-    }
-  }
-  // Đặt lại sau khi animation kết thúc
+  // Không redirect ở đây nữa, để các handler khác xử lý
+  // Chỉ reset state
   setTimeout(() => {
     currentStep.value = 0;
     selectedPet.value = null;
@@ -909,17 +903,38 @@ const confirmBooking = async () => {
     if (res.data?.payment_info) {
       qrPaymentInfo.value = res.data.payment_info;
       qrThanhToanId.value = res.data.payment_info.thanh_toan_id;
-      closePopup();
+
+      // Đóng booking modal trước khi mở QR modal
+      emit("close");
+
+      // Mở QR modal (KHÔNG emit confirm ở đây để tránh toast trùng)
       showQrModal.value = true;
-      emit("confirm", data || payload);
     } else {
-      if (route.query.service_id) {
-        showSuccessToast("Đặt lịch thành công", "Lịch hẹn đã được tạo. Vào mục Lịch hẹn để xem chi tiết.");
-      } else {
-        showSuccessToast("Đặt lịch thành công", "Lịch hẹn của bạn đã được tạo.");
+      // Nếu chọn thanh toán online nhưng không có payment_info, hiển thị cảnh báo
+      if (paymentMethod.value === 'online' && res.data?.payment_warning) {
+        showErrorToast("Lưu ý", res.data.payment_warning);
+      } else if (paymentMethod.value === 'online') {
+        showErrorToast("Lưu ý", "Không thể tạo mã QR thanh toán. Vui lòng thanh toán tại phòng khám.");
       }
+
+      // Hiển thị toast thành công
+      showSuccessToast("Đặt lịch thành công", "Lịch hẹn đã được tạo.");
+
+      // Đóng booking modal
       closePopup();
-      emit("confirm", data || payload);
+
+      // Nếu đang dùng component-based (không phải route), chỉ emit confirm
+      if (route.path !== '/customer/appointments/book') {
+        emit("confirm");
+        return;
+      }
+
+      // Nếu route-based, redirect về đúng trang
+      if (route.query.service_id) {
+        router.push("/services");
+      } else {
+        router.push("/customer/appointments");
+      }
     }
   } catch (err) {
     let message = "Không thể tạo lịch hẹn. Vui lòng thử lại.";
@@ -951,18 +966,47 @@ const confirmBooking = async () => {
 
 
 const onPaymentSuccess = () => {
+  console.log('[DEBUG] onPaymentSuccess called');
   showQrModal.value = false;
   qrPaymentInfo.value = null;
   qrThanhToanId.value = null;
-  router.push("/customer/appointments");
+  showSuccessToast("Thanh toán thành công", "Lịch hẹn đã được xác nhận.");
+
+  // Nếu đang dùng component-based (không phải route), chỉ emit confirm
+  if (route.path !== '/customer/appointments/book') {
+    emit("confirm");
+    return;
+  }
+
+  // Nếu route-based, redirect về đúng trang
+  if (route.query.service_id) {
+    router.push("/services");
+  } else {
+    router.push("/customer/appointments");
+  }
 };
 
 const onPaymentClose = () => {
+  console.log('[DEBUG] onPaymentClose called');
   showQrModal.value = false;
   qrPaymentInfo.value = null;
   qrThanhToanId.value = null;
-  showSuccessToast("Đặt lịch thành công", "Bạn có thể thanh toán sau tại phòng khám.");
-  router.push("/customer/appointments");
+
+  // Chỉ hiển thị toast khi user đóng modal mà chưa thanh toán
+  showSuccessToast("Đặt lịch thành công", "Lịch hẹn đã được tạo. Bạn có thể thanh toán sau tại phòng khám.");
+
+  // Nếu đang dùng component-based (không phải route), chỉ emit confirm
+  if (route.path !== '/customer/appointments/book') {
+    emit("confirm");
+    return;
+  }
+
+  // Nếu route-based, redirect về đúng trang
+  if (route.query.service_id) {
+    router.push("/services");
+  } else {
+    router.push("/customer/appointments");
+  }
 };
 
 const formatPrice = (price) => {
@@ -992,24 +1036,33 @@ watch([currentMonth, currentYear], () => {
 // Quan sát props.isOpen để xử lý dữ liệu ban đầu (hỗ trợ đặt lại / rebook)
 watch(
   () => props.isOpen,
-  (newVal) => {
+  async (newVal) => {
     if (newVal) {
       // refresh pets each time modal opens so newly added pets are available
-      fetchPets();
+      await fetchPets();
       // refresh services when modal opens too
-      fetchServices();
+      await fetchServices();
       // refresh customer display name
       refreshCustomerName();
     }
 
     if (newVal && props.initialData) {
       const pet = pets.value.find((p) => p.name === props.initialData.petName);
-      const service = services.value.find(
-        (s) => s.name === props.initialData.serviceName
-      );
+
+      // Tìm service theo ID hoặc tên
+      let service = null;
+      if (props.initialData.serviceId) {
+        service = services.value.find((s) => s.id === props.initialData.serviceId);
+      } else if (props.initialData.serviceName) {
+        service = services.value.find((s) => s.name === props.initialData.serviceName);
+      }
 
       if (pet) selectedPet.value = pet;
-      if (service) selectedServices.value = [service];
+      if (service) {
+        selectedServices.value = [service];
+        // Nếu có service từ initialData, set flag để skip bước chọn dịch vụ
+        autoSkipToDateTime.value = true;
+      }
 
       // Handle pre-selected date if provided (for vaccination reminders)
       if (props.initialData.dueDate) {
