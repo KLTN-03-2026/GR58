@@ -100,7 +100,7 @@ class ThuCungController extends Controller
             'ten_thu_cung' => 'required|string|max:255',
             'loai_thu_cung' => 'required|string|max:255',
             'giong_thu_cung' => 'required|string|max:255',
-            'tuoi_thu_cung' => 'required|date',
+            'tuoi_thu_cung' => 'required|date|before_or_equal:today',
             'gioi_tinh' => 'required|string|max:50',
             'can_nang' => 'required|numeric|min:0.01',
         ];
@@ -200,7 +200,7 @@ class ThuCungController extends Controller
             'ten_thu_cung' => 'sometimes|required|string|max:255',
             'loai_thu_cung' => 'sometimes|required|string|max:255',
             'giong_thu_cung' => 'sometimes|required|string|max:255',
-            'tuoi_thu_cung' => 'sometimes|required|date',
+            'tuoi_thu_cung' => 'sometimes|required|date|before_or_equal:today',
             'gioi_tinh' => 'sometimes|required|string|max:50',
             'can_nang' => 'sometimes|required|numeric|min:0.01',
         ];

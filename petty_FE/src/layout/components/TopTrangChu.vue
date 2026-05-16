@@ -8,9 +8,74 @@
         : 'bg-[#eeeeee] border-b border-[#d4d4d8]'
     "
   >
-    <!-- Logo Section -->
-    <router-link to="/" class="flex items-center gap-2 h-8 shrink-0">
-      <!-- Petty Icon -->
+    <!-- Desktop Header Columns -->
+    <div class="hidden md:flex items-center w-full">
+      <!-- Logo Section -->
+      <div class="flex items-center w-[220px] shrink-0">
+        <router-link to="/" class="flex items-center gap-2 h-8 shrink-0">
+          <div class="w-32 h-8 relative">
+            <img
+              src="/src/assets/img_imports/Petty Logo.png"
+              alt="Petty Icon"
+              class="w-full h-full object-contain"
+            />
+          </div>
+        </router-link>
+      </div>
+
+      <!-- Desktop Navigation Menu -->
+      <div class="flex-1 flex justify-center">
+        <nav class="flex items-center gap-1.5 h-12">
+          <!-- Trang Chủ -->
+          <router-link
+            to="/"
+            class="flex items-center px-2.5 py-1.5 font-['Nunito_Sans'] font-bold text-base leading-5 text-gray-500 rounded-md transition-all duration-200 hover:text-black whitespace-nowrap"
+            active-class="!text-[#222831] !font-black"
+          >
+            Trang Chủ
+          </router-link>
+
+          <!-- Dịch Vụ -->
+          <router-link
+            to="/services"
+            class="flex items-center px-2.5 py-1.5 font-['Nunito_Sans'] font-bold text-base leading-5 text-gray-500 rounded-md transition-all duration-200 hover:text-black whitespace-nowrap"
+            active-class="!text-[#222831] !font-black"
+          >
+            Dịch Vụ
+          </router-link>
+
+          <!-- Giới Thiệu -->
+          <router-link
+            to="/about"
+            class="flex items-center px-2.5 py-1.5 font-['Nunito_Sans'] font-bold text-base leading-5 text-gray-500 rounded-md transition-all duration-200 hover:text-black whitespace-nowrap"
+            active-class="!text-[#222831] !font-black"
+          >
+            Giới Thiệu
+          </router-link>
+
+          <!-- Liên Hệ -->
+          <router-link
+            to="/contact"
+            class="flex items-center px-2.5 py-1.5 font-['Nunito_Sans'] font-bold text-base leading-5 text-gray-500 rounded-md transition-all duration-200 hover:text-black whitespace-nowrap"
+            active-class="!text-[#222831] !font-black"
+          >
+            Liên Hệ
+          </router-link>
+
+          <!-- Diễn Đàn -->
+          <router-link
+            to="/forum"
+            class="flex items-center gap-0 px-2.5 py-1.5 font-['Nunito_Sans'] font-bold text-base leading-5 text-gray-500 rounded-md transition-all duration-200 hover:text-black whitespace-nowrap"
+            active-class="!text-[#222831] !font-black"
+          >
+            <span>Diễn Đàn</span>
+            <ArrowIcon class="w-3 h-3 ml-0.5 [&_path]:stroke-[#90a1b9]" />
+          </router-link>
+        </nav>
+      </div>
+    </div>
+
+    <router-link to="/" class="md:hidden flex items-center gap-2 h-8 shrink-0">
       <div class="w-32 h-8 relative">
         <img
           src="/src/assets/img_imports/Petty Logo.png"
@@ -19,56 +84,6 @@
         />
       </div>
     </router-link>
-
-    <!-- Desktop Navigation Menu -->
-    <nav class="hidden md:flex items-center gap-1.5 h-12">
-      <!-- Trang Chủ -->
-      <router-link
-        to="/"
-        class="flex items-center px-2.5 py-1.5 font-['Nunito_Sans'] font-bold text-base leading-5 text-gray-500 rounded-md transition-all duration-200 hover:text-black whitespace-nowrap"
-        active-class="!text-[#222831] !font-black"
-      >
-        Trang Chủ
-      </router-link>
-
-      <!-- Dịch Vụ -->
-      <router-link
-        to="/services"
-        class="flex items-center px-2.5 py-1.5 font-['Nunito_Sans'] font-bold text-base leading-5 text-gray-500 rounded-md transition-all duration-200 hover:text-black whitespace-nowrap"
-        active-class="!text-[#222831] !font-black"
-      >
-        Dịch Vụ
-      </router-link>
-
-      <!-- Giới Thiệu -->
-      <router-link
-        to="/about"
-        class="flex items-center px-2.5 py-1.5 font-['Nunito_Sans'] font-bold text-base leading-5 text-gray-500 rounded-md transition-all duration-200 hover:text-black whitespace-nowrap"
-        active-class="!text-[#222831] !font-black"
-      >
-        Giới Thiệu
-      </router-link>
-
-      <!-- Liên Hệ -->
-      <router-link
-        to="/contact"
-        class="flex items-center px-2.5 py-1.5 font-['Nunito_Sans'] font-bold text-base leading-5 text-gray-500 rounded-md transition-all duration-200 hover:text-black whitespace-nowrap"
-        active-class="!text-[#222831] !font-black"
-      >
-        Liên Hệ
-      </router-link>
-
-      <!-- Diễn Đàn -->
-      <router-link
-        to="/forum"
-        class="flex items-center gap-0 px-2.5 py-1.5 font-['Nunito_Sans'] font-bold text-base leading-5 text-gray-500 rounded-md transition-all duration-200 hover:text-black whitespace-nowrap"
-        active-class="!text-[#222831] !font-black"
-      >
-        <span>Diễn Đàn</span>
-        <!-- External Link Icon - Import từ file SVG -->
-        <ArrowIcon class="w-3 h-3 ml-0.5 [&_path]:stroke-[#90a1b9]" />
-      </router-link>
-    </nav>
 
     <!-- Mobile Menu Button -->
     <button
@@ -107,7 +122,10 @@
     </button>
 
     <!-- Right Side Buttons (Desktop) -->
-    <div class="hidden md:flex items-center gap-1.5 shrink-0">
+    <div
+      v-if="!shouldHideCustomerAuth"
+      class="hidden md:flex items-center justify-end gap-1.5 w-[220px] shrink-0"
+    >
       <template v-if="user">
         <!-- Bell icon -->
         <div class="relative">
@@ -367,6 +385,12 @@
       </template>
     </div>
 
+    <div
+      v-else
+      class="hidden md:flex items-center justify-end w-[220px] shrink-0"
+      aria-hidden="true"
+    ></div>
+
     <!-- Mobile Dropdown Menu -->
     <div
       v-if="mobileMenuOpen"
@@ -411,7 +435,10 @@
         </router-link>
 
         <!-- Mobile Auth Buttons -->
-        <div class="border-t border-gray-300 mt-2 pt-2 flex flex-col gap-2">
+        <div
+          v-if="!shouldHideCustomerAuth"
+          class="border-t border-gray-300 mt-2 pt-2 flex flex-col gap-2"
+        >
           <template v-if="user">
             <div class="px-4 py-3 text-sm text-gray-700">
               Xin chào, <span class="font-semibold">{{ ten }}</span>
@@ -444,7 +471,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import ArrowIcon from "../../assets/svg/arrow-up-right.svg";
 import Register from "../../assets/svg/registered.svg";
 import LogIn from "../../assets/svg/log-in.svg";
@@ -469,30 +496,42 @@ const handleScroll = () => {
   isScrolled.value = window.scrollY > 10;
 };
 
-// Add scroll listener on mount
-function onUserUpdated(e) {
-  user.value = e.detail || getUser();
-}
-
-onMounted(() => {
-  window.addEventListener("scroll", handleScroll);
-  window.addEventListener("user-updated", onUserUpdated);
-});
-
-// Remove scroll listener on unmount
-onUnmounted(() => {
-  window.removeEventListener("scroll", handleScroll);
-  window.removeEventListener("user-updated", onUserUpdated);
-});
-
 // --- auth-aware UI ---
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { getUser, clearAuth } from "../../utils/auth";
 
 const router = useRouter();
+const route = useRoute();
+
+const INTERNAL_AUTH_PATHS = new Set([
+  "/admin/login",
+  "/staff/login",
+  "/staff/doi-mat-khau-lan-dau",
+]);
+
+const shouldHideCustomerAuth = computed(() =>
+  INTERNAL_AUTH_PATHS.has(route.path)
+);
+
+const getCustomerUser = () => {
+  if (shouldHideCustomerAuth.value) return null;
+  return getUser("customer");
+};
 
 // reactive user info (if any)
-const user = ref(getUser());
+const user = ref(getCustomerUser());
+
+function onUserUpdated(e) {
+  if (shouldHideCustomerAuth.value) {
+    user.value = null;
+    stopPolling();
+    return;
+  }
+
+  user.value = e.detail || getUser("customer");
+  if (user.value) startPolling();
+  else stopPolling();
+}
 
 // derive display name and avatar
 function formatNameRaw(input) {
@@ -694,14 +733,14 @@ const navigateTo = (path) => {
 };
 
 const handleLogout = () => {
-  clearAuth();
+  clearAuth("customer");
   user.value = null;
   dropdownOpen.value = false;
   router.replace("/");
 };
 
 const handleMobileLogout = () => {
-  clearAuth();
+  clearAuth("customer");
   user.value = null;
   mobileMenuOpen.value = false;
   router.replace("/");
@@ -725,14 +764,31 @@ const onClickOutside = (e) => {
 };
 
 onMounted(() => {
+  window.addEventListener("scroll", handleScroll);
+  window.addEventListener("user-updated", onUserUpdated);
   document.addEventListener("click", onClickOutside);
   if (user.value) startPolling();
 });
 
 onUnmounted(() => {
+  window.removeEventListener("scroll", handleScroll);
+  window.removeEventListener("user-updated", onUserUpdated);
   document.removeEventListener("click", onClickOutside);
   stopPolling();
 });
+
+watch(
+  () => route.path,
+  () => {
+    user.value = getCustomerUser();
+    dropdownOpen.value = false;
+    notificationsOpen.value = false;
+
+    if (user.value) startPolling();
+    else stopPolling();
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped>

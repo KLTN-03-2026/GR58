@@ -75,48 +75,37 @@
               <span class="text-sm font-semibold text-red-500">*</span>
             </label>
             <div class="flex flex-row gap-4 items-center">
-              <label class="flex items-center gap-2 cursor-pointer">
+              <label
+                v-for="option in speciesTypeOptions"
+                :key="option.value"
+                class="flex items-center gap-2 cursor-pointer"
+              >
                 <input
                   v-model="speciesType"
                   type="radio"
-                  value="dog"
+                  :value="option.value"
                   class="w-4 h-4 accent-teal-600"
                 />
-                <span class="text-sm font-semibold text-black">Chó</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input
-                  v-model="speciesType"
-                  type="radio"
-                  value="cat"
-                  class="w-4 h-4 accent-teal-600"
-                />
-                <span class="text-sm font-semibold text-black">Mèo</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer">
-                <input
-                  v-model="speciesType"
-                  type="radio"
-                  value="other"
-                  class="w-4 h-4 accent-teal-600"
-                />
-                <span class="text-sm font-semibold text-black">Khác</span>
+                <span class="text-sm font-semibold text-black">
+                  {{ option.label }}
+                </span>
               </label>
             </div>
 
             <!-- Dropdown cho loài khác -->
             <div v-if="speciesType === 'other'" class="relative mt-1">
               <select
-                v-model="formData.species"
+                v-model="otherSpeciesKey"
                 class="w-full h-9 px-3 py-1 bg-gray-50 border !border-black/15 rounded-md text-sm text-gray-600 appearance-none focus:outline-none focus:ring-2 focus:ring-teal-500"
               >
                 <option value="">Chọn loài</option>
-                <option value="bird">Chim</option>
-                <option value="parrot">Vẹt</option>
-                <option value="hamster">Chuột Hamster</option>
-                <option value="rabbit">Thỏ</option>
-                <option value="squirrel">Sóc</option>
-                <option value="other_species">Loài khác</option>
+                <option
+                  v-for="option in otherSpeciesOptions"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </option>
               </select>
               <ChevronDownIcon
                 class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
@@ -132,16 +121,19 @@
               <div class="relative">
                 <select
                   v-model="formData.breed"
-                  class="w-full h-9 px-3 py-1 bg-gray-50 border !border-black/15 rounded-md text-sm text-gray-600 appearance-none focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  :disabled="!selectedSpeciesKey"
+                  class="w-full h-9 px-3 py-1 bg-gray-50 border !border-black/15 rounded-md text-sm text-gray-600 appearance-none focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                 >
-                  <option value="">Chọn giống</option>
-                  <option value="golden-retriever">Golden Retriever</option>
-                  <option value="husky">Husky</option>
-                  <option value="poodle">Poodle</option>
-                  <option value="persian">Persian</option>
-                  <option value="siamese">Siamese</option>
-                  <option value="scottish-fold">Scottish Fold</option>
-                  <option value="other">Khác</option>
+                  <option value="">
+                    {{ selectedSpeciesKey ? "Chọn giống" : "Chọn loài trước" }}
+                  </option>
+                  <option
+                    v-for="breed in availableBreeds"
+                    :key="breed"
+                    :value="breed"
+                  >
+                    {{ breed }}
+                  </option>
                 </select>
                 <ChevronDownIcon
                   class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
@@ -158,6 +150,7 @@
                 <input
                   v-model="formData.dateOfBirth"
                   type="date"
+                  :max="todayIso"
                   class="w-full h-9 px-3 py-1 bg-gray-50 border !border-black/15 rounded-md text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
@@ -228,10 +221,142 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import CameraIcon from "@/assets/svg/camera.svg";
 import UploadIcon from "@/assets/svg/upload.svg";
 import ChevronDownIcon from "@/assets/svg/chevron-down.svg";
+
+const speciesTypeOptions = [
+  { value: "dog", label: "Chó" },
+  { value: "cat", label: "Mèo" },
+  { value: "other", label: "Khác" },
+];
+
+const otherSpeciesOptions = [
+  { value: "bird", label: "Chim" },
+  { value: "parrot", label: "Vẹt" },
+  { value: "hamster", label: "Chuột Hamster" },
+  { value: "rabbit", label: "Thỏ" },
+  { value: "squirrel", label: "Sóc" },
+  { value: "guinea_pig", label: "Chuột lang" },
+  { value: "turtle", label: "Rùa" },
+  { value: "hedgehog", label: "Nhím kiểng" },
+  { value: "ferret", label: "Chồn sương" },
+  { value: "other_species", label: "Loài khác" },
+];
+
+const speciesLabelByKey = {
+  dog: "Chó",
+  cat: "Mèo",
+  bird: "Chim",
+  parrot: "Vẹt",
+  hamster: "Chuột Hamster",
+  rabbit: "Thỏ",
+  squirrel: "Sóc",
+  guinea_pig: "Chuột lang",
+  turtle: "Rùa",
+  hedgehog: "Nhím kiểng",
+  ferret: "Chồn sương",
+  other_species: "Loài khác",
+};
+
+const breedsBySpecies = {
+  dog: [
+    "Poodle",
+    "Golden Retriever",
+    "Husky",
+    "Corgi",
+    "Chihuahua",
+    "Pug",
+    "Shiba Inu",
+    "Pomeranian",
+    "Bulldog",
+    "Becgie Đức",
+    "Alaska",
+    "Labrador Retriever",
+    "Phốc Sóc",
+    "Chó ta",
+    "Giống khác",
+  ],
+  cat: [
+    "Mèo Anh lông ngắn",
+    "Mèo Ba Tư",
+    "Mèo Xiêm",
+    "Mèo Bengal",
+    "Mèo Maine Coon",
+    "Mèo Scottish Fold",
+    "Mèo Ragdoll",
+    "Mèo Sphynx",
+    "Mèo Munchkin",
+    "Mèo ta",
+    "Giống khác",
+  ],
+  bird: [
+    "Chào mào",
+    "Sơn ca",
+    "Yến phụng",
+    "Hoàng yến",
+    "Bồ câu",
+    "Chim cảnh khác",
+  ],
+  parrot: [
+    "Vẹt yến phụng",
+    "Vẹt cockatiel",
+    "Vẹt lovebird",
+    "Vẹt macaw",
+    "Vẹt xám châu Phi",
+    "Vẹt khác",
+  ],
+  hamster: [
+    "Hamster Bear",
+    "Hamster Robo",
+    "Hamster Campbell",
+    "Hamster Winter White",
+    "Hamster Syrian",
+    "Hamster khác",
+  ],
+  rabbit: [
+    "Thỏ Holland Lop",
+    "Thỏ Mini Rex",
+    "Thỏ Lionhead",
+    "Thỏ New Zealand",
+    "Thỏ Angora",
+    "Thỏ ta",
+    "Giống khác",
+  ],
+  squirrel: [
+    "Sóc bay",
+    "Sóc đất",
+    "Sóc đỏ",
+    "Sóc cảnh khác",
+  ],
+  guinea_pig: [
+    "Guinea Pig lông ngắn",
+    "Guinea Pig Abyssinian",
+    "Guinea Pig Peru",
+    "Guinea Pig Teddy",
+    "Guinea Pig khác",
+  ],
+  turtle: [
+    "Rùa tai đỏ",
+    "Rùa sao",
+    "Rùa hộp",
+    "Rùa núi vàng",
+    "Rùa cảnh khác",
+  ],
+  hedgehog: [
+    "Nhím kiểng châu Phi",
+    "Nhím kiểng albino",
+    "Nhím kiểng khác",
+  ],
+  ferret: [
+    "Ferret sable",
+    "Ferret albino",
+    "Ferret silver",
+    "Ferret khác",
+  ],
+  other_species: ["Giống khác"],
+};
 
 const props = defineProps({
   isOpen: {
@@ -245,6 +370,7 @@ const emit = defineEmits(["close", "submit", "reset"]);
 const fileInput = ref(null);
 const avatarPreview = ref(null);
 const speciesType = ref("");
+const otherSpeciesKey = ref("");
 
 const formData = reactive({
   name: "",
@@ -255,6 +381,24 @@ const formData = reactive({
   weight: "",
   avatar: null,
 });
+
+const selectedSpeciesKey = computed(() => {
+  if (speciesType.value === "dog" || speciesType.value === "cat") {
+    return speciesType.value;
+  }
+
+  if (speciesType.value === "other") {
+    return otherSpeciesKey.value;
+  }
+
+  return "";
+});
+
+const availableBreeds = computed(() => {
+  return breedsBySpecies[selectedSpeciesKey.value] || [];
+});
+
+const todayIso = new Date().toISOString().split("T")[0];
 
 const triggerFileInput = () => {
   fileInput.value?.click();
@@ -282,6 +426,10 @@ const handleSubmit = () => {
     alert("Vui lòng điền đầy đủ thông tin bắt buộc");
     return;
   }
+  if (formData.dateOfBirth && formData.dateOfBirth > todayIso) {
+    alert("Ngày sinh không được lớn hơn ngày hiện tại");
+    return;
+  }
   if (formData.weight && parseFloat(formData.weight) <= 0) {
     alert("Cân nặng phải lớn hơn 0");
     return;
@@ -294,13 +442,30 @@ watch(() => props.isOpen, (val) => {
 });
 
 watch(speciesType, (newVal) => {
-  if (newVal === "dog") formData.species = "dog";
-  else if (newVal === "cat") formData.species = "cat";
-  else if (newVal === "other") formData.species = "";
+  formData.breed = "";
+
+  if (newVal === "dog" || newVal === "cat") {
+    otherSpeciesKey.value = "";
+    formData.species = speciesLabelByKey[newVal];
+    return;
+  }
+
+  if (newVal === "other") {
+    formData.species = "";
+    return;
+  }
+
+  formData.species = "";
+});
+
+watch(otherSpeciesKey, (newVal) => {
+  formData.breed = "";
+  formData.species = speciesLabelByKey[newVal] || "";
 });
 
 const resetForm = () => {
   speciesType.value = "";
+  otherSpeciesKey.value = "";
   formData.name = "";
   formData.species = "";
   formData.breed = "";

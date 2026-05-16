@@ -270,6 +270,7 @@
               <input
                 v-model="petData.birthDate"
                 type="date"
+                :max="todayIso"
                 tabindex="0"
                 :readonly="false"
                 class="bg-white border !border-black/15 rounded-lg h-9 px-3 py-2 text-sm text-gray-700"
@@ -430,6 +431,7 @@ const petData = ref({
 });
 
 const saving = ref(false);
+const todayIso = new Date().toISOString().split("T")[0];
 
 // Hàm chuyển mọi định dạng ngày về YYYY-MM-DD
 const toISODateInput = (val) => {
@@ -590,6 +592,10 @@ const handleSave = async () => {
   }
   if (!petData.value.weight || petData.value.weight <= 0) {
     showErrorToast("Lỗi", "Cân nặng phải lớn hơn 0");
+    return;
+  }
+  if (petData.value.birthDate && petData.value.birthDate > todayIso) {
+    showErrorToast("Lỗi", "Ngày sinh không được lớn hơn ngày hiện tại");
     return;
   }
 
