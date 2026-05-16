@@ -265,6 +265,9 @@
                 Trạng thái
               </th>
               <th class="text-left px-2 py-2.5 text-sm font-medium text-black">
+                Thanh toán
+              </th>
+              <th class="text-left px-2 py-2.5 text-sm font-medium text-black">
                 Thao tác
               </th>
             </tr>
@@ -408,7 +411,9 @@
                       ? 'bg-green-100 !border-[#7bf1a8] text-[#008236]'
                       : appointment.status === 'examining'
                       ? 'bg-orange-100 !border-orange-400 text-orange-600'
-                      : 'bg-green-100 border-transparent text-[#008236]',
+                      : appointment.status === 'done'
+                      ? 'bg-gray-100 !border-gray-300 text-gray-600'
+                      : 'bg-yellow-100 !border-yellow-300 text-yellow-700',
                   ]"
                 >
                   <span class="text-xs font-medium">
@@ -421,9 +426,27 @@
                         ? "Đã đến"
                         : appointment.status === "examining"
                         ? "Đang khám"
+                        : appointment.status === "done"
+                        ? "Hoàn thành"
                         : "Chờ thanh toán"
                     }}
                   </span>
+                </span>
+              </td>
+
+              <!-- Payment Status -->
+              <td class="px-2 py-5">
+                <span
+                  v-if="appointment.daTTTruoc"
+                  class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700"
+                >
+                  Đã thanh toán
+                </span>
+                <span
+                  v-else
+                  class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-500"
+                >
+                  Chưa thanh toán
                 </span>
               </td>
 
@@ -1294,6 +1317,7 @@
       :appointment="selectedAppointment"
       @close="isCheckInModalOpen = false"
       @success="handleCheckInSuccess"
+      @pay-first="handlePayFirst"
     />
 
     <!-- Create Appointment Modal -->
@@ -1576,6 +1600,9 @@ const filteredAppointments = computed(() => {
   // Filter by active filter
   if (activeFilter.value !== "all") {
     filtered = filtered.filter((app) => app.status === activeFilter.value);
+    if (activeFilter.value === "payment") {
+      filtered = filtered.filter((app) => !app.daTTTruoc);
+    }
   }
 
   // Sort by nearest date/time first
@@ -1779,6 +1806,11 @@ const handleCheckInSuccess = (updatedAppointment) => {
   updateFilterCounts();
 };
 
+const handlePayFirst = (appointment) => {
+  isCheckInModalOpen.value = false;
+  router.push({ path: '/nurse/invoice', query: { lich_hen_id: appointment.id } });
+};
+
 const refreshCheckInList = () => {
   fetchWaitingCheckInList();
 };
@@ -1801,7 +1833,8 @@ const setDateFilter = (type, dateValue = '') => {
 const fetchAllAppointments = async () => {
   loadingAppointments.value = true;
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const params = { per_page: 100 };
 
     if (selectedDateFilter.value === 'today') {
@@ -1875,14 +1908,36 @@ const fetchAllAppointments = async () => {
           status = checkInTime ? "arrived" : "upcoming";
           rowColor = checkInTime ? "" : "bg-blue-50";
           action = "checkin";
-        } else if (app.trang_thai === "in-progress") {
-          status = "examining";
-          rowColor = "bg-orange-50";
-          action = "payment";
+        } else if (app.trang_thai === "in-progress" || app.trang_thai === "dang_kham") {
+          if (app.thoi_gian_bat_dau_kham) {
+            status = "examining";
+            rowColor = "bg-orange-50";
+            action = "payment";
+          } else {
+            status = "arrived";
+            rowColor = "";
+            action = "checkin";
+          }
         } else if (app.trang_thai === "completed") {
-          status = "payment";
-          rowColor = "bg-green-50";
-          action = "payment";
+          const daTT = app.da_thanh_toan || !!app.thanh_toan_id;
+          const daThuThuoc = app.da_thu_thuoc;
+
+          if (daTT && daThuThuoc) {
+            // Đã thanh toán đủ (cả DV + thuốc)
+            status = "done";
+            rowColor = "";
+            action = "none";
+          } else if (daTT && !daThuThuoc) {
+            // Đã TT dịch vụ, có thể cần thu thuốc bổ sung
+            status = "payment";
+            rowColor = "bg-amber-50";
+            action = "payment";
+          } else {
+            // Chưa thanh toán gì
+            status = "payment";
+            rowColor = "bg-green-50";
+            action = "payment";
+          }
         }
 
         return {
@@ -1900,7 +1955,7 @@ const fetchAllAppointments = async () => {
           status,
           action,
           rowColor,
-          // Keep original data for reference
+          daTTTruoc: !!app.da_thanh_toan,
           originalData: app,
         };
       });
@@ -1934,7 +1989,7 @@ const updateFilterCounts = () => {
     (a) => a.status === "examining"
   ).length;
   const payment = appointments.value.filter(
-    (a) => a.status === "payment"
+    (a) => a.status === "payment" && !a.daTTTruoc
   ).length;
   const cancelled = appointments.value.filter(
     (a) => a.status === "cancelled"

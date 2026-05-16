@@ -20,12 +20,14 @@ class DichVu extends Model
         'huong_dan',
         'anh_dich_vu',
         'trang_thai',
+        'yeu_cau_tt_truoc',
         'danh_muc_id',
     ];
 
     protected $casts = [
         'gia_tien' => 'decimal:2',
         'thoi_gian_thuc_hien' => 'integer',
+        'yeu_cau_tt_truoc' => 'boolean',
     ];
 
     // Status constants

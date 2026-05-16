@@ -33,7 +33,7 @@ class ThanhToanController extends Controller
 
         DB::beginTransaction();
         try {
-            $lichHen = LichHen::with(['dichVus', 'khachHang', 'thuCung'])->findOrFail($request->lich_hen_id);
+            $lichHen = LichHen::with(['dichVus', 'khachHang', 'thuCung', 'phieuKham'])->findOrFail($request->lich_hen_id);
 
             // Kiểm tra lịch hẹn đã hoàn thành khám chưa
             if ($lichHen->trang_thai !== 'completed') {
@@ -59,6 +59,16 @@ class ThanhToanController extends Controller
             // Nếu chưa có dịch vụ trong pivot, lấy từ dich_vu_id gốc
             if ($tongTienGoc == 0 && $lichHen->dich_vu_id) {
                 $tongTienGoc = $lichHen->dichVu?->gia_tien ?? 0;
+            }
+
+            // ── Cộng tiền thuốc từ đơn thuốc (nếu có) ──
+            if ($lichHen->phieuKham && $lichHen->phieuKham->don_thuoc) {
+                $donThuoc = $lichHen->phieuKham->don_thuoc;
+                if (is_array($donThuoc)) {
+                    foreach ($donThuoc as $thuoc) {
+                        $tongTienGoc += ($thuoc['so_luong'] ?? 0) * ($thuoc['don_gia'] ?? 0);
+                    }
+                }
             }
 
             // ── Xử lý khuyến mãi ──
@@ -153,8 +163,12 @@ class ThanhToanController extends Controller
                 ]);
             }
 
-            // ── Cập nhật thanh_toan_id vào lịch hẹn ──
-            $lichHen->update(['thanh_toan_id' => $thanhToan->id]);
+            // ── Cập nhật thanh_toan_id + đánh dấu đã thanh toán ──
+            $lichHen->update([
+                'thanh_toan_id' => $thanhToan->id,
+                'da_thanh_toan' => true,
+                'da_thu_thuoc' => true,
+            ]);
 
             DB::commit();
 
@@ -169,6 +183,96 @@ class ThanhToanController extends Controller
             return response()->json([
                 'status'  => false,
                 'message' => 'Lỗi thanh toán: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // Thanh toán bổ sung đơn thuốc
+    // ----------------------------------------------------------------
+    public function boSung(Request $request): JsonResponse
+    {
+        $request->validate([
+            'lich_hen_id'          => 'required|exists:lich_hens,id',
+            'hinh_thuc_thanh_toan' => 'required|in:tien_mat,chuyen_khoan',
+            'items'                => 'required|array|min:1',
+            'items.*.ten'          => 'required|string',
+            'items.*.so_luong'     => 'required|numeric|min:1',
+            'items.*.don_gia'      => 'required|numeric|min:0',
+            'ghi_chu'              => 'nullable|string',
+        ]);
+
+        $user = $request->user();
+
+        DB::beginTransaction();
+        try {
+            $lichHen = LichHen::with('khachHang')->findOrFail($request->lich_hen_id);
+
+            if ($lichHen->da_thu_thuoc) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Lịch hẹn này đã thu tiền thuốc bổ sung.',
+                ], 422);
+            }
+
+            $tongTien = collect($request->items)->sum(fn($item) => $item['so_luong'] * $item['don_gia']);
+
+            if ($tongTien <= 0) {
+                return response()->json([
+                    'status'  => false,
+                    'message' => 'Tổng tiền thuốc phải lớn hơn 0.',
+                ], 422);
+            }
+
+            $isCash = $request->hinh_thuc_thanh_toan === 'tien_mat';
+
+            $thanhToan = ThanhToan::create([
+                'ma_thanh_toan'        => 'BS' . now()->format('ymdHis') . rand(10, 99),
+                'lich_hen_id'          => $lichHen->id,
+                'khach_hang_id'        => $lichHen->khach_hang_id,
+                'tong_tien_goc'        => $tongTien,
+                'so_tien_giam'         => 0,
+                'tong_tien_sau_giam'   => $tongTien,
+                'hinh_thuc_thanh_toan' => $request->hinh_thuc_thanh_toan,
+                'tien_mat'             => $isCash ? $tongTien : 0,
+                'tien_online'          => $isCash ? 0 : $tongTien,
+                'trang_thai'           => $isCash ? 'da_thanh_toan' : 'cho_thanh_toan',
+                'nhan_vien_id'         => $user instanceof NhanVien ? $user->id : null,
+                'admin_id'             => $user instanceof Admin ? $user->id : null,
+                'ngay_thanh_toan'      => $isCash ? now() : null,
+                'het_han_luc'          => $isCash ? null : now()->addMinutes(15),
+                'ghi_chu'              => $request->ghi_chu ?? 'Thu bổ sung đơn thuốc',
+            ]);
+
+            if ($isCash) {
+                $lichHen->update(['da_thu_thuoc' => true]);
+            }
+
+            DB::commit();
+
+            $response = [
+                'status'  => true,
+                'message' => $isCash ? 'Thu tiền thuốc bổ sung thành công!' : 'Tạo giao dịch chuyển khoản thuốc bổ sung thành công.',
+                'data'    => $thanhToan->load('lichHen'),
+            ];
+
+            if (!$isCash) {
+                $sepayService = app(\App\Services\SepayService::class);
+                if ($sepayService->isConfigured()) {
+                    $response['data'] = [
+                        'thanh_toan'   => $thanhToan,
+                        'payment_info' => $sepayService->getPaymentInfo($thanhToan),
+                    ];
+                }
+            }
+
+            return response()->json($response, 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status'  => false,
+                'message' => 'Lỗi thanh toán bổ sung: ' . $e->getMessage(),
             ], 500);
         }
     }

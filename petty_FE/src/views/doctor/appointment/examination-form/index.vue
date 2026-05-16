@@ -381,13 +381,9 @@
             </button>
 
             <button
-              @click="isFollowUpModalOpen = true"
-              :class="[
-                'ef-action-btn',
-                selectedPrescriptionType === 'hen_tai_kham'
-                  ? 'ef-action-btn--active-cyan'
-                  : 'ef-action-btn--cyan',
-              ]"
+              disabled
+              class="ef-action-btn ef-action-btn--disabled opacity-50 cursor-not-allowed"
+              title="Tính năng đang phát triển"
             >
               <span class="ef-action-icon">
                 <svg
@@ -404,16 +400,12 @@
                   />
                 </svg>
               </span>
-              <div class="text-left text-current">
-                <p class="text-sm font-semibold leading-5 text-current">
+              <div class="text-left text-slate-400">
+                <p class="text-sm font-semibold leading-5">
                   Hẹn tái khám
                 </p>
-                <p class="text-xs opacity-70 leading-4 text-current">
-                  {{
-                    selectedPrescriptionType === "hen_tai_kham"
-                      ? "✓ Đã đặt lịch tái khám"
-                      : "Lên lịch khám theo dõi"
-                  }}
+                <p class="text-xs opacity-70 leading-4">
+                  Đang phát triển
                 </p>
               </div>
             </button>
@@ -460,8 +452,9 @@
       class="ef-modal"
       @click.self="isPrescriptionFormModalOpen = false"
     >
-      <div class="w-full max-w-2xl mx-4">
+      <div class="w-full max-w-5xl mx-4">
         <DonThuoc
+          :initial-data="donThuocData"
           @close="isPrescriptionFormModalOpen = false"
           @save="handlePrescriptionFormSave"
         />
@@ -774,6 +767,8 @@ const handleSave = async () => {
       ghi_chu: notes.value || null,
       // Loại chỉ định (required) - use selected type
       loai_chi_dinh: selectedPrescriptionType.value,
+      // Đơn thuốc JSON (nếu có)
+      don_thuoc: donThuocData.value.length > 0 ? donThuocData.value : null,
     };
 
     console.log("=== Saving Phiếu Khám ===");
@@ -818,12 +813,15 @@ const handleSave = async () => {
   }
 };
 
+// Lưu trữ đơn thuốc từ modal
+const donThuocData = ref([]);
+
 // Handle Don Thuoc modal save
 const handlePrescriptionFormSave = (data) => {
-  console.log("Don Thuoc saved:", data);
+  donThuocData.value = data;
   selectedPrescriptionType.value = "don_thuoc";
   isPrescriptionFormModalOpen.value = false;
-  showSuccessToast("Đã lưu đơn thuốc");
+  showSuccessToast(`Đã lưu đơn thuốc (${data.length} loại)`);
 };
 
 // Handle Hen Tai Kham modal save
@@ -867,6 +865,7 @@ const hoanTatVaChuyenThuNgan = async () => {
         chan_doan: diagnosis.value,
         ghi_chu: notes.value || null,
         loai_chi_dinh: selectedPrescriptionType.value,
+        don_thuoc: donThuocData.value.length > 0 ? donThuocData.value : null,
       };
       const phieuKhamResponse = await api.post("/phieu-kham", phieuKhamData);
       const phieuKhamId = phieuKhamResponse.data?.data?.id;

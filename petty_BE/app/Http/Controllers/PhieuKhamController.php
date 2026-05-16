@@ -85,6 +85,10 @@ class PhieuKhamController extends Controller
                 'nhanVien',
             ]);
 
+            if ($request->filled('lich_hen_id')) {
+                $query->where('lich_hen_id', $request->get('lich_hen_id'));
+            }
+
             if ($request->filled('loai_chi_dinh')) {
                 $query->where('loai_chi_dinh', $request->get('loai_chi_dinh'));
             }

@@ -402,6 +402,9 @@ Route::get('/statistics/dashboard', [\App\Http\Controllers\Api\StatisticControll
 Route::post('/thanh-toan/preview', [ThanhToanController::class, 'preview'])
     ->middleware('staff.only');
 
+Route::post('/thanh-toan/bo-sung', [ThanhToanController::class, 'boSung'])
+    ->middleware('staff.only');
+
 Route::post('/thanh-toan', [ThanhToanController::class, 'store'])
     ->middleware('staff.only');
 

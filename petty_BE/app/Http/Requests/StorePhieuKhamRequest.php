@@ -24,6 +24,13 @@ class StorePhieuKhamRequest extends FormRequest
             'chan_doan' => 'nullable|string',
             'ghi_chu' => 'nullable|string',
             'loai_chi_dinh' => 'required|in:chi_dinh_can_lam_sang,don_thuoc,hen_tai_kham',
+            'don_thuoc' => 'nullable|array',
+            'don_thuoc.*.ten' => 'required|string',
+            'don_thuoc.*.so_luong' => 'required|numeric|min:1',
+            'don_thuoc.*.don_gia' => 'required|numeric|min:0',
+            'don_thuoc.*.don_vi' => 'nullable|string',
+            'don_thuoc.*.lieu_dung' => 'nullable|string',
+            'don_thuoc.*.ghi_chu' => 'nullable|string',
         ];
     }
 }

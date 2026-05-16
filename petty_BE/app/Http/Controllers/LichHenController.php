@@ -289,7 +289,7 @@ class LichHenController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $query = LichHen::with(['thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'thanhToan'])
+        $query = LichHen::with(['thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'thanhToan', 'thanhToans'])
             ->where('khach_hang_id', $user->id);
 
         // Filter by pet name (thu_cung.ten_thu_cung)
@@ -396,6 +396,13 @@ class LichHenController extends Controller
         // Filter lịch hẹn chưa thanh toán (thanh_toan_id is null)
         if ($request->boolean('chua_thanh_toan')) {
             $query->whereNull('thanh_toan_id');
+        }
+
+        // Filter lịch hẹn chờ thu thuốc bổ sung (đã TT dịch vụ nhưng chưa thu thuốc)
+        if ($request->boolean('cho_thu_thuoc')) {
+            $query->where('da_thanh_toan', true)
+                  ->where('da_thu_thuoc', false)
+                  ->whereHas('phieuKham', fn($q) => $q->whereNotNull('don_thuoc'));
         }
 
         // Filter by time range: from_date and to_date (accepts date or datetime)
@@ -709,6 +716,18 @@ class LichHenController extends Controller
                     'data' => [
                         'thoi_gian_checkin' => $lichHen->thoi_gian_checkin->format('Y-m-d H:i:s'),
                     ],
+                ], 422);
+            }
+
+            // Chặn check-in nếu có dịch vụ yêu cầu thanh toán trước mà chưa TT
+            $lichHen->load('dichVus');
+            $requiresPrepay = $lichHen->dichVus->contains(fn($dv) => $dv->yeu_cau_tt_truoc);
+
+            if ($requiresPrepay && !$lichHen->da_thanh_toan) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Dịch vụ phẫu thuật yêu cầu thanh toán trước khi thực hiện',
+                    'error_code' => 'SURGERY_PREPAY_REQUIRED',
                 ], 422);
             }
 
@@ -1154,6 +1173,15 @@ class LichHenController extends Controller
 
             if (isset($validated['huong_dan'])) {
                 $lichHen->huong_dan = $validated['huong_dan'];
+            }
+
+            // Nếu đã TT trước + không có đơn thuốc → đánh dấu hoàn tất luôn
+            if ($lichHen->da_thanh_toan) {
+                $phieuKham = \App\Models\PhieuKham::where('lich_hen_id', $lichHen->id)->first();
+                $hasDonThuoc = $phieuKham && !empty($phieuKham->don_thuoc);
+                if (!$hasDonThuoc) {
+                    $lichHen->da_thu_thuoc = true;
+                }
             }
 
             $lichHen->save();

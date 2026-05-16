@@ -170,12 +170,19 @@ class SepayController extends Controller
         ]);
 
         if ($thanhToan->lich_hen_id) {
-            LichHen::where('id', $thanhToan->lich_hen_id)
-                ->whereNull('thanh_toan_id')
-                ->update([
-                    'thanh_toan_id' => $thanhToan->id,
-                    'da_thanh_toan' => true,
-                ]);
+            $isBoSung = str_starts_with($thanhToan->ma_thanh_toan, 'BS');
+
+            if ($isBoSung) {
+                LichHen::where('id', $thanhToan->lich_hen_id)
+                    ->update(['da_thu_thuoc' => true]);
+            } else {
+                LichHen::where('id', $thanhToan->lich_hen_id)
+                    ->whereNull('thanh_toan_id')
+                    ->update([
+                        'thanh_toan_id' => $thanhToan->id,
+                        'da_thanh_toan' => true,
+                    ]);
+            }
         }
 
         Log::info('SePay webhook: payment confirmed', [

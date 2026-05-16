@@ -212,11 +212,12 @@ class InvoiceController extends Controller
     private function mapHinhThuc(string $value): string
     {
         return match ($value) {
-            'tien_mat' => 'cash',
-            'vnpay'    => 'vnpay',
-            'momo'     => 'momo',
-            'ket_hop'  => 'transfer',
-            default    => 'cash',
+            'tien_mat'      => 'cash',
+            'chuyen_khoan'  => 'transfer',
+            'vnpay'         => 'vnpay',
+            'momo'          => 'momo',
+            'ket_hop'       => 'transfer',
+            default         => 'cash',
         };
     }
 

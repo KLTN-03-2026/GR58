@@ -28,6 +28,7 @@ class LichHen extends Model
         'nhan_vien_id',
         'tong_tien',
         'da_thanh_toan',
+        'da_thu_thuoc',
         'phuong_thuc_thanh_toan',
         'thoi_gian_thanh_toan',
     ];
@@ -74,5 +75,15 @@ class LichHen extends Model
     return $this->belongsToMany(DichVu::class, 'lich_hen_dich_vu', 'lich_hen_id', 'dich_vu_id')
                 ->withPivot(['so_luong', 'don_gia', 'thanh_tien'])
                 ->withTimestamps();
+    }
+
+    public function phieuKham()
+    {
+        return $this->hasOne(PhieuKham::class, 'lich_hen_id');
+    }
+
+    public function thanhToans()
+    {
+        return $this->hasMany(ThanhToan::class, 'lich_hen_id');
     }
 }

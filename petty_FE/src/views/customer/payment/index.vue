@@ -629,7 +629,9 @@ const loadPaymentData = async () => {
     const response = await paymentService.getInvoices();
 
     if (response && response.data && response.data.length > 0) {
-      payments.value = response.data.map(lichHen => {
+      const rows = [];
+
+      response.data.forEach(lichHen => {
         const thanhToan = lichHen.thanh_toan;
         const tongTien = thanhToan
           ? parseFloat(thanhToan.tong_tien_sau_giam) || 0
@@ -637,13 +639,12 @@ const loadPaymentData = async () => {
         const ngayGio = lichHen.ngay_gio;
         const phuongThucThanhToan = thanhToan?.hinh_thuc_thanh_toan || lichHen.phuong_thuc_thanh_toan || null;
 
-        // Calculate actual paid amount from thanh_toan record
         const isPaid = lichHen.da_thanh_toan || (thanhToan && thanhToan.trang_thai === 'da_thanh_toan');
         const paidAmount = thanhToan && (lichHen.trang_thai === 'completed' || isPaid)
           ? parseFloat(thanhToan.tong_tien_sau_giam) || 0
           : 0;
 
-        return {
+        rows.push({
           id: lichHen.id,
           invoiceCode: `HD${String(lichHen.id).padStart(6, '0')}`,
           service: lichHen.dich_vus?.length ? lichHen.dich_vus.map(d => d.ten).join(", ") : (lichHen.dich_vu?.ten || lichHen.dich_vu?.ten_dich_vu || 'Dịch vụ'),
@@ -658,10 +659,34 @@ const loadPaymentData = async () => {
           petName: lichHen.thu_cung?.ten_thu_cung || lichHen.thu_cung?.ten || null,
           doctor: lichHen.nhan_vien?.full_name || lichHen.nhan_vien?.ho_ten || null,
           dich_vus: lichHen.dich_vus || [],
-        };
+        });
+
+        // Thêm dòng riêng cho thanh toán bổ sung (thuốc)
+        if (lichHen.thanh_toans && lichHen.thanh_toans.length > 0) {
+          lichHen.thanh_toans
+            .filter(tt => tt.ma_thanh_toan && tt.ma_thanh_toan.startsWith('BS'))
+            .forEach(ttBS => {
+              rows.push({
+                id: `${lichHen.id}-bs-${ttBS.id}`,
+                invoiceCode: `HD${String(lichHen.id).padStart(6, '0')}-T`,
+                service: `Thuốc bổ sung — ${lichHen.dich_vus?.length ? lichHen.dich_vus.map(d => d.ten).join(", ") : (lichHen.dich_vu?.ten || 'Dịch vụ')}`,
+                date: ttBS.ngay_thanh_toan ? new Date(ttBS.ngay_thanh_toan).toLocaleDateString('vi-VN') : (ngayGio ? new Date(ngayGio).toLocaleDateString('vi-VN') : 'N/A'),
+                rawDate: ttBS.ngay_thanh_toan || ngayGio || null,
+                status: ttBS.trang_thai === 'da_thanh_toan' ? 'completed' : 'pending',
+                statusText: ttBS.trang_thai === 'da_thanh_toan' ? `Đã thanh toán` : `Cần thanh toán: ${Number(ttBS.tong_tien_sau_giam).toLocaleString('vi-VN')} đ`,
+                amountText: `(Tổng: ${Number(ttBS.tong_tien_sau_giam).toLocaleString('vi-VN')} đ)`,
+                totalAmount: parseFloat(ttBS.tong_tien_sau_giam) || 0,
+                paidAmount: ttBS.trang_thai === 'da_thanh_toan' ? parseFloat(ttBS.tong_tien_sau_giam) || 0 : 0,
+                phuongThuc: mapPaymentMethod(ttBS.hinh_thuc_thanh_toan),
+                petName: lichHen.thu_cung?.ten_thu_cung || lichHen.thu_cung?.ten || null,
+                doctor: lichHen.nhan_vien?.full_name || lichHen.nhan_vien?.ho_ten || null,
+                dich_vus: lichHen.dich_vus || [],
+              });
+            });
+        }
       });
 
-      payments.value.sort((a, b) => a.id - b.id);
+      payments.value = rows.sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
       calculateStatistics();
     } else {
       payments.value = [];

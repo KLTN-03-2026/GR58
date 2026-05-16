@@ -20,6 +20,7 @@ class PhieuKhamResource extends JsonResource
             'chan_doan' => $this->chan_doan,
             'ghi_chu' => $this->ghi_chu,
             'loai_chi_dinh' => $this->loai_chi_dinh,
+            'don_thuoc' => $this->don_thuoc,
             'ket_qua_can_lam_sang' => $this->ket_qua_can_lam_sang,
             'tep_dinh_kem_can_lam_sang' => $this->tep_dinh_kem_can_lam_sang ?? [],
             'thoi_gian_tra_ket_qua' => $this->thoi_gian_tra_ket_qua
