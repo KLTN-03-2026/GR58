@@ -48,6 +48,8 @@ Route::post('/chatbot/message', [ChatbotController::class, 'message'])->middlewa
 
 // Nhân viên login route
 Route::post('/nhan-vien/dang-nhap', [NhanVienController::class, 'dangNhap']);
+// Đổi mật khẩu lần đầu (self-service, không cần mật khẩu cũ)
+Route::post('/nhan-vien/doi-mat-khau-lan-dau', [NhanVienController::class, 'firstChangePassword'])->middleware('auth:sanctum');
 
 
 // Routes đăng nhập mạng xã hội

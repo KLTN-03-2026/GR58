@@ -69,17 +69,6 @@
               />
             </div>
 
-            <!-- Position -->
-            <div class="flex flex-col gap-2">
-              <label class="font-medium text-sm text-black"> Chức danh </label>
-              <input
-                v-model="formData.position"
-                type="text"
-                placeholder="VD: Trưởng khoa"
-                class="bg-[#f3f3f5] border-none rounded-lg h-9 px-3 py-1 font-nunito text-sm text-neutral-950 outline-none placeholder:text-[#717182]"
-              />
-            </div>
-
             <!-- Years of Experience -->
             <div class="flex flex-col gap-2">
               <label class="font-medium text-sm text-black">
@@ -333,7 +322,6 @@ const formData = ref({
   avatar: null,
   selectedRoles: [], // selected roles (empty by default)
   department: "",
-  position: "",
   yearsOfExperience: null,
   practiceCertificate: null,
   professionalDegree: null,

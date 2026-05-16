@@ -933,10 +933,10 @@ const formatCurrency = (amount) => {
   return amount.toLocaleString("vi-VN") + " ₫";
 };
 
-const handleAddStaff = (data) => {
+const handleAddStaff = async (data) => {
   console.log("New staff data:", data);
-  // Logic to add new staff goes here
   isAddStaffModalOpen.value = false;
+  await reloadStaffList();
 };
 
 const handleViewStaff = (staff) => {
