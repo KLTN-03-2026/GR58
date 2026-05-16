@@ -117,7 +117,7 @@
 import { ref, computed } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
-import { getToken } from '@/utils/auth'
+import { getToken, getUser } from '@/utils/auth'
 
 const router = useRouter()
 
@@ -125,6 +125,32 @@ const form = ref({ password: '', password_confirmation: '' })
 const isSubmitting = ref(false)
 const showPassword = ref(false)
 const showConfirm  = ref(false)
+
+// Lấy vai trò thực từ user đã lưu (ưu tiên hơn user_role string)
+function getCurrentVaiTro() {
+  // Thử lấy user từ từng slot theo thứ tự
+  for (const role of ['y_ta', 'bac_si', 'le_tan', 'tro_ly']) {
+    const user = getUser(role)
+    if (user && user.vai_tro) return user.vai_tro
+  }
+  // Fallback về user_role đã lưu
+  return localStorage.getItem('user_role') || sessionStorage.getItem('user_role') || ''
+}
+
+// Lấy token đúng theo vai trò thực
+function getCurrentToken() {
+  const vaiTro = getCurrentVaiTro()
+  if (vaiTro) {
+    const t = getToken(vaiTro)
+    if (t) return t
+  }
+  // Fallback: thử từng slot
+  for (const role of ['y_ta', 'bac_si', 'le_tan', 'tro_ly', 'staff']) {
+    const t = getToken(role)
+    if (t) return t
+  }
+  return null
+}
 
 // Password strength
 const passwordStrength = computed(() => {
@@ -162,16 +188,21 @@ const handleSubmit = async () => {
   if (!isValid.value || isSubmitting.value) return
   isSubmitting.value = true
   try {
-    const token = getToken('bac_si') || getToken('y_ta') || getToken('staff')
+    const token = getCurrentToken()
     const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api'
     await axios.post(`${API_BASE}/nhan-vien/doi-mat-khau-lan-dau`, form.value, {
       headers: { Authorization: `Bearer ${token}` },
     })
 
-    // Redirect về dashboard theo vai trò
-    const vaiTro = localStorage.getItem('user_role') || sessionStorage.getItem('user_role') || ''
-    const roleRoutes = { bac_si: '/doctor/dashboard', y_ta: '/nurse/dashboard' }
-    router.push(roleRoutes[vaiTro] || '/doctor/dashboard')
+    // Redirect về dashboard theo vai trò thực của user
+    const vaiTro = getCurrentVaiTro()
+    const roleRoutes = {
+      bac_si:   '/doctor/dashboard',
+      y_ta:     '/nurse/dashboard',
+      le_tan:   '/receptionist/dashboard',
+      tro_ly:   '/assistant/dashboard',
+    }
+    router.push(roleRoutes[vaiTro] || '/dashboard')
   } catch (err) {
     alert(err.response?.data?.message || 'Có lỗi xảy ra. Vui lòng thử lại.')
   } finally {
