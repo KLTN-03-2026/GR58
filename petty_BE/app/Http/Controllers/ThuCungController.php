@@ -292,16 +292,16 @@ class ThuCungController extends Controller
         }
 
         try {
-            // Kiểm tra xem thú cưng có lịch hẹn đang hoạt động không
-            $activeLichHens = $thuCung->lichHens()
-                ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan', 'da_check_in', 'dang_kham'])
-                ->count();
+            $linkedAppointments = $thuCung->lichHens()->count();
 
-            if ($activeLichHens > 0) {
+            if ($linkedAppointments > 0) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Không thể xóa thú cưng vì còn lịch hẹn đang hoạt động. Vui lòng hủy các lịch hẹn trước.'
-                ], 400);
+                    'message' => 'Không thể xóa thú cưng này vì đã có lịch hẹn liên quan. Để tránh mất dữ liệu lịch sử, hệ thống không cho phép xóa.',
+                    'meta' => [
+                        'linked_appointments' => $linkedAppointments,
+                    ],
+                ], 409);
             }
 
             // delete stored image if exists and it's a storage path (not default image)

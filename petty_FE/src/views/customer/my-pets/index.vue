@@ -145,6 +145,7 @@
         v-if="petToDelete"
         :isOpen="isDeletePetOpen"
         :petData="petToDelete"
+        :isDeleting="isDeletingPet"
         @close="isDeletePetOpen = false"
         @delete="handleDeletePet"
       />
@@ -178,6 +179,7 @@ const PLACEHOLDER_IMAGE =
 
 const isAddPetOpen = ref(false);
 const isDeletePetOpen = ref(false);
+const isDeletingPet = ref(false);
 const petToDelete = ref(null);
 const showDetail = ref(false);
 const selectedPet = ref(null);
@@ -377,9 +379,10 @@ const openDeletePopup = (pet) => {
 const handleDeletePet = async (pet) => {
   // pet may be passed by the child or use the selected petToDelete
   const target = pet || petToDelete.value;
-  if (!target) return;
+  if (!target || isDeletingPet.value) return;
 
   try {
+    isDeletingPet.value = true;
     // call backend delete endpoint
     // ensure auth header
     try {
@@ -408,12 +411,16 @@ const handleDeletePet = async (pet) => {
       errorMessage = err.response.data.message;
     } else if (err.response?.status === 403) {
       errorMessage = "Bạn không có quyền xóa thú cưng này.";
-    } else if (err.response?.status === 400) {
-      errorMessage = err.response.data.message || "Không thể xóa thú cưng vì còn lịch hẹn đang hoạt động.";
+    } else if (err.response?.status === 400 || err.response?.status === 409) {
+      errorMessage =
+        err.response.data.message ||
+        "Không thể xóa thú cưng vì đang có lịch hẹn liên quan.";
     }
     
     alert(errorMessage);
     // keep popup open so user can retry or cancel
+  } finally {
+    isDeletingPet.value = false;
   }
 };
 

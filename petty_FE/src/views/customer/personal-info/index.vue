@@ -4,7 +4,7 @@
       <div class="bg-white border !border-gray-300 rounded-2xl p-8 mb-6">
         <div class="mb-8">
           <h1 class="text-xl font-bold text-black mb-1">Thông tin cá nhân</h1>
-          <p class="text-lg font-semibold text-gray-500">
+          <p class="text-lg font-semibold text-gray-600">
             Quản lý thông tin tài khoản và cài đặt cá nhân của bạn
           </p>
         </div>
@@ -53,7 +53,7 @@
           <form class="flex-1 space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block font-semibold text-lg mb-2"
+                <label class="block font-semibold text-lg mb-2 text-gray-700"
                   >Họ và tên *</label
                 >
                 <input
@@ -61,10 +61,10 @@
                   v-model="form.name"
                   type="text"
                   :readonly="!isEditing"
-                  class="w-full h-11 bg-gray-200 border border-black/10 rounded-lg px-3 font-semibold text-base focus:outline-none focus:border-teal-600"
+                  class="w-full h-11 border border-black/10 rounded-lg px-3 font-semibold text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-teal-600"
                   :class="{
-                    'opacity-50': !isEditing,
-                    'opacity-100': isEditing,
+                    'bg-gray-100 text-gray-800': !isEditing,
+                    'bg-white text-gray-900': isEditing,
                   }"
                 />
                 <!-- <div class="mt-2 text-sm text-gray-600 flex gap-4">
@@ -78,7 +78,7 @@
                 </div> -->
               </div>
               <div>
-                <label class="block font-semibold text-lg mb-2"
+                <label class="block font-semibold text-lg mb-2 text-gray-700"
                   >Số điện thoại *</label
                 >
                 <input
@@ -86,10 +86,10 @@
                   v-model="form.phone"
                   type="tel"
                   :readonly="!isEditing"
-                  class="w-full h-11 bg-gray-200 border border-black/10 rounded-lg px-3 font-semibold text-base focus:outline-none focus:border-teal-600"
+                  class="w-full h-11 border border-black/10 rounded-lg px-3 font-semibold text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-teal-600"
                   :class="{
-                    'opacity-50': !isEditing,
-                    'opacity-100': isEditing,
+                    'bg-gray-100 text-gray-800': !isEditing,
+                    'bg-white text-gray-900': isEditing,
                   }"
                 />
                 <p
@@ -102,13 +102,13 @@
             </div>
 
             <div>
-              <label class="block font-semibold text-lg mb-2">Email *</label>
+              <label class="block font-semibold text-lg mb-2 text-gray-700">Email *</label>
               <input
                 ref="emailRef"
                 v-model="form.email"
                 type="email"
                 readonly
-                class="w-full h-11 bg-gray-200 border border-black/10 rounded-lg px-3 font-semibold text-base focus:outline-none focus:border-teal-600 opacity-70"
+                class="w-full h-11 bg-gray-100 border border-black/10 rounded-lg px-3 font-semibold text-base text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-teal-600"
               />
               <p v-if="errors.email" class="text-sm text-red-600 mt-1">
                 {{ errors.email[0] }}
@@ -116,14 +116,17 @@
             </div>
 
             <div>
-              <label class="block font-semibold text-lg mb-2">Địa chỉ</label>
+              <label class="block font-semibold text-lg mb-2 text-gray-700">Địa chỉ</label>
               <input
                 ref="addressRef"
                 v-model="form.address"
                 type="text"
                 :readonly="!isEditing"
-                class="w-full h-11 bg-gray-200 border border-black/10 rounded-lg px-3 font-semibold text-base focus:outline-none focus:border-teal-600"
-                :class="{ 'opacity-50': !isEditing, 'opacity-100': isEditing }"
+                class="w-full h-11 border border-black/10 rounded-lg px-3 font-semibold text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-teal-600"
+                :class="{
+                  'bg-gray-100 text-gray-800': !isEditing,
+                  'bg-white text-gray-900': isEditing,
+                }"
               />
               <p v-if="errors.dia_chi" class="text-sm text-red-600 mt-1">
                 {{ errors.dia_chi[0] }}

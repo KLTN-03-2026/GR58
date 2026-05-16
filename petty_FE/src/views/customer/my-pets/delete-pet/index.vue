@@ -4,8 +4,7 @@
       <div class="flex flex-col gap-4 items-center justify-center">
         <!-- Warning Icon -->
         <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-          <img src="https://www.figma.com/api/mcp/asset/91d45e54-bd58-4ef6-a4ae-e082a1f9c2c2" alt="Warning"
-            class="w-9 h-6" />
+          <AlertTriangle class="w-8 h-8 text-red-600" />
         </div>
 
         <!-- Title -->
@@ -30,7 +29,7 @@
             <!-- Warning details -->
             <div class="flex gap-2 items-center justify-center py-0.5 px-4">
               <p class="text-sm font-semibold text-gray-500 text-center leading-5">
-                Hành động này không thể hoàn tác. Toàn bộ lịch sử khám bệnh và hồ sơ tiêm phòng liên quan đến {{ petData.ten_thu_cung || petData.name }} sẽ bị xóa vĩnh viễn
+                Hành động này không thể hoàn tác. Nếu thú cưng này chưa phát sinh lịch hẹn, hồ sơ của bé sẽ bị xóa vĩnh viễn.
               </p>
             </div>
           </div>
@@ -38,12 +37,20 @@
 
         <!-- Action Buttons -->
         <div class="flex gap-6 items-center">
-          <button type="button" @click="handleDelete"
-            class="bg-red-600 border border-red-300 px-8 py-2 rounded-lg text-sm font-semibold text-white hover:bg-red-700 transition">
-            Xoá vĩnh viễn
+          <button
+            type="button"
+            @click="handleDelete"
+            :disabled="isDeleting"
+            class="bg-red-600 border border-red-300 px-8 py-2 rounded-lg text-sm font-semibold text-white hover:bg-red-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {{ isDeleting ? "Đang xóa..." : "Xoá vĩnh viễn" }}
           </button>
-          <button type="button" @click="close"
-            class="bg-white border border-black/15 px-8 py-2 rounded-lg text-sm font-semibold text-black hover:bg-gray-50 transition">
+          <button
+            type="button"
+            @click="close"
+            :disabled="isDeleting"
+            class="bg-white border border-black/15 px-8 py-2 rounded-lg text-sm font-semibold text-black hover:bg-gray-50 transition disabled:opacity-60 disabled:cursor-not-allowed"
+          >
             Huỷ
           </button>
         </div>
@@ -53,6 +60,8 @@
 </template>
 
 <script setup>
+import { AlertTriangle } from "lucide-vue-next";
+
 const props = defineProps({
   isOpen: {
     type: Boolean,
@@ -65,6 +74,10 @@ const props = defineProps({
       ten_thu_cung: '',
       name: '' // fallback
     })
+  },
+  isDeleting: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -76,7 +89,6 @@ const close = () => {
 
 const handleDelete = () => {
   emit('delete', props.petData);
-  close();
 };
 </script>
 
