@@ -43,7 +43,7 @@
             </div>
 
             <!-- Full Name -->
-            <div class="flex flex-col">
+            <div class="flex flex-col mb-4">
               <label class="text-sm font-medium text-black mb-2">
                 Họ và tên
                 <span class="text-red-600 ml-1">*</span>
@@ -56,6 +56,23 @@
               />
               <p class="text-xs text-gray-600 mt-1">
                 Tự động viết hoa chữ cái đầu
+              </p>
+            </div>
+
+            <!-- Email -->
+            <div class="flex flex-col">
+              <label class="text-sm font-medium text-black mb-2">
+                Email
+                <span class="text-red-600 ml-1">*</span>
+              </label>
+              <input
+                v-model="formData.email"
+                type="email"
+                placeholder="example@gmail.com"
+                class="bg-white border !border-gray-300 rounded-lg px-3 py-2.5 h-11 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#009689]"
+              />
+              <p class="text-xs text-gray-600 mt-1">
+                Mật khẩu sẽ được gửi tự động qua email
               </p>
             </div>
           </div>
@@ -192,6 +209,13 @@
         </div>
       </div>
 
+      <!-- Error Message -->
+      <div v-if="errorMessage" class="px-6 pb-2">
+        <div class="bg-red-50 border !border-red-300 rounded-lg p-3">
+          <p class="text-sm text-red-600">{{ errorMessage }}</p>
+        </div>
+      </div>
+
       <!-- Modal Footer -->
       <div
         class="px-6 py-4 border-t !border-gray-300 flex items-center justify-end gap-3"
@@ -203,11 +227,16 @@
           <span class="text-sm font-medium text-black"> Hủy </span>
         </button>
         <button
-          class="bg-[#9810fa] rounded-lg px-4 py-2.5 h-10 flex items-center gap-2 hover:bg-[#7a0cc9] transition-colors"
+          :disabled="submitting"
+          :class="[
+            'rounded-lg px-4 py-2.5 h-10 flex items-center gap-2 transition-colors',
+            submitting ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#9810fa] hover:bg-[#7a0cc9]'
+          ]"
           @click="saveProfile"
         >
-          <!-- <img :src="iconSave" alt="Save" class="w-4 h-4" /> -->
-          <span class="text-sm font-medium text-white"> Lưu hồ sơ </span>
+          <span class="text-sm font-medium text-white">
+            {{ submitting ? 'Đang lưu...' : 'Lưu hồ sơ' }}
+          </span>
         </button>
       </div>
     </div>
@@ -216,6 +245,8 @@
 
 <script setup>
 import { ref, computed, watch } from "vue";
+import { khachHangService } from "@/services/khachHangService";
+import api from "@/utils/api";
 
 // Props
 const props = defineProps({
@@ -248,12 +279,16 @@ const iconSave =
 const formData = ref({
   phone: "",
   fullName: "",
+  email: "",
   petName: "",
   species: "dog",
   breed: "",
   birthDate: "",
   notes: "",
 });
+
+const submitting = ref(false);
+const errorMessage = ref("");
 
 // Species options
 const speciesOptions = [
@@ -315,34 +350,79 @@ const resetForm = () => {
   formData.value = {
     phone: "",
     fullName: "",
+    email: "",
     petName: "",
     species: "dog",
     breed: "",
     birthDate: "",
     notes: "",
   };
+  errorMessage.value = "";
 };
 
 const addPet = () => {
-  console.log("Add another pet");
-  // TODO: Implement add multiple pets functionality
+  // Future: support multiple pets
 };
 
-const saveProfile = () => {
-  // Validate required fields
+const saveProfile = async () => {
+  errorMessage.value = "";
+
   if (
     !formData.value.phone ||
     !formData.value.fullName ||
+    !formData.value.email ||
     !formData.value.petName ||
-    !formData.value.breed ||
-    !formData.value.birthDate
+    !formData.value.breed
   ) {
-    alert("Vui lòng điền đầy đủ thông tin bắt buộc (*)");
+    errorMessage.value = "Vui lòng điền đầy đủ thông tin bắt buộc (*)";
     return;
   }
 
-  emit("submit", { ...formData.value });
-  closeModal();
+  submitting.value = true;
+  try {
+    const customerPayload = {
+      full_name: formData.value.fullName,
+      email: formData.value.email,
+      phone: formData.value.phone,
+    };
+
+    const result = await khachHangService.createCustomer(customerPayload);
+
+    if (result.status && result.data) {
+      const customerId = result.data.id;
+
+      // Create pet for the new customer
+      try {
+        await api.post("/thu-cung", {
+          khach_hang_id: customerId,
+          ten_thu_cung: formData.value.petName,
+          loai: formData.value.species === "dog" ? "Chó" : formData.value.species === "cat" ? "Mèo" : "Khác",
+          giong: formData.value.breed,
+          ngay_sinh: formData.value.birthDate || null,
+          ghi_chu: formData.value.notes || null,
+        });
+      } catch (petError) {
+        console.error("Pet creation failed:", petError);
+      }
+
+      emit("submit", {
+        id: customerId,
+        full_name: formData.value.fullName,
+        so_dien_thoai: formData.value.phone,
+        thu_cung: [{ ten_thu_cung: formData.value.petName }],
+      });
+      closeModal();
+    }
+  } catch (error) {
+    if (error.response?.status === 422) {
+      const errors = error.response.data.errors;
+      errorMessage.value = Object.values(errors).flat().join(". ");
+    } else {
+      errorMessage.value = error.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại";
+    }
+  } finally {
+    submitting.value = false;
+  }
 };
 
 // Watch modal open to reset form

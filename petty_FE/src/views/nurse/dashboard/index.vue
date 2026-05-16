@@ -204,18 +204,25 @@
               :src="appointment.petImage"
               :alt="appointment.petName"
               class="w-12 h-12 rounded-[10px] object-cover"
+              @error="(e) => e.target.src = defaultPetImage"
             />
             <div class="flex flex-col gap-1.5">
               <div class="flex items-center gap-3">
                 <p class="text-base font-bold text-black">
                   {{ appointment.petName }}
                 </p>
-                <p class="text-sm text-gray-600">
-                  {{ appointment.petType }}
+                <p v-if="appointment.petSpecies || appointment.petType" class="text-sm text-gray-600">
+                  {{ [appointment.petSpecies, appointment.petType].filter(Boolean).join(' - ') }}
                 </p>
                 <p class="text-sm text-gray-700">
                   Chủ: {{ appointment.ownerName }}
                 </p>
+                <span
+                  v-if="appointment.daTTTruoc"
+                  class="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-700"
+                >
+                  Đã TT trước
+                </span>
               </div>
               <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2">
@@ -313,7 +320,9 @@
     <!-- Create Appointment Modal -->
     <CreateAppointmentModal
       :is-open="isCreateAppointmentModalOpen"
+      :prefilled-customer="prefilledCustomer"
       @close="isCreateAppointmentModalOpen = false"
+      @success="handleCreateAppointmentSuccess"
       @submit="handleCreateAppointmentSubmit"
     />
 
@@ -333,6 +342,7 @@ import CheckInModal from "../appointment/check-in-modal.vue";
 import CreateAppointmentModal from "../appointment/create-appointment/index.vue";
 import CreateCustomerModal from "../customer/create-customer/index.vue";
 import { getAllAppointments } from "../../../services/lichHenService";
+import { resolveImageUrl } from "../../../utils/image";
 
 const router = useRouter();
 
@@ -374,8 +384,7 @@ const iconShort =
 const iconRemaining =
   "https://www.figma.com/api/mcp/asset/e525afb8-5c7d-455b-a40a-a1f4d0c79573";
 
-const petImage =
-  "https://www.figma.com/api/mcp/asset/c4b42828-cb1a-488a-94f3-8d406a0ef20a";
+const defaultPetImage = "https://placehold.co/100x100/e2e8f0/64748b?text=Pet";
 
 // Loading State
 const loading = ref(true);
@@ -420,16 +429,18 @@ const loadDashboardData = async () => {
     appointments.value = data
       .map((item) => {
         const trangThai = item.trang_thai;
-        const statusGroup =
-          trangThai === 'pending' || trangThai === 'confirmed'
-            ? 'upcoming'
-            : trangThai === 'checked_in'
-            ? 'arrived'
-            : trangThai === 'in-progress' || trangThai === 'dang_kham'
-            ? 'examining'
-            : trangThai === 'completed' || trangThai === 'cho_thanh_toan'
-            ? 'payment'
-            : 'done';
+        let statusGroup;
+        if (trangThai === 'pending' || trangThai === 'confirmed') {
+          statusGroup = 'upcoming';
+        } else if (trangThai === 'checked_in') {
+          statusGroup = 'arrived';
+        } else if (trangThai === 'in-progress' || trangThai === 'dang_kham') {
+          statusGroup = item.thoi_gian_bat_dau_kham ? 'examining' : 'arrived';
+        } else if (trangThai === 'completed' || trangThai === 'cho_thanh_toan') {
+          statusGroup = (item.da_thanh_toan || item.thanh_toan_id) ? 'done' : 'payment';
+        } else {
+          statusGroup = 'done';
+        }
 
         if (statusGroup === 'upcoming') upcoming++;
         if (statusGroup === 'arrived') waiting++;
@@ -440,8 +451,9 @@ const loadDashboardData = async () => {
         type: "scheduled",
         status: statusGroup,
         petName: item.thu_cung?.ten_thu_cung || 'N/A',
-        petType: item.thu_cung?.giong || 'N/A',
-        petImage: petImage,
+        petType: item.thu_cung?.giong_thu_cung || item.thu_cung?.giong || '',
+        petSpecies: item.thu_cung?.loai_thu_cung || '',
+        petImage: resolveImageUrl(item.thu_cung?.anh_dai_dien_url || item.thu_cung?.anh_dai_dien) || defaultPetImage,
         ownerName: item.khach_hang?.full_name || 'N/A',
         phone: item.khach_hang?.phone || item.khach_hang?.so_dien_thoai || null,
         appointmentTime: item.ngay_gio
@@ -455,6 +467,7 @@ const loadDashboardData = async () => {
         service: item.dich_vus?.length ? item.dich_vus.map(d => d.ten).join(", ") : (item.dich_vu?.ten_dich_vu || item.dich_vu?.ten || 'N/A'),
         doctor: item.nhan_vien?.full_name || 'N/A',
         room: item.nhan_vien?.phong_kham || null,
+        daTTTruoc: !!item.da_thanh_toan,
         delay: null,
       };
     });
@@ -487,16 +500,21 @@ const isCheckInModalOpen = ref(false);
 const isCreateAppointmentModalOpen = ref(false);
 const isCreateCustomerModalOpen = ref(false);
 const selectedAppointment = ref(null);
+const prefilledCustomer = ref(null);
 
 // Methods
 const createAppointment = () => {
+  prefilledCustomer.value = null;
   isCreateAppointmentModalOpen.value = true;
 };
 
-const handleCreateAppointmentSubmit = (data) => {
-  console.log("Create appointment:", data);
-  // TODO: Implement API call
+const handleCreateAppointmentSubmit = () => {
   isCreateAppointmentModalOpen.value = false;
+};
+
+const handleCreateAppointmentSuccess = () => {
+  isCreateAppointmentModalOpen.value = false;
+  loadDashboardData();
 };
 
 const createCustomer = () => {
@@ -504,9 +522,11 @@ const createCustomer = () => {
 };
 
 const handleCreateCustomerSubmit = (data) => {
-  console.log("Create customer:", data);
-  // TODO: Implement API call
   isCreateCustomerModalOpen.value = false;
+  if (data) {
+    prefilledCustomer.value = data;
+    isCreateAppointmentModalOpen.value = true;
+  }
 };
 
 const checkIn = (appointment) => {

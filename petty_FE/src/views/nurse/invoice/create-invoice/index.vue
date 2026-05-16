@@ -87,14 +87,29 @@
         <!-- Right Section: Cart & Payment -->
         <div class="w-[427px] flex flex-col gap-4">
           <!-- Customer Input -->
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-2 relative">
             <label class="text-sm font-medium text-black"> Khách hàng: </label>
             <input
               v-model="customerSearch"
               type="text"
               placeholder="Tìm khách hàng hoặc 'Khách lẻ'"
               class="h-10 bg-gray-50 border !border-gray-300 rounded-lg px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#009689]"
+              @input="handleCustomerSearch"
             />
+            <div
+              v-if="customerResults.length > 0"
+              class="absolute top-[68px] z-10 w-full bg-white border !border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto"
+            >
+              <button
+                v-for="c in customerResults"
+                :key="c.id"
+                class="w-full px-3 py-2 text-left hover:bg-gray-50 border-b !border-gray-100 last:border-b-0"
+                @click="selectCustomer(c)"
+              >
+                <p class="text-sm font-medium text-black">{{ c.full_name }}</p>
+                <p class="text-xs text-gray-500">{{ c.so_dien_thoai || c.phone }}</p>
+              </button>
+            </div>
           </div>
 
           <!-- Payment Summary Card -->
@@ -198,15 +213,27 @@
             </div>
           </div>
 
+          <!-- Error Message -->
+          <div v-if="errorMessage" class="bg-red-50 border !border-red-300 rounded-lg p-3">
+            <p class="text-sm text-red-600">{{ errorMessage }}</p>
+          </div>
+
           <!-- Payment Button -->
           <button
             @click="processPayment"
-            :disabled="cart.length === 0 || !paymentMethod"
+            :disabled="cart.length === 0 || !paymentMethod || submitting"
             class="h-12 bg-[#00a63e] rounded-lg flex items-center justify-center gap-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <!-- <img :src="ICONS.check" alt="Check" class="w-4 h-4" /> -->
-            <span>Thanh toán & In</span>
+            <span>{{ submitting ? 'Đang xử lý...' : 'Thanh toán & In' }}</span>
           </button>
+
+          <!-- QR Modal -->
+          <div v-if="qrModal && qrData" class="bg-blue-50 border !border-blue-300 rounded-lg p-4 text-center">
+            <p class="text-sm font-medium text-black mb-2">Quét mã QR để thanh toán</p>
+            <img v-if="qrData.qr_url" :src="qrData.qr_url" alt="QR Code" class="w-48 h-48 mx-auto border rounded" />
+            <p class="text-xs text-gray-600 mt-2">Đang chờ xác nhận thanh toán...</p>
+            <button @click="qrModal = false; stopPolling()" class="mt-2 text-xs text-red-500 hover:text-red-700">Huỷ</button>
+          </div>
         </div>
       </div>
 
@@ -259,48 +286,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-
-// Icons from Figma (7-day expiry)
-const ICONS = {
-  receipt:
-    "https://www.figma.com/api/mcp/asset/f46e0588-2a17-487d-b4aa-1022b27298fd",
-  search:
-    "https://www.figma.com/api/mcp/asset/e47f5665-8a3b-4878-abb5-a6aafca6733c",
-  barcode:
-    "https://www.figma.com/api/mcp/asset/15243d47-82bf-447b-8106-4e9b21fc1716",
-  medicine:
-    "https://www.figma.com/api/mcp/asset/6e53644e-43cf-4c12-a9a5-e51ac0017711",
-  spa: "https://www.figma.com/api/mcp/asset/0dfea349-656f-499c-8cf3-afaf6b961f16",
-  food: "https://www.figma.com/api/mcp/asset/7613dd80-3661-4f46-b4b9-c0e4177b702d",
-  stockGreen:
-    "https://www.figma.com/api/mcp/asset/00827afe-47a5-4ffc-b6db-b6636b604df1",
-  stockRed:
-    "https://www.figma.com/api/mcp/asset/024e8e88-0518-434b-b989-52977203bbac",
-  stockAlert:
-    "https://www.figma.com/api/mcp/asset/103ab930-d027-4f04-91cd-1cd291651273",
-  service:
-    "https://www.figma.com/api/mcp/asset/1e6adca5-beac-4f8c-889a-c64b074ffbbd",
-  edit: "https://www.figma.com/api/mcp/asset/71c10355-5e88-4666-859b-511e4f840b44",
-  percent:
-    "https://www.figma.com/api/mcp/asset/14f967c7-7c0d-405a-b968-c422fe097bf9",
-  chevronDown:
-    "https://www.figma.com/api/mcp/asset/fc3c4c08-7a62-42c9-a491-d8632fb6ba24",
-  cash: "https://www.figma.com/api/mcp/asset/a68998ff-8e2e-45c5-8f19-9b26b6875369",
-  transfer:
-    "https://www.figma.com/api/mcp/asset/77bcb1d6-b2de-4fa9-b452-84e32eb0bb72",
-  check:
-    "https://www.figma.com/api/mcp/asset/1393d7eb-2590-4e49-a301-384efe23dc2f",
-  remove:
-    "https://www.figma.com/api/mcp/asset/adc6c9fc-3341-40a4-8cf0-977df21fe328",
-};
+import { ref, computed, watch } from "vue";
+import api from "@/utils/api";
+import { dichVuService } from "@/services/dichVuService";
+import { sepayService } from "@/services/sepayService";
 
 // Props
 const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    default: false,
-  },
+  isOpen: { type: Boolean, default: false },
+  lichHenId: { type: [Number, String], default: null },
 });
 
 // Emits
@@ -309,106 +303,112 @@ const emit = defineEmits(["close", "complete"]);
 // State
 const searchQuery = ref("");
 const customerSearch = ref("");
+const customerResults = ref([]);
+const selectedCustomer = ref(null);
 const activeCategory = ref("all");
 const cart = ref([]);
 const discountValue = ref(0);
-const discountType = ref("percent"); // 'percent' or 'amount'
+const discountType = ref("percent");
 const paymentMethod = ref("cash");
+const submitting = ref(false);
+const errorMessage = ref("");
+const qrModal = ref(false);
+const qrData = ref(null);
+const pollInterval = ref(null);
 
 // Categories
 const categories = [
   { key: "all", label: "Tất cả", icon: null },
-  { key: "medicine", label: "Thuốc", icon: ICONS.medicine },
-  { key: "spa", label: "Spa/Grooming", icon: ICONS.spa },
-  { key: "food", label: "Thức ăn", icon: ICONS.food },
+  { key: "medicine", label: "Thuốc", icon: null },
+  { key: "spa", label: "Spa/Grooming", icon: null },
+  { key: "food", label: "Thức ăn", icon: null },
 ];
 
-// Sample products (replace with API call)
-const products = ref([
-  {
-    id: 1,
-    name: "Thuốc kháng sinh Amoxicillin",
-    price: 50000,
-    category: "medicine",
-    stock: 12,
-    type: "product",
-  },
-  {
-    id: 2,
-    name: "Vitamin tổng hợp",
-    price: 80000,
-    category: "medicine",
-    stock: 3,
-    type: "product",
-  },
-  {
-    id: 3,
-    name: "Thuốc tẩy giun",
-    price: 120000,
-    category: "medicine",
-    stock: 0,
-    type: "product",
-  },
-  {
-    id: 4,
-    name: "Cắt tỉa lông",
-    price: 300000,
-    category: "spa",
-    stock: null,
-    type: "service",
-  },
-  {
-    id: 5,
-    name: "Tắm vệ sinh cơ bản",
-    price: 150000,
-    category: "spa",
-    stock: null,
-    type: "service",
-  },
-  {
-    id: 6,
-    name: "Spa cao cấp (tắm + cắt + nhuộm)",
-    price: 500000,
-    category: "spa",
-    stock: null,
-    type: "service",
-  },
-  {
-    id: 7,
-    name: "Pate Royal Canin",
-    price: 40000,
-    category: "food",
-    stock: 15,
-    type: "product",
-  },
-  {
-    id: 8,
-    name: "Hạt Smartheart 1kg",
-    price: 85000,
-    category: "food",
-    stock: 8,
-    type: "product",
-  },
-  {
-    id: 9,
-    name: "Xương gặm cho chó",
-    price: 35000,
-    category: "food",
-    stock: 20,
-    type: "product",
-  },
-]);
+const products = ref([]);
+
+const loadProducts = async () => {
+  try {
+    const [goodsRes, servicesRes] = await Promise.all([
+      api.get("/hang-hoa", { params: { per_page: 100 } }),
+      dichVuService.getAll({ per_page: 100 }),
+    ]);
+
+    const goods = (goodsRes.data?.data?.data || goodsRes.data?.data || []).map((item) => ({
+      id: `goods-${item.id}`,
+      realId: item.id,
+      name: item.ten_hang_hoa || item.ten,
+      price: item.gia_ban || item.gia_tien || 0,
+      category: mapGoodsCategory(item.danh_muc_hang_hoa_id || item.danh_muc?.id),
+      stock: item.ton_kho ?? item.so_luong ?? 0,
+      type: "product",
+    }));
+
+    const services = (servicesRes.data || servicesRes.data?.data || []).map((item) => {
+      const svc = Array.isArray(item) ? item : item;
+      return {
+        id: `service-${svc.id}`,
+        realId: svc.id,
+        name: svc.ten_dich_vu || svc.ten,
+        price: svc.gia_tien || svc.gia || 0,
+        category: "spa",
+        stock: null,
+        type: "service",
+      };
+    });
+
+    products.value = [...goods, ...services];
+  } catch (error) {
+    console.error("Failed to load products:", error);
+  }
+};
+
+const mapGoodsCategory = (categoryId) => {
+  // Map category IDs to POS categories — basic heuristic
+  return "medicine";
+};
+
+watch(() => props.isOpen, (val) => {
+  if (val) {
+    if (products.value.length === 0) loadProducts();
+    errorMessage.value = "";
+  } else {
+    stopPolling();
+  }
+});
+
+let searchTimeout = null;
+const handleCustomerSearch = () => {
+  clearTimeout(searchTimeout);
+  if (customerSearch.value.length < 2) {
+    customerResults.value = [];
+    return;
+  }
+  searchTimeout = setTimeout(async () => {
+    try {
+      const res = await api.get("/khach-hang", {
+        params: { search: customerSearch.value, per_page: 5 },
+      });
+      customerResults.value = res.data?.data?.data || res.data?.data || [];
+    } catch {
+      customerResults.value = [];
+    }
+  }, 300);
+};
+
+const selectCustomer = (c) => {
+  selectedCustomer.value = c;
+  customerSearch.value = c.full_name;
+  customerResults.value = [];
+};
 
 // Computed
 const filteredProducts = computed(() => {
   let filtered = products.value;
 
-  // Filter by category
   if (activeCategory.value !== "all") {
     filtered = filtered.filter((p) => p.category === activeCategory.value);
   }
 
-  // Filter by search query
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter((p) => p.name.toLowerCase().includes(query));
@@ -423,12 +423,10 @@ const subtotal = computed(() => {
 
 const discount = computed(() => {
   if (!discountValue.value) return 0;
-
   if (discountType.value === "percent") {
     return Math.round((subtotal.value * discountValue.value) / 100);
-  } else {
-    return Math.min(discountValue.value, subtotal.value);
   }
+  return Math.min(discountValue.value, subtotal.value);
 });
 
 const total = computed(() => {
@@ -437,32 +435,23 @@ const total = computed(() => {
 
 // Methods
 const closeModal = () => {
+  stopPolling();
   emit("close");
 };
 
 const addToCart = (product) => {
   if (product.stock === 0) return;
-
-  const existingItem = cart.value.find((item) => item.id === product.id);
-
-  if (existingItem) {
-    existingItem.quantity++;
+  const existing = cart.value.find((item) => item.id === product.id);
+  if (existing) {
+    existing.quantity++;
   } else {
-    cart.value.push({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      quantity: 1,
-      type: product.type,
-    });
+    cart.value.push({ id: product.id, name: product.name, price: product.price, quantity: 1, type: product.type });
   }
 };
 
 const removeFromCart = (productId) => {
-  const index = cart.value.findIndex((item) => item.id === productId);
-  if (index !== -1) {
-    cart.value.splice(index, 1);
-  }
+  const idx = cart.value.findIndex((item) => item.id === productId);
+  if (idx !== -1) cart.value.splice(idx, 1);
 };
 
 const toggleDiscountType = () => {
@@ -471,23 +460,10 @@ const toggleDiscountType = () => {
 };
 
 const getStockBadgeStyle = (product) => {
-  if (product.type === "service") {
-    return "bg-purple-100 text-[#8200db]";
-  }
-  if (product.stock === 0) {
-    return "bg-[#ffe2e2] text-[#c10007]";
-  }
-  if (product.stock <= 5) {
-    return "bg-[#ffe2e2] text-[#c10007]";
-  }
+  if (product.type === "service") return "bg-purple-100 text-[#8200db]";
+  if (product.stock === 0) return "bg-[#ffe2e2] text-[#c10007]";
+  if (product.stock <= 5) return "bg-[#ffe2e2] text-[#c10007]";
   return "bg-green-100 text-[#008236]";
-};
-
-const getStockIcon = (product) => {
-  if (product.type === "service") return ICONS.service;
-  if (product.stock === 0) return ICONS.stockAlert;
-  if (product.stock <= 5) return ICONS.stockRed;
-  return ICONS.stockGreen;
 };
 
 const getStockText = (product) => {
@@ -498,38 +474,85 @@ const getStockText = (product) => {
 };
 
 const formatCurrency = (amount) => {
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(amount);
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
 };
 
-const processPayment = () => {
+const processPayment = async () => {
   if (cart.value.length === 0 || !paymentMethod.value) return;
+  errorMessage.value = "";
 
-  const invoiceData = {
-    customer: customerSearch.value || "Khách lẻ",
-    items: cart.value,
-    subtotal: subtotal.value,
-    discount: discount.value,
-    total: total.value,
-    paymentMethod: paymentMethod.value,
-    timestamp: new Date().toISOString(),
-  };
+  if (!props.lichHenId) {
+    errorMessage.value = "POS hiện chỉ hỗ trợ thanh toán cho lịch hẹn đã hoàn thành. Vui lòng chọn từ danh sách chờ thanh toán.";
+    return;
+  }
 
-  emit("complete", invoiceData);
+  submitting.value = true;
+  try {
+    if (paymentMethod.value === "cash") {
+      const res = await api.post("/thanh-toan", {
+        lich_hen_id: props.lichHenId,
+        hinh_thuc_thanh_toan: "tien_mat",
+        tien_mat: total.value,
+        ma_giam_gia: null,
+        ghi_chu: `POS - ${cart.value.map(i => i.name).join(", ")}`,
+      });
+      if (res.data?.status) {
+        emit("complete", res.data);
+        resetForm();
+      } else {
+        errorMessage.value = res.data?.message || "Thanh toán thất bại";
+      }
+    } else {
+      // QR/Bank transfer
+      const res = await sepayService.createPayment(props.lichHenId, `POS - ${cart.value.map(i => i.name).join(", ")}`);
+      if (res.status && res.data) {
+        qrData.value = res.data;
+        qrModal.value = true;
+        startPolling(res.data.id || res.data.thanh_toan_id);
+      } else {
+        errorMessage.value = res.message || "Không thể tạo mã QR";
+      }
+    }
+  } catch (error) {
+    errorMessage.value = error.response?.data?.message || "Có lỗi xảy ra";
+  } finally {
+    submitting.value = false;
+  }
+};
 
-  // Reset form
+const startPolling = (thanhToanId) => {
+  pollInterval.value = setInterval(async () => {
+    try {
+      const res = await sepayService.checkStatus(thanhToanId);
+      if (res.status && res.data?.trang_thai === "da_thanh_toan") {
+        stopPolling();
+        qrModal.value = false;
+        emit("complete", res.data);
+        resetForm();
+      }
+    } catch {
+      // Ignore polling errors
+    }
+  }, 3000);
+};
+
+const stopPolling = () => {
+  if (pollInterval.value) {
+    clearInterval(pollInterval.value);
+    pollInterval.value = null;
+  }
+};
+
+const resetForm = () => {
   cart.value = [];
   customerSearch.value = "";
+  selectedCustomer.value = null;
   discountValue.value = 0;
   searchQuery.value = "";
+  errorMessage.value = "";
+  qrModal.value = false;
+  qrData.value = null;
 };
-
-// TODO: Integrate with API to fetch products and stock levels
-// TODO: Implement barcode scanner functionality
-// TODO: Add customer search with autocomplete
-// TODO: Print invoice after payment
 </script>
 
 <style scoped>
