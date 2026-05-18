@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\NhanVien;
 use App\Models\Admin;
 use App\Models\PhanQuyen;
+use App\Models\LichLamViec;
+use App\Models\LichHen;
 use App\Helpers\UserImageHelper;
 use App\Http\Requests\NhanVienRequest;
 use App\Notifications\NhanVienCreatedNotification;
@@ -15,6 +17,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\JsonResponse;
+use Carbon\Carbon;
 
 class NhanVienController extends Controller
 {
@@ -61,15 +64,106 @@ class NhanVienController extends Controller
     /**
      * Danh sách bác sĩ — dùng cho check-in, không cần quyền đặc biệt ngoài staff.only
      */
-    public function danhSachBacSi()
+    public function danhSachBacSi(Request $request)
     {
-        $data = NhanVien::where('vai_tro', 'bac_si')
-            ->where('trang_thai', 'hoat_dong')
-            ->select('id', 'full_name', 'chuc_danh')
-            ->orderBy('full_name')
-            ->get();
+        $request->validate([
+            'ngay_gio' => 'nullable|date',
+        ]);
+
+        if ($request->filled('ngay_gio')) {
+            $data = $this->getDoctorsOnDuty(Carbon::parse($request->ngay_gio));
+        } else {
+            $data = NhanVien::where('vai_tro', 'bac_si')
+                ->where('trang_thai', 'hoat_dong')
+                ->select('id', 'full_name', 'chuc_danh')
+                ->orderBy('full_name')
+                ->get();
+        }
 
         return response()->json(['status' => true, 'data' => $data]);
+    }
+
+    public function goiYBacSi(Request $request)
+    {
+        $request->validate([
+            'ngay_gio' => 'required|date',
+        ]);
+
+        $ngayGio = Carbon::parse($request->ngay_gio);
+        $dateStr = $ngayGio->toDateString();
+        $bacSiTruc = $this->getDoctorsOnDuty($ngayGio);
+
+        if ($bacSiTruc->isEmpty()) {
+            return response()->json([
+                'status' => true,
+                'data' => null,
+                'message' => 'Không có bác sĩ trực vào khung giờ này.',
+            ]);
+        }
+
+        // Count current appointments for each doctor in the same time slot
+        $bacSiVoiTai = $bacSiTruc->map(function ($bacSi) use ($ngayGio, $dateStr) {
+            $soLichHen = LichHen::where('nhan_vien_id', $bacSi['id'])
+                ->whereIn('trang_thai', ['confirmed', 'in-progress'])
+                ->where('ngay_gio', '>=', $ngayGio->copy()->subMinutes(59)->format('Y-m-d H:i:s'))
+                ->where('ngay_gio', '<', $ngayGio->copy()->addMinutes(60)->format('Y-m-d H:i:s'))
+                ->whereDate('ngay_gio', $dateStr)
+                ->count();
+
+            return [
+                'id' => $bacSi['id'],
+                'full_name' => $bacSi['full_name'],
+                'chuc_danh' => $bacSi['chuc_danh'] ?? null,
+                'so_lich_hen' => $soLichHen,
+            ];
+        });
+
+        // Suggest doctor with least appointments
+        $goiY = $bacSiVoiTai->sortBy('so_lich_hen')->first();
+
+        return response()->json([
+            'status' => true,
+            'data' => [
+                'goi_y' => $goiY,
+                'tat_ca_bac_si' => $bacSiVoiTai->values(),
+            ],
+        ]);
+    }
+
+    private function getDoctorsOnDuty(Carbon $dateTime)
+    {
+        [$shiftDate, $shiftKey] = $this->resolveShiftContext($dateTime);
+
+        return LichLamViec::whereDate('ngay_lam', $shiftDate->toDateString())
+            ->where('thoi_gian_truc', $shiftKey)
+            ->whereHas('nhanVien', fn ($q) => $q->where('vai_tro', 'bac_si')->where('trang_thai', 'hoat_dong'))
+            ->with('nhanVien:id,full_name,chuc_danh')
+            ->get()
+            ->pluck('nhanVien')
+            ->filter()
+            ->unique('id')
+            ->sortBy('full_name')
+            ->values()
+            ->map(fn ($doctor) => [
+                'id' => $doctor->id,
+                'full_name' => $doctor->full_name,
+                'chuc_danh' => $doctor->chuc_danh,
+            ]);
+    }
+
+    private function resolveShiftContext(Carbon $dateTime): array
+    {
+        $hour = (int) $dateTime->format('H');
+
+        if ($hour >= 8 && $hour < 17) {
+            return [$dateTime->copy(), LichLamViec::CA_SANG];
+        }
+
+        if ($hour >= 17) {
+            return [$dateTime->copy(), LichLamViec::CA_TOI];
+        }
+
+        return [$dateTime->copy()->subDay(), LichLamViec::CA_TOI];
     }
 
     /**

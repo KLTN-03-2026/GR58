@@ -20,6 +20,7 @@ class LichHenResource extends JsonResource
             'ngay_hen' => $this->ngay_hen,
             'gio_hen' => $this->gio_hen,
             'trang_thai' => $this->trang_thai,
+            'nguon_goc' => $this->nguon_goc,
             'ghi_chu' => $this->ghi_chu,
             'huong_dan' => $this->huong_dan,
             'thoi_gian_checkin' => $this->thoi_gian_checkin ? $this->thoi_gian_checkin->format('Y-m-d H:i:s') : null,

@@ -228,11 +228,27 @@ class LichHenController extends Controller
             }
         } elseif ($user instanceof \App\Models\Admin || $user instanceof \App\Models\NhanVien) {
             $data['nguon_goc'] = $data['nguon_goc'] ?? 'walk-in';
-            if (empty($data['khach_hang_id'])) {
-                throw ValidationException::withMessages([
-                    'khach_hang_id' => ['Vui lòng chọn khách hàng'],
-                ]);
+
+            $shouldAutoCheckIn =
+                $user instanceof \App\Models\NhanVien &&
+                $this->isNurseRole($user->vai_tro ?? null) &&
+                $data['nguon_goc'] === 'walk-in';
+
+            if ($shouldAutoCheckIn) {
+                $requiresPrepay = DichVu::whereIn('id', $dichVuIds)
+                    ->where('yeu_cau_tt_truoc', true)
+                    ->exists();
+
+                if (! $requiresPrepay) {
+                    // Walk-in do y tá tiếp nhận đã có mặt tại quầy, không cần check-in lần hai.
+                    $data['trang_thai'] = 'in-progress';
+                    $data['thoi_gian_checkin'] = now();
+                    $data['y_ta_checkin_id'] = $user->id;
+                } else {
+                    $data['trang_thai'] = $data['trang_thai'] ?? 'confirmed';
+                }
             }
+
             $lichHen = LichHen::create($data);
             $this->syncPivotServices($lichHen, $dichVuIds);
         } else {
@@ -281,6 +297,13 @@ class LichHenController extends Controller
 
         $lichHen->dichVus()->sync($pivotData);
         $lichHen->update(['tong_tien' => $tongTien]);
+    }
+
+    private function isNurseRole(?string $role): bool
+    {
+        $normalizedRole = mb_strtolower(trim((string) $role));
+
+        return in_array($normalizedRole, ['y_ta', 'y tá', 'nurse'], true);
     }
 
     /**

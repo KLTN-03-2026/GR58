@@ -189,7 +189,7 @@
                 <span
                   class="px-3 py-1 rounded-lg text-xs font-medium flex items-center gap-1"
                   :class="
-                    appt.la_khach_vang_lai
+                    (appt.la_khach_vang_lai || appt.nguon_goc === 'walkin' || appt.nguon_goc === 'walk-in')
                       ? 'bg-[#f2e6ff] text-[#8200db]'
                       : 'bg-[#dbe7ff] text-[#1447e6]'
                   "
@@ -204,7 +204,7 @@
                     src="@/assets/svg/user-round.svg"
                     class="w-4 h-4"
                   /> -->
-                  {{ appt.la_khach_vang_lai ? "Vãng lai" : "Đặt trước" }}
+                  {{ (appt.la_khach_vang_lai || appt.nguon_goc === 'walkin' || appt.nguon_goc === 'walk-in') ? "Đến trực tiếp" : "Đặt trước" }}
                 </span>
               </div>
 

@@ -124,7 +124,7 @@
     <!-- Right Side Buttons (Desktop) -->
     <div
       v-if="!shouldHideCustomerAuth"
-      class="hidden md:flex items-center justify-end gap-1.5 w-[220px] shrink-0"
+      class="hidden md:flex items-center justify-end gap-1.5 w-[250px] shrink-0"
     >
       <template v-if="user">
         <!-- Bell icon -->
@@ -345,7 +345,7 @@
         <router-link to="/customer/register" v-slot="{ isActive }" custom>
           <div
             :class="[
-              'flex items-center gap-1.5 p-1.5 font-[\'Nunito Sans\'] font-bold text-sm leading-5 rounded-md transition-all duration-200 hover:bg-slate-50 hover:text-black cursor-pointer group',
+              'flex flex-nowrap items-center gap-1.5 p-1.5 font-[\'Nunito Sans\'] font-bold text-sm leading-5 rounded-md transition-all duration-200 hover:bg-slate-50 hover:text-black cursor-pointer group whitespace-nowrap',
               isActive ? '!bg-white !text-black' : 'text-gray-500',
             ]"
             @click="$router.push('/customer/register')"
@@ -358,7 +358,7 @@
                   : '[&_path]:stroke-gray-500 group-hover:[&_path]:stroke-black',
               ]"
             />
-            <span>Đăng Ký</span>
+            <span class="whitespace-nowrap">Đăng Ký</span>
           </div>
         </router-link>
 
@@ -366,7 +366,7 @@
         <router-link to="/customer/login" v-slot="{ isActive }" custom>
           <div
             :class="[
-              'flex items-center gap-1.5 p-1.5 font-[\'Nunito Sans\'] font-bold text-sm leading-5 rounded-md transition-all duration-200 hover:bg-slate-50 hover:text-black cursor-pointer group',
+              'flex flex-nowrap items-center gap-1.5 p-1.5 font-[\'Nunito Sans\'] font-bold text-sm leading-5 rounded-md transition-all duration-200 hover:bg-slate-50 hover:text-black cursor-pointer group whitespace-nowrap',
               isActive ? '!bg-white !text-black' : 'text-gray-500',
             ]"
             @click="$router.push('/customer/login')"
@@ -379,7 +379,7 @@
                   : '[&_path]:stroke-gray-500 group-hover:[&_path]:stroke-black',
               ]"
             />
-            <span>Đăng Nhập</span>
+            <span class="whitespace-nowrap">Đăng Nhập</span>
           </div>
         </router-link>
       </template>

@@ -22,7 +22,7 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-4 gap-4 h-[110px]">
+    <div class="grid grid-cols-3 gap-4 h-[110px]">
       <!-- Card 1: Ca khám hôm nay -->
       <div
         class="bg-white border !border-gray-300 shadow-sm rounded-[14px] flex flex-col px-[25px] py-[25px]"
@@ -98,30 +98,6 @@
         </div>
       </div>
 
-      <!-- Card 4: Doanh thu hôm nay -->
-      <div
-        class="bg-white border !border-gray-300 shadow-sm rounded-[14px] flex flex-col px-[25px] py-[25px]"
-      >
-        <div class="flex items-start justify-between w-full h-full">
-          <div class="flex flex-col gap-1">
-            <p
-              class="font-normal text-sm leading-5 text-[#4a5565] tracking-[-0.1504px]"
-            >
-              Doanh thu hôm nay
-            </p>
-            <p
-              class="font-normal text-[30px] leading-9 text-[#009689] tracking-[0.3955px]"
-            >
-              {{ stats.revenue }}
-            </p>
-          </div>
-          <!-- <div
-            class="bg-[#cbfbf1] rounded-[10px] w-12 h-12 flex items-center justify-center"
-          >
-            <img :src="icons.money" alt="" class="w-6 h-6" />
-          </div> -->
-        </div>
-      </div>
     </div>
 
     <!-- Waiting Patients Card -->
@@ -181,18 +157,35 @@
                       {{ nextPatient.petName }}
                     </h3>
                     <div
-                      class="bg-blue-50 border !border-[#bedbff] rounded-lg px-[9px] py-1 flex items-center gap-1"
+                      class="rounded-lg border px-[9px] py-1 flex items-center gap-1"
+                      :class="getBadgeStyle(nextPatient.badge)"
                     >
                       <!-- <img :src="icons.calendarBadge" alt="" class="w-3 h-3" /> -->
-                      <p class="font-medium text-xs leading-4 text-[#1447e6]">
-                        Đặt trước
+                      <p
+                        class="font-medium text-xs leading-4"
+                        :class="getBadgeTextStyle(nextPatient.badge)"
+                      >
+                        {{ nextPatient.badge }}
                       </p>
                     </div>
                     <div
-                      class="bg-blue-100 border !border-blue-300 rounded-lg px-[17px] py-[3px]"
+                      v-if="nextPatient.status"
+                      class="rounded-lg px-[17px] py-[3px]"
+                      :class="
+                        nextPatient.status === 'Đã đến'
+                          ? 'bg-green-100 border !border-[#7bf1a8]'
+                          : 'bg-blue-100 border !border-blue-300'
+                      "
                     >
-                      <p class="font-medium text-xs leading-4 text-blue-700">
-                        Sắp đến
+                      <p
+                        class="font-medium text-xs leading-4"
+                        :class="
+                          nextPatient.status === 'Đã đến'
+                            ? 'text-[#008236]'
+                            : 'text-blue-700'
+                        "
+                      >
+                        {{ nextPatient.status }}
                       </p>
                     </div>
                   </div>
@@ -205,7 +198,7 @@
                     <p
                       class="font-normal text-sm leading-5 text-gray-500 tracking-[-0.1504px]"
                     >
-                      Hẹn lúc: {{ nextPatient.appointmentTime }}
+                      {{ getArrivalTimeLabel(nextPatient) }}: {{ nextPatient.appointmentTime }}
                     </p>
                     <div class="flex items-center gap-1">
                       <!-- <img :src="icons.clockCheck" alt="" class="w-3 h-3" /> -->
@@ -420,61 +413,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Schedule Today Card -->
-    <div
-      class="bg-white border !border-gray-300 rounded-[14px] flex flex-col gap-[30px] px-[25px] py-[25px]"
-    >
-      <!-- Card Title -->
-      <div class="flex items-center gap-2">
-        <!-- <img :src="icons.calendarToday" alt="" class="w-5 h-5" /> -->
-        <p
-          class="font-normal text-base leading-4 text-neutral-950 tracking-[-0.3125px]"
-        >
-          Lịch đặt trước
-        </p>
-      </div>
-
-      <!-- Schedule List -->
-      <div v-if="scheduleToday.length" class="flex flex-col gap-2">
-        <div
-          v-for="schedule in scheduleToday"
-          :key="schedule.id"
-          class="bg-gray-100 rounded-[10px] flex gap-4 items-center px-3 py-3"
-        >
-          <div class="w-16 text-center">
-            <p
-              class="font-normal text-base leading-6 text-[#101828] tracking-[-0.3125px]"
-            >
-              {{ schedule.time }}
-            </p>
-          </div>
-
-          <div class="flex-1 flex flex-col">
-            <p
-              class="font-normal text-base leading-6 text-[#101828] tracking-[-0.3125px]"
-            >
-              {{ schedule.petName }}
-            </p>
-            <p
-              class="font-normal text-sm leading-5 text-[#4a5565] tracking-[-0.1504px]"
-            >
-              {{ schedule.ownerName }}
-            </p>
-          </div>
-
-          <div
-            class="bg-blue-100 border !border-blue-300 rounded-lg px-[17px] py-[3px]"
-          >
-            <p class="font-medium text-xs leading-4 text-blue-700">Sắp đến</p>
-          </div>
-        </div>
-      </div>
-      <div v-else class="text-sm text-gray-500">
-        Hôm nay chưa có lịch đặt trước nào.
-      </div>
-    </div>
-
     <!-- Change Turn Modal -->
     <ChangeTurnModal
       :is-open="isChangeTurnOpen"
@@ -517,8 +455,6 @@ const icons = {
     "https://www.figma.com/api/mcp/asset/58426816-a539-4956-87a9-e9f5515e93a6",
   clock:
     "https://www.figma.com/api/mcp/asset/2eed46a8-9149-4737-8cb0-335ff277f7e1",
-  money:
-    "https://www.figma.com/api/mcp/asset/db7c1a2d-396b-43ab-8020-a219068efaf0",
   patients:
     "https://www.figma.com/api/mcp/asset/4be5b55b-fbb1-4d3c-b86e-c0cd9877ffff",
   star: "https://www.figma.com/api/mcp/asset/5ac5d493-9ff1-447a-92b6-7e59ac50ac50",
@@ -544,8 +480,6 @@ const icons = {
     "https://www.figma.com/api/mcp/asset/a62f8926-c59a-4fb9-b010-229ff806e7ab",
   clockCyan:
     "https://www.figma.com/api/mcp/asset/5761a5b1-bbf5-4e26-80c1-a7eb6f7d4417",
-  calendarToday:
-    "https://www.figma.com/api/mcp/asset/c8a03a5c-8a3f-497f-96ae-4e4f22b5fae4",
 };
 
 // State for modal
@@ -564,7 +498,6 @@ const stats = ref({
   appointments: 0,
   completed: 0,
   waiting: 0,
-  revenue: "0 đ",
 });
 
 // Next patient data
@@ -572,9 +505,6 @@ const nextPatient = ref(null);
 
 // Queue list data
 const queueList = ref([]);
-
-// Schedule today data
-const scheduleToday = ref([]);
 
 const pad = (value) => String(value).padStart(2, "0");
 
@@ -599,13 +529,6 @@ const formatTime = (value) => {
   });
 };
 
-const formatCurrency = (value) => {
-  const amount = Number(value) || 0;
-  if (amount >= 1_000_000_000) return `${(amount / 1_000_000_000).toFixed(1)} tỷ`;
-  if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)} tr`;
-  return `${new Intl.NumberFormat("vi-VN").format(Math.round(amount))} đ`;
-};
-
 const extractList = (response) => {
   const payload = response?.data ?? response;
   if (Array.isArray(payload)) return payload;
@@ -626,12 +549,22 @@ const getPetType = (appointment) => {
 };
 
 const getBadge = (appointment) => {
-  if (appointment?.la_khach_vang_lai || appointment?.nguon_goc === "walkin") {
-    return "Vãng lai";
+  if (
+    appointment?.la_khach_vang_lai ||
+    appointment?.nguon_goc === "walkin" ||
+    appointment?.nguon_goc === "walk-in"
+  ) {
+    return "Đến trực tiếp";
   }
   if (appointment?.khach_hang?.rank) return "Thành Viên";
   return "Đặt trước";
 };
+
+const isDirectArrival = (appointment) =>
+  getBadge(appointment) === "Đến trực tiếp";
+
+const getArrivalTimeLabel = (appointment) =>
+  isDirectArrival(appointment?.raw || appointment) ? "Tiếp nhận lúc" : "Hẹn lúc";
 
 const getWaitMinutes = (appointment) => {
   const start = parseDateTime(appointment?.thoi_gian_checkin);
@@ -700,23 +633,6 @@ const isCompleted = (appointment) => {
   );
 };
 
-const getAppointmentRevenue = (appointment) => {
-  return Number(
-    appointment?.thanh_toan?.tong_tien_sau_giam ??
-      appointment?.thanh_toan?.tong_tien ??
-      appointment?.tong_tien ??
-      appointment?.dich_vu?.gia_tien ??
-      0
-  );
-};
-
-const mapSchedule = (appointment) => ({
-  id: appointment.id,
-  time: formatTime(appointment?.ngay_gio),
-  petName: appointment?.thu_cung?.ten_thu_cung || "Chưa có tên",
-  ownerName: appointment?.khach_hang?.full_name || "Chưa có chủ nuôi",
-});
-
 const loadDashboardData = async () => {
   loading.value = true;
   error.value = null;
@@ -754,25 +670,11 @@ const loadDashboardData = async () => {
 
     nextPatient.value = waitingPatients[0] || null;
     queueList.value = waitingPatients.slice(1);
-    scheduleToday.value = todayAppointments
-      .filter((item) => !["cancelled", "Đã hủy"].includes(item?.trang_thai))
-      .sort((a, b) => {
-        const aTime = parseDateTime(a?.ngay_gio)?.getTime() || 0;
-        const bTime = parseDateTime(b?.ngay_gio)?.getTime() || 0;
-        return aTime - bTime;
-      })
-      .map(mapSchedule);
-
     stats.value = {
       // Ca khám hôm nay = đang chờ + đang khám + đã hoàn thành
       appointments: waitingPatients.length + examiningPatients.length + completedAppointments.length,
       completed: completedAppointments.length,
       waiting: waitingPatients.length,
-      revenue: formatCurrency(completedAppointments.reduce(
-        (total, item) => total + getAppointmentRevenue(item),
-        0
-      )),
-      examining: examiningPatients.length,
     };
   } catch (err) {
     console.error("Doctor dashboard data error:", err);
@@ -838,7 +740,7 @@ const handleStartExam = async (patient) => {
 // Badge styling helper methods
 const getBadgeStyle = (badge) => {
   const styles = {
-    "Vãng lai": "bg-purple-50 !border-[#e9d4ff]",
+    "Đến trực tiếp": "bg-purple-50 !border-[#e9d4ff]",
     "Thành Viên": "bg-blue-50 !border-blue-300",
     "Đặt trước": "bg-blue-50 !border-[#bedbff]",
   };
@@ -847,7 +749,7 @@ const getBadgeStyle = (badge) => {
 
 const getBadgeIcon = (badge) => {
   const badgeIcons = {
-    "Vãng lai": icons.userPurple,
+    "Đến trực tiếp": icons.userPurple,
     "Thành Viên": icons.userBlue,
     "Đặt trước": icons.calendarBadge,
   };
@@ -856,7 +758,7 @@ const getBadgeIcon = (badge) => {
 
 const getBadgeTextStyle = (badge) => {
   const styles = {
-    "Vãng lai": "text-[#8200db]",
+    "Đến trực tiếp": "text-[#8200db]",
     "Thành Viên": "text-blue-700",
     "Đặt trước": "text-[#1447e6]",
   };

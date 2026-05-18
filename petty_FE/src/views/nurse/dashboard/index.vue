@@ -11,17 +11,10 @@
       <div class="flex items-center gap-3">
         <button
           class="bg-[#009689] rounded-lg px-4 py-2.5 h-10 flex items-center gap-2 hover:bg-[#007d72] transition-colors"
-          @click="createAppointment"
+          @click="openIntakeModal"
         >
           <!-- <img :src="iconCalendarPlus" alt="Create" class="w-4 h-4" /> -->
-          <span class="text-sm font-medium text-white"> Tạo lịch khám </span>
-        </button>
-        <button
-          class="bg-[#9810fa] rounded-lg px-4 py-2.5 h-10 flex items-center gap-2 hover:bg-[#8000e0] transition-colors"
-          @click="createCustomer"
-        >
-          <!-- <img :src="iconUserPlus" alt="New Customer" class="w-4 h-4" /> -->
-          <span class="text-sm font-medium text-white"> Tạo khách mới </span>
+          <span class="text-sm font-medium text-white"> Tiếp nhận bệnh nhân </span>
         </button>
       </div>
     </div>
@@ -124,7 +117,7 @@
               >
                 <!-- <img :src="iconWalkIn" alt="Walk-in" class="w-3 h-3" /> -->
                 <span class="text-xs font-medium text-[#8200db]">
-                  Vãng lai
+                  Đến trực tiếp
                 </span>
               </span>
               <span
@@ -226,7 +219,9 @@
               </div>
               <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2">
-                  <p class="text-sm text-gray-600">Giờ hẹn:</p>
+                  <p class="text-sm text-gray-600">
+                    {{ appointment.type === 'walkin' ? 'Tiếp nhận:' : 'Giờ hẹn:' }}
+                  </p>
                   <p class="text-sm font-bold text-[#1447e6]">
                     {{ appointment.appointmentTime }}
                   </p>
@@ -317,20 +312,12 @@
       @success="handleCheckInConfirm"
     />
 
-    <!-- Create Appointment Modal -->
-    <CreateAppointmentModal
-      :is-open="isCreateAppointmentModalOpen"
+    <!-- Unified Intake Modal -->
+    <UnifiedIntakeModal
+      :is-open="isIntakeModalOpen"
       :prefilled-customer="prefilledCustomer"
-      @close="isCreateAppointmentModalOpen = false"
-      @success="handleCreateAppointmentSuccess"
-      @submit="handleCreateAppointmentSubmit"
-    />
-
-    <!-- Create Customer Modal -->
-    <CreateCustomerModal
-      :is-open="isCreateCustomerModalOpen"
-      @close="isCreateCustomerModalOpen = false"
-      @submit="handleCreateCustomerSubmit"
+      @close="isIntakeModalOpen = false"
+      @success="handleIntakeSuccess"
     />
   </div>
 </template>
@@ -339,8 +326,7 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import CheckInModal from "../appointment/check-in-modal.vue";
-import CreateAppointmentModal from "../appointment/create-appointment/index.vue";
-import CreateCustomerModal from "../customer/create-customer/index.vue";
+import UnifiedIntakeModal from "../appointment/unified-intake-modal.vue";
 import { getAllAppointments } from "../../../services/lichHenService";
 import { resolveImageUrl } from "../../../utils/image";
 
@@ -400,6 +386,12 @@ const stats = ref({
 // Appointments data
 const appointments = ref([]);
 
+const isWalkInSource = (item) =>
+  item?.nguon_goc === "walk-in" ||
+  item?.nguon_goc === "walkin" ||
+  (item?.ghi_chu && item.ghi_chu.toLowerCase().includes("walk-in")) ||
+  (item?.ghi_chu && item.ghi_chu.toLowerCase().includes("vãng lai"));
+
 const loadDashboardData = async () => {
   loading.value = true;
   try {
@@ -429,6 +421,7 @@ const loadDashboardData = async () => {
     appointments.value = data
       .map((item) => {
         const trangThai = item.trang_thai;
+        const isWalkIn = isWalkInSource(item);
         let statusGroup;
         if (trangThai === 'pending' || trangThai === 'confirmed') {
           statusGroup = 'upcoming';
@@ -448,7 +441,7 @@ const loadDashboardData = async () => {
       return {
         raw: item,
         id: item.id,
-        type: "scheduled",
+        type: isWalkIn ? "walkin" : "scheduled",
         status: statusGroup,
         petName: item.thu_cung?.ten_thu_cung || 'N/A',
         petType: item.thu_cung?.giong_thu_cung || item.thu_cung?.giong || '',
@@ -456,8 +449,8 @@ const loadDashboardData = async () => {
         petImage: resolveImageUrl(item.thu_cung?.anh_dai_dien_url || item.thu_cung?.anh_dai_dien) || defaultPetImage,
         ownerName: item.khach_hang?.full_name || 'N/A',
         phone: item.khach_hang?.phone || item.khach_hang?.so_dien_thoai || null,
-        appointmentTime: item.ngay_gio
-          ? new Date(item.ngay_gio).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+        appointmentTime: (item.thoi_gian_checkin || item.ngay_gio)
+          ? new Date(item.thoi_gian_checkin || item.ngay_gio).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
           : '--:--',
         ngay_gio: item.ngay_gio,
         checkedIn: !!item.thoi_gian_checkin,
@@ -497,36 +490,19 @@ onMounted(() => {
 
 // Modal State
 const isCheckInModalOpen = ref(false);
-const isCreateAppointmentModalOpen = ref(false);
-const isCreateCustomerModalOpen = ref(false);
+const isIntakeModalOpen = ref(false);
 const selectedAppointment = ref(null);
 const prefilledCustomer = ref(null);
 
 // Methods
-const createAppointment = () => {
+const openIntakeModal = () => {
   prefilledCustomer.value = null;
-  isCreateAppointmentModalOpen.value = true;
+  isIntakeModalOpen.value = true;
 };
 
-const handleCreateAppointmentSubmit = () => {
-  isCreateAppointmentModalOpen.value = false;
-};
-
-const handleCreateAppointmentSuccess = () => {
-  isCreateAppointmentModalOpen.value = false;
+const handleIntakeSuccess = () => {
+  isIntakeModalOpen.value = false;
   loadDashboardData();
-};
-
-const createCustomer = () => {
-  isCreateCustomerModalOpen.value = true;
-};
-
-const handleCreateCustomerSubmit = (data) => {
-  isCreateCustomerModalOpen.value = false;
-  if (data) {
-    prefilledCustomer.value = data;
-    isCreateAppointmentModalOpen.value = true;
-  }
 };
 
 const checkIn = (appointment) => {

@@ -31,7 +31,7 @@
           @click="createAppointment"
         >
           <!-- <img :src="iconPlus" alt="Create" class="w-4 h-4" /> -->
-          <span class="text-sm font-medium text-white"> Tạo lịch khám </span>
+          <span class="text-sm font-medium text-white"> Tiếp nhận bệnh nhân </span>
         </button>
       </div>
     </div>
@@ -342,7 +342,7 @@
                         appointment.source === "scheduled"
                           ? "Đặt trước"
                           : appointment.source === "walkin"
-                          ? "Vãng lai"
+                          ? "Đến trực tiếp"
                           : "Thành Viên"
                       }}
                     </span>
@@ -942,8 +942,8 @@
                       {{ formatDateTime(appointment.thoi_gian_checkin) }}
                     </span>
                   </div>
-                  <span class="font-nunito text-xs text-gray-500 pl-6">
-                    Hẹn: {{ formatDateTime(appointment.ngay_gio) }}
+                    <span class="font-nunito text-xs text-gray-500 pl-6">
+                    {{ isWalkInAppointment(appointment) ? "Tiếp nhận: " : "Hẹn: " }}{{ formatDateTime(getAppointmentReferenceTime(appointment)) }}
                   </span>
                 </div>
               </td>
@@ -1321,10 +1321,10 @@
     />
 
     <!-- Create Appointment Modal -->
-    <CreateAppointmentModal
-      :is-open="isCreateAppointmentModalOpen"
-      @close="isCreateAppointmentModalOpen = false"
-      @submit="handleCreateAppointmentSubmit"
+    <UnifiedIntakeModal
+      :is-open="isIntakeModalOpen"
+      @close="isIntakeModalOpen = false"
+      @success="handleIntakeSuccess"
     />
   </div>
 </template>
@@ -1333,7 +1333,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import CheckInModal from "./check-in-modal.vue";
-import CreateAppointmentModal from "./create-appointment/index.vue";
+import UnifiedIntakeModal from "./unified-intake-modal.vue";
 import {
   getAppointmentsWaitingCheckIn,
   getCheckedInAppointments,
@@ -1664,15 +1664,46 @@ const waitingCheckInCount = computed(
   () => waitingCheckInAppointments.value.length
 );
 
-// Methods
-const createAppointment = () => {
-  isCreateAppointmentModalOpen.value = true;
+const isWalkInSource = (appointment) => {
+  const source = appointment?.nguon_goc || appointment?.originalData?.nguon_goc;
+  const note = appointment?.ghi_chu || appointment?.originalData?.ghi_chu || "";
+
+  return (
+    source === "walk-in" ||
+    source === "walkin" ||
+    note.toLowerCase().includes("walk-in") ||
+    note.toLowerCase().includes("vãng lai")
+  );
 };
 
-const handleCreateAppointmentSubmit = (data) => {
-  console.log("Create appointment:", data);
-  // TODO: Implement API call
-  isCreateAppointmentModalOpen.value = false;
+const isWalkInAppointment = (appointment) =>
+  appointment?.source === "walkin" || isWalkInSource(appointment);
+
+const getAppointmentReferenceTime = (appointment) => {
+  if (isWalkInAppointment(appointment)) {
+    return (
+      appointment?.thoi_gian_checkin ||
+      appointment?.originalData?.thoi_gian_checkin ||
+      appointment?.created_at ||
+      appointment?.originalData?.created_at ||
+      appointment?.ngay_gio ||
+      appointment?.originalData?.ngay_gio
+    );
+  }
+
+  return appointment?.ngay_gio || appointment?.originalData?.ngay_gio;
+};
+
+// Methods
+const isIntakeModalOpen = ref(false);
+
+const createAppointment = () => {
+  isIntakeModalOpen.value = true;
+};
+
+const handleIntakeSuccess = () => {
+  isIntakeModalOpen.value = false;
+  fetchAllAppointments();
 };
 
 const selectDate = () => {
@@ -1886,7 +1917,7 @@ const fetchAllAppointments = async () => {
 
         // Determine source (scheduled, walkin, member)
         let source = "scheduled"; // Default
-        if (app.ghi_chu && app.ghi_chu.toLowerCase().includes("vãng lai")) {
+        if (isWalkInSource(app)) {
           source = "walkin";
         } else if (
           app.ghi_chu &&

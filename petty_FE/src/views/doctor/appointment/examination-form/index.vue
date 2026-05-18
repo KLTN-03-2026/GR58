@@ -660,7 +660,12 @@ const loadAppointmentData = async () => {
           petData?.anh_dai_dien_url || petData?.anh_dai_dien,
           DEFAULT_PET_IMAGE
         ),
-        badge: data.la_khach_vang_lai ? "Vãng lai" : "Đặt trước",
+        badge:
+          data.la_khach_vang_lai ||
+          data.nguon_goc === "walkin" ||
+          data.nguon_goc === "walk-in"
+            ? "Đến trực tiếp"
+            : "Đặt trước",
         species:
           petData?.loai ||
           petData?.loai_thu_cung ||

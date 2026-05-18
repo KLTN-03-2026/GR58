@@ -363,7 +363,6 @@ const handleSubmit = async () => {
       dich_vu_ids: selectedServiceIds.value,
       nhan_vien_id: selectedDoctor.value,
       ngay_gio: ngayGio,
-      ghi_chu: "Walk-in tại phòng khám",
       trang_thai: "confirmed",
     };
 

@@ -110,6 +110,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/khach-hang/{id}', [KhachHangController::class, 'update']);
     Route::patch('/khach-hang/{id}/trang-thai', [KhachHangController::class, 'toggleTrangThai'])->middleware('staff.only');
     Route::get('/khach-hang', [KhachHangController::class, 'index'])->middleware('staff.only');
+    Route::post('/khach-hang/staff-create', [KhachHangController::class, 'staffCreateCustomerWithPet'])->middleware('staff.only');
 
     // Thông báo khách hàng
     Route::get('/thong-bao', [ThongBaoController::class, 'index']);
@@ -277,6 +278,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/nhan-vien', [NhanVienController::class, 'index'])->middleware(['staff.only', 'permission:nhan_vien_xem']);
     // Danh sách bác sĩ (dùng cho check-in, tất cả staff đều truy cập được)
     Route::get('/bac-si/danh-sach', [NhanVienController::class, 'danhSachBacSi'])->middleware('staff.only');
+    Route::post('/bac-si/goi-y', [NhanVienController::class, 'goiYBacSi'])->middleware('staff.only');
     // Danh mục dịch vụ: tạo mới (staff only)
     Route::post('/danh-muc-dich-vu', [\App\Http\Controllers\DanhMucDichVuController::class, 'store'])->middleware('staff.only');
     // Danh mục hàng hóa: tạo mới (staff only)

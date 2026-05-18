@@ -22,7 +22,10 @@ class StoreLichHenRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $user = $this->user();
+        $isStaff = $user && !($user instanceof \App\Models\KhachHang);
+
+        $rules = [
             'ngay_gio' => ['required', 'date'],
             'dia_chi' => ['nullable', 'string', 'max:500'],
             'ghi_chu' => ['nullable', 'string'],
@@ -34,6 +37,21 @@ class StoreLichHenRequest extends FormRequest
             'nhan_vien_id' => ['nullable', 'exists:nhan_viens,id'],
             'thanh_toan_id' => ['nullable', 'exists:thanh_toans,id'],
             'phuong_thuc_thanh_toan' => ['nullable', 'string', 'in:online,offline'],
+        ];
+
+        // Staff must provide khach_hang_id for walk-in appointments
+        if ($isStaff) {
+            $rules['khach_hang_id'] = ['required', 'exists:khach_hangs,id'];
+        }
+
+        return $rules;
+    }
+
+    public function messages(): array
+    {
+        return [
+            'khach_hang_id.required' => 'Vui lòng chọn khách hàng.',
+            'khach_hang_id.exists' => 'Khách hàng không tồn tại.',
         ];
     }
 }

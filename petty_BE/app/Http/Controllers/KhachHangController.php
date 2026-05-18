@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\VerifyEmail;
 use Illuminate\Support\Facades\URL;
+use App\Http\Requests\StaffCreateCustomerRequest;
+use App\Http\Requests\StaffCreatePetRequest;
+use App\Models\ThuCung;
 
 class KhachHangController extends Controller
 {
@@ -623,5 +626,79 @@ class KhachHangController extends Controller
         $user->save();
 
         return response()->json(['status' => true, 'message' => 'Đổi mật khẩu thành công.']);
+    }
+
+    public function staffCreateCustomerWithPet(StaffCreateCustomerRequest $customerRequest, StaffCreatePetRequest $petRequest): JsonResponse
+    {
+        $customerData = $customerRequest->validated();
+        $petData = $petRequest->validated();
+
+        DB::beginTransaction();
+        try {
+            $customer = KhachHang::create([
+                'full_name' => $customerData['full_name'],
+                'phone' => $customerData['phone'],
+                'email' => $customerData['email'] ?? null,
+                'address' => $customerData['address'] ?? null,
+                'anh_dai_dien' => $customerData['anh_dai_dien'] ?? null,
+                'password' => null,
+                'rank' => 'Silver',
+                'trang_thai' => 'active',
+                'email_verified_at' => null,
+            ]);
+
+            $pet = ThuCung::create([
+                'khach_hang_id' => $customer->id,
+                'ten_thu_cung' => $petData['ten_thu_cung'],
+                'loai_thu_cung' => $petData['loai_thu_cung'],
+                'giong_thu_cung' => $petData['giong_thu_cung'] ?? null,
+                'tuoi_thu_cung' => $petData['tuoi_thu_cung'] ?? null,
+                'gioi_tinh' => $petData['gioi_tinh'] ?? null,
+                'can_nang' => $petData['can_nang'] ?? null,
+                'anh_dai_dien' => $petData['anh_dai_dien'] ?? null,
+            ]);
+
+            DB::commit();
+
+            $customer->load('thuCungs');
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Tạo hồ sơ khách hàng và thú cưng thành công.',
+                'data' => [
+                    'customer' => [
+                        'id' => $customer->id,
+                        'full_name' => $customer->full_name,
+                        'phone' => $customer->phone,
+                        'email' => $customer->email,
+                        'address' => $customer->address,
+                        'anh_dai_dien' => $customer->anh_dai_dien,
+                        'anh_dai_dien_url' => UserImageHelper::getAvatarUrl($customer->anh_dai_dien),
+                    ],
+                    'pet' => [
+                        'id' => $pet->id,
+                        'ten_thu_cung' => $pet->ten_thu_cung,
+                        'loai_thu_cung' => $pet->loai_thu_cung,
+                        'giong_thu_cung' => $pet->giong_thu_cung,
+                        'tuoi_thu_cung' => $pet->tuoi_thu_cung,
+                        'gioi_tinh' => $pet->gioi_tinh,
+                        'can_nang' => $pet->can_nang,
+                        'anh_dai_dien' => $pet->anh_dai_dien,
+                        'anh_dai_dien_url' => $pet->anh_dai_dien_url,
+                    ],
+                ],
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Staff customer creation failed', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Có lỗi xảy ra khi tạo hồ sơ khách hàng.',
+            ], 500);
+        }
     }
 }

@@ -176,9 +176,11 @@
                 />
               </svg>
               <div class="flex-1">
-                <p class="font-nunito text-sm text-gray-600">Thời gian hẹn</p>
+                <p class="font-nunito text-sm text-gray-600">
+                  {{ appointment?.nguon_goc === "walk-in" ? "Thời gian tiếp nhận" : "Thời gian hẹn" }}
+                </p>
                 <p class="font-nunito font-semibold text-base text-gray-900">
-                  {{ formatDateTime(appointment?.ngay_gio) }}
+                  {{ formatDateTime(getDisplayDateTime()) }}
                 </p>
               </div>
             </div>
@@ -208,7 +210,6 @@
                   <option value="">-- Vui lòng chọn bác sĩ --</option>
                   <option v-for="bs in doctors" :key="bs.id" :value="String(bs.id)">
                     {{ bs.full_name }}
-                    <span v-if="bs.chuc_danh"> - {{ bs.chuc_danh }}</span>
                   </option>
                 </select>
               </div>
@@ -333,9 +334,23 @@ let timeInterval = null;
 const doctors = ref([]);
 const selectedDoctor = ref("");
 
+const formatLocalDateTime = (date = new Date()) => {
+  const pad = (value) => String(value).padStart(2, "0");
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+    date.getDate()
+  )} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
+    date.getSeconds()
+  )}`;
+};
+
 const fetchDoctors = async () => {
   try {
-    const res = await api.get('/bac-si/danh-sach');
+    const res = await api.get("/bac-si/danh-sach", {
+      params: {
+        ngay_gio: formatLocalDateTime(),
+      },
+    });
     if (res.data?.status) {
       doctors.value = res.data.data || [];
     }
@@ -414,6 +429,18 @@ const formatDateTime = (datetime) => {
   } catch (e) {
     return datetime;
   }
+};
+
+const getDisplayDateTime = () => {
+  if (props.appointment?.nguon_goc === "walk-in") {
+    return (
+      props.appointment?.thoi_gian_checkin ||
+      props.appointment?.created_at ||
+      props.appointment?.ngay_gio
+    );
+  }
+
+  return props.appointment?.ngay_gio;
 };
 
 const closeModal = () => {
