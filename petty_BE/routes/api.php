@@ -129,6 +129,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Slot còn trống (public, auth required)
     Route::get('/lich-hen/available-slots', [LichHenController::class, 'availableSlots']);
+    Route::get('/lich-hen/available-days', [LichHenController::class, 'availableDays']);
 
     // Lịch hẹn - Khách hàng có thể tạo và xem lịch của mình
     Route::post('/lich-hen', [LichHenController::class, 'store']); // Khách hàng đặt lịch

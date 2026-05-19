@@ -17,6 +17,76 @@ use Illuminate\Support\Facades\DB;
 
 class LichHenController extends Controller
 {
+    private function serviceRequiresExaminationByName(?string $serviceName): bool
+    {
+        if (!$serviceName) {
+            return false;
+        }
+
+        $name = mb_strtolower($serviceName);
+
+        $nonExamKeywords = [
+            'cắt tỉa',
+            've sinh',
+            'vệ sinh',
+            'groom',
+            'spa',
+            'tắm',
+            'lam dep',
+            'làm đẹp',
+        ];
+
+        foreach ($nonExamKeywords as $keyword) {
+            if (str_contains($name, $keyword)) {
+                return false;
+            }
+        }
+
+        $examRequiredKeywords = [
+            'khám',
+            'xét nghiệm',
+            'xet nghiem',
+            'siêu âm',
+            'sieu am',
+            'điều trị',
+            'dieu tri',
+            'phẫu thuật',
+            'phau thuat',
+            'triệt sản',
+            'triet san',
+            'cấp cứu',
+            'cap cuu',
+        ];
+
+        foreach ($examRequiredKeywords as $keyword) {
+            if (str_contains($name, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function appointmentRequiresExaminationRecord(LichHen $lichHen): bool
+    {
+        $lichHen->loadMissing(['dichVus', 'dichVu']);
+
+        $serviceNames = collect();
+        if ($lichHen->relationLoaded('dichVus')) {
+            $serviceNames = $serviceNames->merge(
+                $lichHen->dichVus->pluck('ten')->filter()
+            );
+        }
+
+        if ($serviceNames->isEmpty() && $lichHen->relationLoaded('dichVu') && $lichHen->dichVu) {
+            $serviceNames->push($lichHen->dichVu->ten);
+        }
+
+        return $serviceNames->contains(function ($serviceName) {
+            return $this->serviceRequiresExaminationByName($serviceName);
+        });
+    }
+
     /**
      * Trả về danh sách slot còn trống trong ngày (8:00–16:00, bỏ 12:00 nghỉ trưa).
      * Capacity = số bác sĩ có LichLamViec cover giờ đó.
@@ -95,6 +165,37 @@ class LichHenController extends Controller
     }
 
     /**
+     * Trả về danh sách ngày trong tháng có lịch làm việc của bác sĩ.
+     * Dùng cho calendar đặt lịch phía khách hàng để khoá ngày không khả dụng.
+     */
+    public function availableDays(Request $request): JsonResponse
+    {
+        $request->validate([
+            'month' => ['required', 'date_format:Y-m'],
+        ]);
+
+        $month = Carbon::createFromFormat('Y-m', $request->get('month'))->startOfMonth();
+        $start = $month->copy()->startOfMonth()->toDateString();
+        $end = $month->copy()->endOfMonth()->toDateString();
+
+        $availableDates = LichLamViec::query()
+            ->whereBetween('ngay_lam', [$start, $end])
+            ->whereHas('nhanVien', fn($q) => $q->where('vai_tro', 'bac_si'))
+            ->select('ngay_lam')
+            ->distinct()
+            ->orderBy('ngay_lam')
+            ->pluck('ngay_lam')
+            ->map(fn($d) => Carbon::parse($d)->toDateString())
+            ->values();
+
+        return response()->json([
+            'status' => true,
+            'month' => $month->format('Y-m'),
+            'available_dates' => $availableDates,
+        ]);
+    }
+
+    /**
      * Store a newly created appointment in storage.
      * KhachHang booking → auto-confirmed + slot check inside transaction.
      */
@@ -142,7 +243,7 @@ class LichHenController extends Controller
 
                 $capacity = $shifts->filter(function ($shift) use ($hour) {
                     if ($shift->thoi_gian_truc === LichLamViec::CA_SANG) {
-                        return $hour >= 8 && $hour <= 15;
+                        return $hour >= 8 && $hour <= 16;
                     }
                     if ($shift->thoi_gian_truc === LichLamViec::CA_CHIEU) {
                         return $hour >= 13 && $hour <= 16;
@@ -381,7 +482,7 @@ class LichHenController extends Controller
      */
     public function indexAll(Request $request): JsonResponse
     {
-        $query = LichHen::with(['thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'thanhToan', 'khachHang']);
+        $query = LichHen::with(['thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'thanhToan', 'khachHang', 'phieuKham']);
 
         // Filter by customer
         if ($request->filled('khach_hang_id')) {
@@ -440,11 +541,24 @@ class LichHenController extends Controller
         }
 
         if ($from && $to) {
-            $query->whereBetween('ngay_gio', [$from->startOfDay()->format('Y-m-d H:i:s'), $to->endOfDay()->format('Y-m-d H:i:s')]);
+            $fromAt = $from->startOfDay()->format('Y-m-d H:i:s');
+            $toAt = $to->endOfDay()->format('Y-m-d H:i:s');
+            $query->where(function ($q) use ($fromAt, $toAt) {
+                $q->whereBetween('ngay_gio', [$fromAt, $toAt])
+                  ->orWhereBetween('thoi_gian_checkin', [$fromAt, $toAt]);
+            });
         } elseif ($from) {
-            $query->where('ngay_gio', '>=', $from->startOfDay()->format('Y-m-d H:i:s'));
+            $fromAt = $from->startOfDay()->format('Y-m-d H:i:s');
+            $query->where(function ($q) use ($fromAt) {
+                $q->where('ngay_gio', '>=', $fromAt)
+                  ->orWhere('thoi_gian_checkin', '>=', $fromAt);
+            });
         } elseif ($to) {
-            $query->where('ngay_gio', '<=', $to->endOfDay()->format('Y-m-d H:i:s'));
+            $toAt = $to->endOfDay()->format('Y-m-d H:i:s');
+            $query->where(function ($q) use ($toAt) {
+                $q->where('ngay_gio', '<=', $toAt)
+                  ->orWhere('thoi_gian_checkin', '<=', $toAt);
+            });
         }
 
         $query->orderBy('ngay_gio', 'desc');
@@ -483,7 +597,7 @@ class LichHenController extends Controller
         }
         // Staff (Admin/NhanVien) có thể xem bất kỳ lịch hẹn nào
 
-        $payload = new \App\Http\Resources\LichHenResource($lichHen->load(['thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'thanhToan', 'khachHang']));
+        $payload = new \App\Http\Resources\LichHenResource($lichHen->load(['thuCung', 'dichVu', 'dichVus', 'nhanVien', 'yTaCheckin', 'thanhToan', 'khachHang', 'phieuKham']));
 
         return response()->json([
             'status' => true,
@@ -611,7 +725,7 @@ class LichHenController extends Controller
 
             $capacity = $shifts->filter(function ($shift) use ($hour) {
                 if ($shift->thoi_gian_truc === LichLamViec::CA_SANG) {
-                    return $hour >= 8 && $hour <= 15;
+                    return $hour >= 8 && $hour <= 16;
                 }
                 if ($shift->thoi_gian_truc === LichLamViec::CA_CHIEU) {
                     return $hour >= 13 && $hour <= 16;
@@ -1186,6 +1300,36 @@ class LichHenController extends Controller
             // Validation cho dữ liệu bổ sung (nếu có)
             $validated = $request->validated();
 
+            $requiresExamRecord = $this->appointmentRequiresExaminationRecord($lichHen);
+
+            $phieuKham = \App\Models\PhieuKham::where('lich_hen_id', $lichHen->id)
+                ->orderByDesc('updated_at')
+                ->orderByDesc('id')
+                ->first();
+
+            if ($requiresExamRecord && !$phieuKham) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Dịch vụ này yêu cầu lưu phiếu khám trước khi hoàn tất lịch hẹn',
+                ], 422);
+            }
+
+            if ($requiresExamRecord) {
+                $missingFields = [];
+                if (is_null($phieuKham->nhiet_do)) $missingFields[] = 'nhiệt độ';
+                if (is_null($phieuKham->can_nang)) $missingFields[] = 'cân nặng';
+                if (is_null($phieuKham->nhip_tim)) $missingFields[] = 'nhịp tim';
+                if (is_null($phieuKham->nhip_tho)) $missingFields[] = 'nhịp thở';
+                if (empty($phieuKham->chan_doan)) $missingFields[] = 'chẩn đoán';
+
+                if (!empty($missingFields)) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Không thể hoàn tất khám khi thiếu dữ liệu bắt buộc: ' . implode(', ', $missingFields),
+                    ], 422);
+                }
+            }
+
             // Hoàn thành khám
             $lichHen->thoi_gian_hoan_thanh = now();
             $lichHen->trang_thai = 'completed';
@@ -1200,7 +1344,6 @@ class LichHenController extends Controller
 
             // Nếu đã TT trước + không có đơn thuốc → đánh dấu hoàn tất luôn
             if ($lichHen->da_thanh_toan) {
-                $phieuKham = \App\Models\PhieuKham::where('lich_hen_id', $lichHen->id)->first();
                 $hasDonThuoc = $phieuKham && !empty($phieuKham->don_thuoc);
                 if (!$hasDonThuoc) {
                     $lichHen->da_thu_thuoc = true;

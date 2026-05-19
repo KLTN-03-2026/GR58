@@ -568,8 +568,6 @@ const fetchCompletedAppointments = async () => {
     const currentDoctor = getUser("bac_si");
     const res = await api.get("/lich-hen-all", {
       params: {
-        from_date: `${dateStr} 00:00:00`,
-        to_date: `${dateStr} 23:59:59`,
         trang_thai: "completed",
         per_page: 100,
         ...(currentDoctor?.id ? { nhan_vien_id: currentDoctor.id } : {}),
@@ -585,14 +583,28 @@ const fetchCompletedAppointments = async () => {
       }
     }
 
-    completedAppointments.value = data.map((appt) => ({
-      ...appt,
-      displayStatus: {
-        type: "completed",
-        label: "Hoàn thành",
-        color: "green",
-      },
-    }));
+    completedAppointments.value = data
+      .filter((appt) => {
+        const completedAt = appt.thoi_gian_hoan_thanh;
+        if (!completedAt) return false;
+        try {
+          const completedDate =
+            typeof completedAt === "string"
+              ? new Date(completedAt.replace(" ", "T"))
+              : new Date(completedAt);
+          return format(completedDate, "yyyy-MM-dd") === dateStr;
+        } catch {
+          return false;
+        }
+      })
+      .map((appt) => ({
+        ...appt,
+        displayStatus: {
+          type: "completed",
+          label: "Hoàn thành",
+          color: "green",
+        },
+      }));
   } catch (err) {
     console.error("Error fetching completed appointments:", err);
     error.value =

@@ -17,6 +17,7 @@ import "vue-toastification/dist/index.css";
 import "./assets/css/toast-override.css";
 import axios from "axios";
 import { attachToken } from "@/utils/api";
+import { pettyToastFilterBeforeCreate } from "@/utils/toast";
 import {
   logout as authLogout,
   getToken as authGetToken,
@@ -29,11 +30,12 @@ const app = createApp(App);
 app.use(router);
 app.use(VueApexCharts); // Đăng ký global component
 app.use(Toast, {
-  // optional default options
   position: "top-right",
   timeout: 4000,
   closeOnClick: true,
   pauseOnHover: true,
+  shareAppContext: true,
+  filterBeforeCreate: pettyToastFilterBeforeCreate,
 });
 
 const existingToken =

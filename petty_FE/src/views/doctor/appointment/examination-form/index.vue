@@ -38,10 +38,15 @@
           </button>
           <div>
             <p class="ef-eyebrow">Phiếu khám bệnh</p>
-            <h1 class="ef-title">Nhập thông tin khám</h1>
+            <h1 class="ef-title">{{ pageTitle }}</h1>
           </div>
         </div>
-        <button class="ef-btn-save" @click="handleSave" :disabled="saving">
+        <button
+          class="ef-btn-save"
+          @click="handleSave"
+          :disabled="saving || isViewMode"
+          v-if="!isViewMode"
+        >
           <span
             v-if="saving"
             class="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin"
@@ -145,6 +150,8 @@
                 <input
                   type="checkbox"
                   v-model="svc.done"
+                  :disabled="isViewMode || saving"
+                  @change="handleServiceChecklistChange"
                   class="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                 />
                 <span class="text-sm font-medium" :class="svc.done ? 'text-emerald-700' : 'text-slate-700'">
@@ -178,49 +185,97 @@
                 <label class="ef-vital-label">Nhiệt độ</label>
                 <div class="ef-vital-input-wrap">
                   <input
-                    v-model="vitalSigns.temperature"
+                    :value="vitalSigns.temperature"
+                    @input="
+                      onVitalInput('temperature', $event.target.value, 'decimal')
+                    "
+                    @keydown="preventInvalidVitalKeydown($event, 'decimal')"
+                    @paste="handleVitalPaste($event, 'decimal')"
                     type="text"
+                    inputmode="decimal"
                     placeholder="38.5"
                     class="ef-vital-input"
+                    :class="{ 'ef-vital-input--error': fieldErrors.temperature }"
+                    :disabled="isViewMode || saving"
                   />
                   <span class="ef-vital-unit">°C</span>
                 </div>
+                <p v-if="fieldErrors.temperature" class="ef-field-error">
+                  {{ fieldErrors.temperature }}
+                </p>
               </div>
               <div class="ef-vital">
                 <label class="ef-vital-label">Cân nặng</label>
                 <div class="ef-vital-input-wrap">
                   <input
-                    v-model="vitalSigns.weight"
+                    :value="vitalSigns.weight"
+                    @input="onVitalInput('weight', $event.target.value, 'decimal')"
+                    @keydown="preventInvalidVitalKeydown($event, 'decimal')"
+                    @paste="handleVitalPaste($event, 'decimal')"
                     type="text"
+                    inputmode="decimal"
                     placeholder="4.2"
                     class="ef-vital-input"
+                    :class="{ 'ef-vital-input--error': fieldErrors.weight }"
+                    :disabled="isViewMode || saving"
                   />
                   <span class="ef-vital-unit">kg</span>
                 </div>
+                <p v-if="fieldErrors.weight" class="ef-field-error">
+                  {{ fieldErrors.weight }}
+                </p>
               </div>
               <div class="ef-vital">
                 <label class="ef-vital-label">Nhịp tim</label>
                 <div class="ef-vital-input-wrap">
                   <input
-                    v-model="vitalSigns.heartRate"
+                    :value="vitalSigns.heartRate"
+                    @input="
+                      onVitalInput('heartRate', $event.target.value, 'integer')
+                    "
+                    @keydown="preventInvalidVitalKeydown($event, 'integer')"
+                    @paste="handleVitalPaste($event, 'integer')"
                     type="text"
+                    inputmode="numeric"
                     placeholder="80"
                     class="ef-vital-input"
+                    :class="{ 'ef-vital-input--error': fieldErrors.heartRate }"
+                    :disabled="isViewMode || saving"
                   />
                   <span class="ef-vital-unit">bpm</span>
                 </div>
+                <p v-if="fieldErrors.heartRate" class="ef-field-error">
+                  {{ fieldErrors.heartRate }}
+                </p>
               </div>
               <div class="ef-vital">
                 <label class="ef-vital-label">Nhịp thở</label>
                 <div class="ef-vital-input-wrap">
                   <input
-                    v-model="vitalSigns.respiratoryRate"
+                    :value="vitalSigns.respiratoryRate"
+                    @input="
+                      onVitalInput(
+                        'respiratoryRate',
+                        $event.target.value,
+                        'integer'
+                      )
+                    "
+                    @keydown="preventInvalidVitalKeydown($event, 'integer')"
+                    @paste="handleVitalPaste($event, 'integer')"
                     type="text"
+                    inputmode="numeric"
                     placeholder="20"
                     class="ef-vital-input"
+                    :class="{
+                      'ef-vital-input--error': fieldErrors.respiratoryRate,
+                    }"
+                    :disabled="isViewMode || saving"
                   />
                   <span class="ef-vital-unit">/phút</span>
                 </div>
+                <p v-if="fieldErrors.respiratoryRate" class="ef-field-error">
+                  {{ fieldErrors.respiratoryRate }}
+                </p>
               </div>
             </div>
           </section>
@@ -249,6 +304,7 @@
               rows="3"
               class="ef-textarea"
               placeholder="Mô tả lý do từ lời kể của chủ nuôi..."
+              :disabled="isViewMode || saving"
             ></textarea>
           </section>
 
@@ -276,6 +332,7 @@
               rows="3"
               class="ef-textarea"
               placeholder="Quan sát và ghi nhận triệu chứng lâm sàng..."
+              :disabled="isViewMode || saving"
             ></textarea>
           </section>
 
@@ -297,7 +354,10 @@
                   /></svg
               ></span>
               <h3 class="ef-card-title">
-                Chẩn đoán <span class="text-red-500 ml-0.5">*</span>
+                Chẩn đoán
+                <span v-if="requiresExamForAppointment" class="text-red-500 ml-0.5"
+                  >*</span
+                >
               </h3>
             </div>
             <textarea
@@ -305,6 +365,7 @@
               rows="3"
               class="ef-textarea ef-textarea-diag"
               placeholder="Nhập chẩn đoán bệnh..."
+              :disabled="isViewMode || saving"
             ></textarea>
           </section>
 
@@ -332,6 +393,7 @@
               rows="3"
               class="ef-textarea"
               placeholder="Phác đồ, lưu ý đặc biệt sau khám..."
+              :disabled="isViewMode || saving"
             ></textarea>
           </section>
 
@@ -350,6 +412,7 @@
                   ? 'ef-action-btn--active-green'
                   : 'ef-action-btn--green',
               ]"
+              :disabled="isViewMode || saving"
             >
               <span class="ef-action-icon">
                 <svg
@@ -414,8 +477,9 @@
 
             <button
               :class="['ef-action-btn', allServicesCompleted ? 'ef-action-btn--complete' : 'ef-action-btn--disabled']"
-              :disabled="!allServicesCompleted"
+              :disabled="!allServicesCompleted || isViewMode || saving"
               @click="hoanTatVaChuyenThuNgan"
+              v-if="!isViewMode"
             >
               <span class="ef-action-icon">
                 <svg
@@ -448,7 +512,7 @@
 
     <!-- Don Thuoc Modal -->
     <div
-      v-if="isPrescriptionFormModalOpen"
+      v-if="isPrescriptionFormModalOpen && !isViewMode"
       class="ef-modal"
       @click.self="isPrescriptionFormModalOpen = false"
     >
@@ -502,6 +566,11 @@ const appointmentId = computed(() => route.params.id);
 // Loading state
 const loading = ref(true);
 const saving = ref(false);
+const examMode = ref("create");
+const pageTitle = computed(() =>
+  examMode.value === "view" ? "Xem kết quả khám" : "Nhập thông tin khám"
+);
+const isViewMode = computed(() => examMode.value === "view");
 
 // Icons from Figma
 const icons = {
@@ -564,6 +633,12 @@ const vitalSigns = ref({
   heartRate: "",
   respiratoryRate: "",
 });
+const fieldErrors = ref({
+  temperature: "",
+  weight: "",
+  heartRate: "",
+  respiratoryRate: "",
+});
 
 // Form Data
 const reasonForVisit = ref("");
@@ -575,6 +650,7 @@ const notes = ref("");
 const serviceChecklist = ref([]);
 const allServicesCompleted = computed(() => serviceChecklist.value.length > 0 && serviceChecklist.value.every(s => s.done));
 const completedServicesCount = computed(() => serviceChecklist.value.filter(s => s.done).length);
+const appointmentServiceNames = ref([]);
 
 // Loại chỉ định được chọn
 const selectedPrescriptionType = ref("don_thuoc"); // default to prescription
@@ -585,6 +661,8 @@ const isFollowUpModalOpen = ref(false);
 
 // ID phiếu khám sau khi lưu lần đầu — dùng cho uploader đính kèm
 const savedPhieuKhamId = ref(null);
+const existingPhieuKhamId = ref(null);
+const localChecklistKey = computed(() => `doctor_exam_checklist_${appointmentId.value || "unknown"}`);
 
 // Helper function to parse datetime
 const parseDateTime = (dateString) => {
@@ -597,6 +675,326 @@ const parseDateTime = (dateString) => {
   } catch (error) {
     console.error("Error parsing datetime:", dateString, error);
     return null;
+  }
+};
+
+const sanitizeDecimalInput = (value) => {
+  const normalized = String(value ?? "")
+    .replace(",", ".")
+    .replace(/[^0-9.]/g, "");
+  const firstDot = normalized.indexOf(".");
+  if (firstDot === -1) return normalized;
+  return (
+    normalized.slice(0, firstDot + 1) +
+    normalized.slice(firstDot + 1).replace(/\./g, "")
+  );
+};
+
+const sanitizeIntegerInput = (value) => String(value ?? "").replace(/\D/g, "");
+
+const onVitalInput = (field, rawValue, numericType) => {
+  const invalidPattern = numericType === "decimal" ? /[^0-9.,]/ : /[^0-9]/;
+  if (invalidPattern.test(String(rawValue ?? ""))) {
+    fieldErrors.value[field] = "Chỉ được nhập số";
+  } else {
+    fieldErrors.value[field] = "";
+  }
+
+  vitalSigns.value[field] =
+    numericType === "decimal"
+      ? sanitizeDecimalInput(rawValue)
+      : sanitizeIntegerInput(rawValue);
+};
+
+const preventInvalidVitalKeydown = (event, numericType) => {
+  const allowedControlKeys = [
+    "Backspace",
+    "Delete",
+    "ArrowLeft",
+    "ArrowRight",
+    "Tab",
+    "Home",
+    "End",
+    "Enter",
+  ];
+  if (allowedControlKeys.includes(event.key) || event.ctrlKey || event.metaKey) {
+    return;
+  }
+
+  const isDigit = /^[0-9]$/.test(event.key);
+  const isDecimalSeparator = event.key === "." || event.key === ",";
+  const allowDecimal = numericType === "decimal";
+
+  if (isDigit || (allowDecimal && isDecimalSeparator)) {
+    return;
+  }
+
+  event.preventDefault();
+};
+
+const handleVitalPaste = (event, numericType) => {
+  const pasted = event.clipboardData?.getData("text") ?? "";
+  const pattern = numericType === "decimal" ? /^[0-9.,]+$/ : /^[0-9]+$/;
+  if (!pattern.test(pasted)) {
+    event.preventDefault();
+  }
+};
+
+const validateVitalSigns = () => {
+  fieldErrors.value = {
+    temperature: "",
+    weight: "",
+    heartRate: "",
+    respiratoryRate: "",
+  };
+
+  const validators = [
+    {
+      field: "temperature",
+      label: "Nhiệt độ",
+      min: 30,
+      max: 45,
+      integer: false,
+    },
+    { field: "weight", label: "Cân nặng", min: 0, max: null, integer: false },
+    { field: "heartRate", label: "Nhịp tim", min: 30, max: 200, integer: true },
+    {
+      field: "respiratoryRate",
+      label: "Nhịp thở",
+      min: 5,
+      max: 50,
+      integer: true,
+    },
+  ];
+
+  let isValid = true;
+
+  validators.forEach(({ field, label, min, max, integer }) => {
+    const raw = vitalSigns.value[field];
+    if (raw === "" || raw === null || raw === undefined) {
+      return;
+    }
+
+    const parsed = integer ? parseInt(raw, 10) : parseFloat(raw);
+    if (Number.isNaN(parsed)) {
+      fieldErrors.value[field] = `${label} phải là số hợp lệ`;
+      isValid = false;
+      return;
+    }
+
+    if (parsed < min || (max !== null && parsed > max)) {
+      const rangeText =
+        max === null ? `lớn hơn hoặc bằng ${min}` : `trong khoảng ${min}-${max}`;
+      fieldErrors.value[field] = `${label} phải ${rangeText}`;
+      isValid = false;
+      return;
+    }
+
+    if (integer && !Number.isInteger(parsed)) {
+      fieldErrors.value[field] = `${label} phải là số nguyên`;
+      isValid = false;
+    }
+  });
+
+  return isValid;
+};
+
+const hasAnyMedicalInput = () =>
+  Boolean(
+    vitalSigns.value.temperature ||
+      vitalSigns.value.weight ||
+      vitalSigns.value.heartRate ||
+      vitalSigns.value.respiratoryRate ||
+      symptoms.value.trim() ||
+      reasonForVisit.value.trim()
+  );
+
+const hasRequiredVitalSigns = () =>
+  Boolean(
+    vitalSigns.value.temperature &&
+      vitalSigns.value.weight &&
+      vitalSigns.value.heartRate &&
+      vitalSigns.value.respiratoryRate
+  );
+
+const serviceRequiresExaminationByName = (serviceName) => {
+  const normalized = String(serviceName || "").toLowerCase();
+  if (!normalized) return false;
+
+  const nonExamKeywords = [
+    "cắt tỉa",
+    "ve sinh",
+    "vệ sinh",
+    "groom",
+    "spa",
+    "tắm",
+    "lam dep",
+    "làm đẹp",
+  ];
+  if (nonExamKeywords.some((keyword) => normalized.includes(keyword))) {
+    return false;
+  }
+
+  const examRequiredKeywords = [
+    "khám",
+    "xét nghiệm",
+    "xet nghiem",
+    "siêu âm",
+    "sieu am",
+    "điều trị",
+    "dieu tri",
+    "phẫu thuật",
+    "phau thuat",
+    "triệt sản",
+    "triet san",
+    "cấp cứu",
+    "cap cuu",
+  ];
+  return examRequiredKeywords.some((keyword) => normalized.includes(keyword));
+};
+
+const requiresExamForAppointment = computed(() =>
+  appointmentServiceNames.value.some((serviceName) =>
+    serviceRequiresExaminationByName(serviceName)
+  )
+);
+
+const loadServiceChecklistState = () => {
+  try {
+    const raw = localStorage.getItem(localChecklistKey.value);
+    if (!raw) return;
+    const map = JSON.parse(raw);
+    serviceChecklist.value = serviceChecklist.value.map((svc) => ({
+      ...svc,
+      done: Boolean(map[svc.name]),
+    }));
+  } catch (error) {
+    console.warn("Failed to load checklist state:", error);
+  }
+};
+
+const persistServiceChecklistState = () => {
+  try {
+    const map = serviceChecklist.value.reduce((acc, svc) => {
+      acc[svc.name] = Boolean(svc.done);
+      return acc;
+    }, {});
+    localStorage.setItem(localChecklistKey.value, JSON.stringify(map));
+  } catch (error) {
+    console.warn("Failed to persist checklist state:", error);
+  }
+};
+
+const handleServiceChecklistChange = () => {
+  persistServiceChecklistState();
+};
+
+const ensureDraftPhieuKham = async () => {
+  if (existingPhieuKhamId.value || isViewMode.value) {
+    return;
+  }
+  try {
+    const response = await api.post("/phieu-kham", {
+      lich_hen_id: appointmentId.value,
+      loai_chi_dinh: selectedPrescriptionType.value,
+      ly_do_den_kham: null,
+      trieu_chung: null,
+      chan_doan: null,
+      ghi_chu: null,
+      nhiet_do: null,
+      can_nang: null,
+      nhip_tim: null,
+      nhip_tho: null,
+      don_thuoc: null,
+    });
+    const draftId = response.data?.data?.id;
+    if (draftId) {
+      existingPhieuKhamId.value = draftId;
+      savedPhieuKhamId.value = draftId;
+    }
+  } catch (error) {
+    console.error("Cannot create draft examination record:", error);
+  }
+};
+
+const buildPhieuKhamPayload = () => ({
+  lich_hen_id: appointmentId.value,
+  nhiet_do: vitalSigns.value.temperature
+    ? parseFloat(vitalSigns.value.temperature)
+    : null,
+  can_nang: vitalSigns.value.weight ? parseFloat(vitalSigns.value.weight) : null,
+  nhip_tim: vitalSigns.value.heartRate
+    ? parseInt(vitalSigns.value.heartRate, 10)
+    : null,
+  nhip_tho: vitalSigns.value.respiratoryRate
+    ? parseInt(vitalSigns.value.respiratoryRate, 10)
+    : null,
+  ly_do_den_kham: reasonForVisit.value || null,
+  trieu_chung: symptoms.value || null,
+  chan_doan: diagnosis.value || null,
+  ghi_chu: notes.value || null,
+  loai_chi_dinh: selectedPrescriptionType.value,
+  don_thuoc: donThuocData.value.length > 0 ? donThuocData.value : null,
+});
+
+const hydrateFromPhieuKham = (record) => {
+  if (!record) return;
+  existingPhieuKhamId.value = record.id;
+  savedPhieuKhamId.value = record.id;
+  vitalSigns.value = {
+    temperature:
+      record.nhiet_do !== null && record.nhiet_do !== undefined
+        ? String(record.nhiet_do)
+        : "",
+    weight:
+      record.can_nang !== null && record.can_nang !== undefined
+        ? String(record.can_nang)
+        : "",
+    heartRate:
+      record.nhip_tim !== null && record.nhip_tim !== undefined
+        ? String(record.nhip_tim)
+        : "",
+    respiratoryRate:
+      record.nhip_tho !== null && record.nhip_tho !== undefined
+        ? String(record.nhip_tho)
+        : "",
+  };
+  reasonForVisit.value = record.ly_do_den_kham || "";
+  symptoms.value = record.trieu_chung || "";
+  diagnosis.value = record.chan_doan || "";
+  notes.value = record.ghi_chu || "";
+  selectedPrescriptionType.value = record.loai_chi_dinh || "don_thuoc";
+  donThuocData.value = Array.isArray(record.don_thuoc) ? record.don_thuoc : [];
+};
+
+const loadExistingPhieuKham = async (appointmentStatus) => {
+  try {
+    const result = await phieuKhamService.getAll({
+      lich_hen_id: appointmentId.value,
+      per_page: 1,
+    });
+    const record = Array.isArray(result?.data) ? result.data[0] : null;
+
+    if (record) {
+      hydrateFromPhieuKham(record);
+      examMode.value = appointmentStatus === "completed" ? "view" : "edit";
+      return;
+    }
+
+    examMode.value = appointmentStatus === "completed" ? "view" : "create";
+    if (appointmentStatus !== "completed") {
+      await ensureDraftPhieuKham();
+    }
+    if (appointmentStatus === "completed" && requiresExamForAppointment.value) {
+      showErrorToast(
+        "Lịch hẹn đã hoàn thành nhưng chưa tìm thấy phiếu khám đã lưu"
+      );
+    }
+  } catch (error) {
+    console.error("Error loading examination record:", error);
+    if (appointmentStatus === "completed" && requiresExamForAppointment.value) {
+      showErrorToast("Không thể tải kết quả khám đã lưu cho lịch hẹn này");
+    }
   }
 };
 
@@ -687,7 +1085,7 @@ const loadAppointmentData = async () => {
             : data.khach_hang) ||
           data.khachHang?.full_name ||
           "Chưa có tên",
-        oownerPhone:
+        ownerPhone:
           (typeof data.khach_hang === "object"
             ? data.khach_hang?.so_dien_thoai
             : null) ||
@@ -711,11 +1109,15 @@ const loadAppointmentData = async () => {
       } else if (data.dich_vu?.ten || data.dichVu?.ten) {
         serviceChecklist.value = [{ name: data.dich_vu?.ten || data.dichVu?.ten, done: false }];
       }
+      appointmentServiceNames.value = serviceChecklist.value.map((svc) => svc.name);
+      loadServiceChecklistState();
 
       // Load existing notes if any
       if (data.ghi_chu) {
         notes.value = data.ghi_chu;
       }
+
+      await loadExistingPhieuKham(data.trang_thai);
 
       console.log("=== Patient Info Loaded ===");
       console.log("Final patient info:", patientInfo.value);
@@ -741,64 +1143,42 @@ const handleBack = () => {
 };
 
 const handleSave = async () => {
-  const hasAnyMedicalInput = vitalSigns.value.temperature || vitalSigns.value.weight || symptoms.value.trim() || reasonForVisit.value.trim();
-  if (hasAnyMedicalInput && !diagnosis.value.trim()) {
+  if (isViewMode.value) {
+    return;
+  }
+
+  if (!validateVitalSigns()) {
+    showErrorToast("Vui lòng kiểm tra lại các chỉ số sinh tồn");
+    return;
+  }
+
+  const hasInput = hasAnyMedicalInput();
+  if (requiresExamForAppointment.value && hasInput && !diagnosis.value.trim()) {
     showErrorToast("Đã nhập thông tin khám — vui lòng nhập chẩn đoán bệnh");
     return;
   }
 
   saving.value = true;
   try {
-    // Prepare data according to backend API spec
-    const phieuKhamData = {
-      lich_hen_id: appointmentId.value,
-      // Vital signs (nullable)
-      nhiet_do: vitalSigns.value.temperature
-        ? parseFloat(vitalSigns.value.temperature)
-        : null,
-      can_nang: vitalSigns.value.weight
-        ? parseFloat(vitalSigns.value.weight)
-        : null,
-      nhip_tim: vitalSigns.value.heartRate
-        ? parseInt(vitalSigns.value.heartRate)
-        : null,
-      nhip_tho: vitalSigns.value.respiratoryRate
-        ? parseInt(vitalSigns.value.respiratoryRate)
-        : null,
-      // Medical information (nullable)
-      ly_do_den_kham: reasonForVisit.value || null,
-      trieu_chung: symptoms.value || null,
-      chan_doan: diagnosis.value, // Required
-      ghi_chu: notes.value || null,
-      // Loại chỉ định (required) - use selected type
-      loai_chi_dinh: selectedPrescriptionType.value,
-      // Đơn thuốc JSON (nếu có)
-      don_thuoc: donThuocData.value.length > 0 ? donThuocData.value : null,
-    };
-
-    console.log("=== Saving Phiếu Khám ===");
-    console.log("Data:", phieuKhamData);
-
-    // Call backend API to save examination record
-    const response = await api.post("/phieu-kham", phieuKhamData);
+    const response = await api.post("/phieu-kham", buildPhieuKhamPayload());
 
     console.log("=== Save Response ===");
     console.log("Response:", response.data);
 
-    if (response.data.status || response.status === 201) {
+    if (response.status === 200 || response.status === 201 || response.data?.data) {
       const savedId = response.data?.data?.id;
-      if (savedId) savedPhieuKhamId.value = savedId;
+      if (savedId) {
+        savedPhieuKhamId.value = savedId;
+        existingPhieuKhamId.value = savedId;
+      }
+      if (examMode.value === "create") {
+        examMode.value = "edit";
+      }
 
       showSuccessToast(
         response.data.message || "Lưu hồ sơ khám bệnh thành công!"
       );
 
-      // Chỉ redirect khi không có phiếu khám ID (để bác sĩ tiếp tục đính kèm file)
-      if (!savedId) {
-        setTimeout(() => {
-          router.push("/doctor/lich-kham");
-        }, 1500);
-      }
     } else {
       showErrorToast(response.data.message || "Lỗi khi lưu hồ sơ khám bệnh");
     }
@@ -837,55 +1217,55 @@ const handleFollowUpSave = (data) => {
   showSuccessToast("Đã lưu lịch hẹn tái khám");
 };
 const hoanTatVaChuyenThuNgan = async () => {
-  const hasAnyMedicalInput = vitalSigns.value.temperature || vitalSigns.value.weight || symptoms.value.trim() || reasonForVisit.value.trim();
-  if (hasAnyMedicalInput && !diagnosis.value.trim()) {
+  if (isViewMode.value) {
+    return;
+  }
+
+  if (!validateVitalSigns()) {
+    showErrorToast("Vui lòng kiểm tra lại các chỉ số sinh tồn trước khi hoàn tất");
+    return;
+  }
+
+  const hasInput = hasAnyMedicalInput();
+  if (requiresExamForAppointment.value && hasInput && !diagnosis.value.trim()) {
     showErrorToast("Đã nhập thông tin khám — vui lòng nhập chẩn đoán trước khi hoàn tất");
     return;
   }
-  if (!hasAnyMedicalInput && !diagnosis.value.trim()) {
-    const confirmed = window.confirm("Bạn chưa nhập chẩn đoán. Xác nhận hoàn tất mà không có phiếu khám?");
-    if (!confirmed) return;
+  if (requiresExamForAppointment.value && !hasRequiredVitalSigns()) {
+    showErrorToast(
+      "Vui lòng nhập đầy đủ chỉ số sinh tồn trước khi hoàn tất khám"
+    );
+    return;
+  }
+  if (requiresExamForAppointment.value && !diagnosis.value.trim()) {
+    showErrorToast("Vui lòng nhập chẩn đoán trước khi hoàn tất khám");
+    return;
   }
 
   saving.value = true;
   try {
-    // Bước 1: Lưu phiếu khám (chỉ khi có nhập thông tin y tế)
-    if (diagnosis.value.trim()) {
-      const phieuKhamData = {
-        lich_hen_id: appointmentId.value,
-        nhiet_do: vitalSigns.value.temperature
-          ? parseFloat(vitalSigns.value.temperature)
-          : null,
-        can_nang: vitalSigns.value.weight
-          ? parseFloat(vitalSigns.value.weight)
-          : null,
-        nhip_tim: vitalSigns.value.heartRate
-          ? parseInt(vitalSigns.value.heartRate)
-          : null,
-        nhip_tho: vitalSigns.value.respiratoryRate
-          ? parseInt(vitalSigns.value.respiratoryRate)
-          : null,
-        ly_do_den_kham: reasonForVisit.value || null,
-        trieu_chung: symptoms.value || null,
-        chan_doan: diagnosis.value,
-        ghi_chu: notes.value || null,
-        loai_chi_dinh: selectedPrescriptionType.value,
-        don_thuoc: donThuocData.value.length > 0 ? donThuocData.value : null,
-      };
-      const phieuKhamResponse = await api.post("/phieu-kham", phieuKhamData);
-      const phieuKhamId = phieuKhamResponse.data?.data?.id;
+    const shouldPersistPhieuKham =
+      requiresExamForAppointment.value ||
+      hasAnyMedicalInput() ||
+      Boolean(diagnosis.value.trim());
 
+    if (shouldPersistPhieuKham) {
+      const phieuKhamResponse = await api.post(
+        "/phieu-kham",
+        buildPhieuKhamPayload()
+      );
+      const phieuKhamId = phieuKhamResponse.data?.data?.id;
       if (phieuKhamId) {
-        await phieuKhamService.hoanTat(phieuKhamId);
+        existingPhieuKhamId.value = phieuKhamId;
+        savedPhieuKhamId.value = phieuKhamId;
       }
     }
 
-    // Bước 2: Hoàn thành lịch hẹn (chuyển trạng thái sang completed)
     await api.post(`/lich-hen/${appointmentId.value}/hoan-thanh-kham`);
 
     showSuccessToast("Hoàn tất khám thành công!");
-
-    // Bước 3: Chuyển về trang danh sách lịch hẹn
+    persistServiceChecklistState();
+    examMode.value = "view";
     setTimeout(() => {
       router.push("/doctor/appointments");
     }, 1000);
@@ -1222,6 +1602,17 @@ onMounted(() => {
   color: #432323;
   min-width: 0;
   padding: 0;
+}
+.ef-vital-input--error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.25);
+}
+.ef-field-error {
+  margin-top: 6px;
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
 }
 .ef-vital-input::placeholder {
   color: #cbd5e1;

@@ -20,6 +20,8 @@ class ChatbotMessageRequest extends FormRequest
             'history' => ['nullable', 'array', 'max:10'],
             'history.*.role' => ['required_with:history', 'string', 'in:user,assistant'],
             'history.*.content' => ['required_with:history', 'string', 'max:1000'],
+            'history.*.images' => ['nullable', 'array', 'max:4'],
+            'history.*.images.*' => ['required_with:history.*.images', 'string', 'starts_with:data:image/'],
         ];
     }
 }

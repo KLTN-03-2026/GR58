@@ -9,6 +9,14 @@ use App\Http\Requests\UpdatePhieuKhamRequest;
 
 class PhieuKhamController extends Controller
 {
+    private function findLatestByAppointmentId(int $lichHenId): ?PhieuKham
+    {
+        return PhieuKham::where('lich_hen_id', $lichHenId)
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->first();
+    }
+
     /**
      * Thêm mới phiếu khám
      */
@@ -52,8 +60,21 @@ class PhieuKhamController extends Controller
             // Thêm nhan_vien_id vào validated data
             $validated['nhan_vien_id'] = $nhanVienId;
 
-            // Tạo phiếu khám
+            $existingPhieuKham = $this->findLatestByAppointmentId((int) $validated['lich_hen_id']);
+
+            if ($existingPhieuKham) {
+                $existingPhieuKham->update($validated);
+                $existingPhieuKham->load(['lichHen.thuCung', 'lichHen.khachHang', 'nhanVien']);
+
+                return response()->json([
+                    'message' => 'Cập nhật phiếu khám thành công',
+                    'data' => new \App\Http\Resources\PhieuKhamResource($existingPhieuKham),
+                ], 200);
+            }
+
+            // Tạo phiếu khám mới khi lịch hẹn chưa có bản ghi
             $phieuKham = PhieuKham::create($validated);
+            $phieuKham->load(['lichHen.thuCung', 'lichHen.khachHang', 'nhanVien']);
 
             return response()->json([
                 'message' => 'Thêm phiếu khám thành công',
@@ -114,7 +135,8 @@ class PhieuKhamController extends Controller
 
             $perPage = (int) $request->get('per_page', 15);
             $phieuKhams = $query
-                ->orderByDesc('created_at')
+                ->orderByDesc('updated_at')
+                ->orderByDesc('id')
                 ->paginate($perPage);
 
             return response()->json([

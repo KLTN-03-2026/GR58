@@ -243,6 +243,12 @@
             <!-- Medical History Tab -->
             <div v-show="activeTab === 'history'" class="flex flex-col gap-8">
               <div
+                v-if="medicalHistory.length === 0"
+                class="border !border-gray-300 rounded-lg px-4 py-6 text-sm text-gray-500"
+              >
+                Chưa có lịch sử khám cho thú cưng này.
+              </div>
+              <div
                 v-for="(record, index) in medicalHistory"
                 :key="index"
                 class="relative"
@@ -255,15 +261,15 @@
                 <!-- Timeline line -->
                 <div
                   v-if="index < medicalHistory.length - 1"
-                  class="absolute left-[13px] top-8 w-0.5 h-[332px] bg-[#d1d5dc]"
+                  class="absolute left-[13px] top-8 bottom-[-20px] w-0.5 bg-[#d1d5dc]"
                 ></div>
 
                 <!-- Record Card -->
                 <div
-                  class="ml-8 bg-white border !border-gray-300 border-l-4 border-l-[#2b7fff] rounded-[14px] p-6 shadow-sm"
+                  class="ml-8 bg-white border !border-gray-300 border-l-4 border-l-[#2b7fff] rounded-[14px] p-4 shadow-sm"
                 >
                   <!-- Header -->
-                  <div class="flex justify-between items-start mb-16">
+                  <div class="flex justify-between items-start mb-4">
                     <div class="flex flex-col gap-1">
                       <div class="flex items-center gap-2 h-6">
                         <!-- <img :src="icons.calendar" alt="" class="w-4 h-4" /> -->
@@ -292,7 +298,7 @@
                   </div>
 
                   <!-- Details -->
-                  <div class="flex flex-col gap-4">
+                  <div class="flex flex-col gap-2.5">
                     <div class="flex items-center gap-2 h-5">
                       <!-- <img :src="icons.doctor" alt="" class="w-4 h-4" /> -->
                       <span
@@ -345,7 +351,7 @@
 
                     <button
                       @click="openDetailModal(record)"
-                      class="bg-white border !border-gray-300 rounded-lg h-8 px-3 flex items-center gap-2 hover:bg-gray-50 self-start mt-4"
+                      class="bg-white border !border-gray-300 rounded-lg h-8 px-3 flex items-center gap-2 hover:bg-gray-50 self-start mt-2"
                     >
                       <!-- <img :src="icons.eye" alt="" class="w-4 h-4" /> -->
                       <span
@@ -363,6 +369,9 @@
               v-show="activeTab === 'vaccination'"
               class="border !border-gray-300 rounded-[10px] overflow-hidden"
             >
+              <div v-if="vaccinations.length === 0" class="px-4 py-6 text-sm text-gray-500">
+                Chưa có dữ liệu tiêm chủng trong hồ sơ hiện tại.
+              </div>
               <table class="w-full">
                 <thead class="bg-gray-100">
                   <tr class="h-16">
@@ -432,6 +441,12 @@
             <!-- Images Tab -->
             <div v-show="activeTab === 'images'" class="grid grid-cols-3 gap-4">
               <div
+                v-if="medicalImages.length === 0"
+                class="col-span-3 border !border-gray-300 rounded-lg px-4 py-6 text-sm text-gray-500"
+              >
+                Chưa có hình ảnh cận lâm sàng hoặc đính kèm.
+              </div>
+              <div
                 v-for="(image, index) in medicalImages"
                 :key="index"
                 class="flex flex-col gap-2"
@@ -473,9 +488,16 @@
 
             <!-- Weight Tab -->
             <div v-show="activeTab === 'weight'" class="flex flex-col gap-4">
+              <div
+                v-if="weightChart.length === 0"
+                class="border !border-gray-300 rounded-lg px-4 py-6 text-sm text-gray-500"
+              >
+                Chưa có dữ liệu cân nặng theo thời gian.
+              </div>
               <!-- Weight Chart -->
               <div
                 class="bg-gradient-to-r from-[#f0fdf4] to-[#eff6ff] border !border-[#b9f8cf] rounded-[10px] px-6 pt-6 pb-px"
+                v-if="weightChart.length > 0"
               >
                 <h3
                   class="text-base text-[#101828] leading-6 tracking-[-0.3125px] mb-4"
@@ -506,6 +528,7 @@
               <!-- Weight History Table -->
               <div
                 class="border !border-gray-300 rounded-[10px] overflow-hidden"
+                v-if="weightHistory.length > 0"
               >
                 <table class="w-full">
                   <thead class="bg-gray-100">
@@ -562,10 +585,14 @@
     <!-- Detail Modal -->
     <div
       v-if="isDetailModalOpen"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-10"
+      class="fixed inset-0 bg-black/60 flex items-center justify-center z-[2500] p-6"
     >
-      <div class="w-full max-w-[1000px] h-full max-h-[90vh]">
-        <XemChiTiet @close="isDetailModalOpen = false" />
+      <div class="w-full max-w-[1080px] h-full max-h-[92vh]">
+        <XemChiTiet
+          :record="selectedRecord?.raw || null"
+          :patient="patientData"
+          @close="isDetailModalOpen = false"
+        />
       </div>
     </div>
   </div>
@@ -582,6 +609,7 @@ import ArrowLeftIcon from "@/assets/svg/arrow-left.svg";
 
 const router = useRouter();
 const route = useRoute();
+const DEFAULT_PET_IMAGE = "https://www.figma.com/api/mcp/asset/7dc3f4c9-30fd-4f46-b415-7a1aab552e01";
 
 // Loading state
 const loading = ref(true);
@@ -658,135 +686,29 @@ const tabs = [
   },
 ];
 
-// Patient data
 const patientData = ref({
-  image:
-    "https://www.figma.com/api/mcp/asset/bcbdd3c0-05cd-4022-95d5-0219bc3ca3b9",
-  name: "Milo",
-  species: "Chó Golden Retriever",
-  type: "member",
-  note: "Dễ cắn khi sợ hãi, dị ứng Penicillin",
-  breed: "Golden Retriever",
-  age: "3 tuổi",
-  gender: "Đực",
-  weight: "28 kg",
-  ownerName: "Nguyễn Văn A",
-  ownerPhone: "0901234567",
-  ownerAddress: "123 Nguyễn Huệ, Quận 1, TP.HCM",
+  image: DEFAULT_PET_IMAGE,
+  name: "Chưa có tên",
+  species: "Chưa rõ",
+  type: "vanglai",
+  note: "Không có ghi chú",
+  breed: "Chưa rõ",
+  age: "Chưa rõ",
+  gender: "Chưa rõ",
+  weight: "Chưa rõ",
+  ownerName: "Chưa có chủ nuôi",
+  ownerPhone: "Chưa có SĐT",
+  ownerAddress: "Chưa có địa chỉ",
 });
-
-// Medical history records
-const medicalHistory = ref([
-  {
-    date: "01/12/2024",
-    time: "14:30",
-    title: "Khám Da liễu",
-    doctor: "BS. Trần Văn B",
-    diagnosis: "Viêm da dị ứng do thức ăn",
-    treatment: "Thuốc bôi Ketoconazole, Kháng sinh Amoxicillin",
-  },
-  {
-    date: "20/10/2024",
-    time: "10:15",
-    title: "Khám Tổng quát",
-    doctor: "BS. Nguyễn Văn A",
-    diagnosis: "Sức khỏe bình thường, tiêm phòng định kỳ",
-    treatment: "Không kê đơn",
-  },
-  {
-    date: "15/08/2024",
-    time: "16:00",
-    title: "Khám Nha khoa",
-    doctor: "BS. Lê Thị C",
-    diagnosis: "Cao răng, viêm lợi nhẹ",
-    treatment: "Gel bôi răng, Vitamin C",
-  },
-]);
-
-// Vaccination records
-const vaccinations = ref([
-  {
-    date: "20/10/2024",
-    name: "Vắc-xin Dại (Rabies)",
-    lot: "#LOT2024-RB-001",
-    doctor: "BS. Nguyễn Văn A",
-    nextDate: "20/10/2025",
-  },
-  {
-    date: "15/05/2024",
-    name: "Vắc-xin 7 Bệnh (DHPPI+L)",
-    lot: "#LOT2024-7B-045",
-    doctor: "BS. Trần Văn B",
-    nextDate: "15/05/2025",
-  },
-  {
-    date: "10/02/2024",
-    name: "Vắc-xin Dại (Rabies)",
-    lot: "#LOT2023-RB-089",
-    doctor: "BS. Lê Thị C",
-    nextDate: "10/02/2025",
-  },
-]);
-
-// Medical images
-const medicalImages = ref([
-  {
-    type: "X-Ray",
-    date: "01/12/2024",
-    description: "Chụp X-quang vùng bụng",
-    url: null,
-  },
-  {
-    type: "Photo",
-    date: "01/12/2024",
-    description: "Vết viêm da vùng bụng",
-    url: "https://www.figma.com/api/mcp/asset/b1ac8745-7e4b-48d0-91f7-c8b03a4c46cf",
-  },
-  {
-    type: "Photo",
-    date: "15/08/2024",
-    description: "Răng trước khi điều trị",
-    url: "https://www.figma.com/api/mcp/asset/ea78b98d-16fa-44e1-bea8-480b9bf3f537",
-  },
-]);
-
-// Weight chart data - Calculate heights proportionally
-const weightData = [
-  { weight: 25, date: "01/12/2023" },
-  { weight: 26, date: "10/02/2024" },
-  { weight: 26.5, date: "15/05/2024" },
-  { weight: 27, date: "15/08/2024" },
-  { weight: 27.5, date: "20/10/2024" },
-  { weight: 28, date: "01/12/2024" },
-];
-
-const minWeight = Math.min(...weightData.map((d) => d.weight));
-const maxWeight = Math.max(...weightData.map((d) => d.weight));
-const maxHeight = 256; // pixels
-
-const weightChart = ref(
-  weightData.map((item) => ({
-    weight: `${item.weight}kg`,
-    height: `${
-      ((item.weight - minWeight) / (maxWeight - minWeight)) * maxHeight
-    }px`,
-    date: item.date,
-  }))
-);
-
-// Weight history table
-const weightHistory = ref([
-  { date: "01/12/2024", weight: "28 kg", change: "" },
-  { date: "20/10/2024", weight: "27.5 kg", change: "-0.5 kg" },
-  { date: "15/08/2024", weight: "27 kg", change: "-0.5 kg" },
-  { date: "15/05/2024", weight: "26.5 kg", change: "-0.5 kg" },
-  { date: "10/02/2024", weight: "26 kg", change: "-0.5 kg" },
-  { date: "01/12/2023", weight: "25 kg", change: "-1 kg" },
-]);
+const medicalHistory = ref([]);
+const vaccinations = ref([]);
+const medicalImages = ref([]);
+const weightChart = ref([]);
+const weightHistory = ref([]);
 
 // Methods
 const goBack = () => {
-  router.push("/doctor/benh-an");
+  router.push("/doctor/medical-records");
 };
 
 const openDetailModal = (record) => {
@@ -794,10 +716,8 @@ const openDetailModal = (record) => {
   isDetailModalOpen.value = true;
 };
 
-// Load patient data from API
 const loadPatientData = async () => {
   const thuCungId = route.query.thu_cung_id;
-  const khachHangId = route.query.khach_hang_id;
 
   if (!thuCungId) {
     error.value = "Không tìm thấy ID thú cưng";
@@ -809,71 +729,71 @@ const loadPatientData = async () => {
   error.value = null;
 
   try {
-    // Load thông tin thú cưng
-    const { data: petRes } = await api.get(`/thu-cung/${thuCungId}`);
-    const pet = petRes.data;
+    const { data: detailRes } = await api.get(`/ho-so-benh-an/thu-cung/${thuCungId}`);
+    const payload = detailRes?.data || {};
+    const pet = payload.thu_cung || {};
+    const owner = payload.khach_hang || {};
+    const history = payload.history || [];
 
-    // Load lịch sử khám
-    const { data: historyRes } = await api.get(`/phieu-kham/thu-cung/${thuCungId}`);
-    const history = historyRes.data || [];
-
-    // Map patient data
     patientData.value = {
-      image: resolveImageUrl(pet.anh_dai_dien_url || pet.anh_dai_dien),
-      name: pet.ten_thu_cung || "Chưa có tên",
-      species: `${pet.loai_thu_cung || ""} ${pet.giong_thu_cung || ""}`.trim(),
-      type: pet.khach_hang?.la_thanh_vien ? "member" : "khach_vang_lai",
-      note: pet.ghi_chu || "Không có ghi chú",
-      breed: pet.giong_thu_cung || "Chưa rõ giống",
-      age: pet.tuoi_thu_cung ? calculateAge(pet.tuoi_thu_cung) : "Chưa rõ tuổi",
-      gender: pet.gioi_tinh === "male" ? "Đực" : pet.gioi_tinh === "female" ? "Cái" : "Không xác định",
-      weight: pet.can_nang ? `${pet.can_nang} kg` : "Chưa cân",
-      ownerName: pet.khach_hang?.ho_ten || pet.khach_hang?.ten || "Chưa có chủ nuôi",
-      ownerPhone: pet.khach_hang?.so_dien_thoai || "Chưa có SĐT",
-      ownerAddress: pet.khach_hang?.dia_chi || "Chưa có địa chỉ",
+      image: resolveImageUrl(pet.image, DEFAULT_PET_IMAGE),
+      name: pet.name || "Chưa có tên",
+      species: pet.species || "Chưa rõ",
+      type: owner.type || "vanglai",
+      note: pet.note || "Không có ghi chú",
+      breed: pet.breed || "Chưa rõ giống",
+      age: pet.age || "Chưa rõ tuổi",
+      gender: toGenderLabel(pet.gender),
+      weight: pet.weight ? `${pet.weight} kg` : "Chưa cân",
+      ownerName: owner.name || "Chưa có chủ nuôi",
+      ownerPhone: owner.phone || "Chưa có SĐT",
+      ownerAddress: owner.address || "Chưa có địa chỉ",
     };
 
-    // Map medical history
     medicalHistory.value = history.map((record) => ({
-      date: formatDate(record.created_at),
-      time: formatTime(record.created_at),
-      title: record.ly_do_den_kham || "Khám bệnh",
-      doctor: record.nhan_vien?.full_name || "Chưa xác định",
-      diagnosis: record.chan_doan || "Chưa có chẩn đoán",
-      treatment: record.ghi_chu || "Không có ghi chú điều trị",
+      id: record.id,
+      date: record.date || formatDate(record.created_at),
+      time: record.time || formatTime(record.created_at),
+      title: record.reason || "Khám bệnh",
+      doctor: record.doctor?.name || "Chưa xác định",
+      diagnosis: record.diagnosis || "Chưa có chẩn đoán",
+      treatment: record.notes || "Không có ghi chú điều trị",
       raw: record,
     }));
 
-    // Map weight history from medical records
-    const weightRecords = history
-      .filter((r) => r.can_nang)
-      .map((r) => ({
-        date: formatDate(r.created_at),
-        weight: parseFloat(r.can_nang),
+    const weightRecords = (payload.weight_history || [])
+      .map((record) => ({
+        date: record.date,
+        weight: parseFloat(record.value),
       }))
-      .reverse();
+      .filter((record) => !Number.isNaN(record.weight));
 
     if (weightRecords.length > 0) {
-      const minWeight = Math.min(...weightRecords.map((d) => d.weight));
-      const maxWeight = Math.max(...weightRecords.map((d) => d.weight));
-      const maxHeight = 256;
+      const minWeightValue = Math.min(...weightRecords.map((d) => d.weight));
+      const maxWeightValue = Math.max(...weightRecords.map((d) => d.weight));
 
       weightChart.value = weightRecords.map((item) => ({
         weight: `${item.weight}kg`,
-        height: `${((item.weight - minWeight) / (maxWeight - minWeight || 1)) * maxHeight}px`,
+        height: `${((item.weight - minWeightValue) / (maxWeightValue - minWeightValue || 1)) * 256}px`,
         date: item.date,
       }));
 
       weightHistory.value = weightRecords.map((item, index) => {
-        const change = index > 0 ? item.weight - weightRecords[index - 1].weight : 0;
+        const change =
+          index > 0 ? item.weight - weightRecords[index - 1].weight : 0;
         return {
           date: item.date,
           weight: `${item.weight} kg`,
-          change: change !== 0 ? `${change > 0 ? "+" : ""}${change.toFixed(1)} kg` : "",
+          change:
+            change !== 0
+              ? `${change > 0 ? "+" : ""}${change.toFixed(1)} kg`
+              : "",
         };
       }).reverse();
+    } else {
+      weightChart.value = [];
+      weightHistory.value = [];
     }
-
   } catch (err) {
     console.error("Load patient data error:", err);
     error.value = err.response?.data?.message || "Không thể tải dữ liệu bệnh án";
@@ -883,19 +803,10 @@ const loadPatientData = async () => {
 };
 
 // Helper functions
-const calculateAge = (birthDate) => {
-  const birth = new Date(birthDate);
-  const now = new Date();
-  const years = now.getFullYear() - birth.getFullYear();
-  const months = now.getMonth() - birth.getMonth();
-
-  if (years > 0) {
-    return `${years} tuổi`;
-  } else if (months > 0) {
-    return `${months} tháng`;
-  } else {
-    return "Dưới 1 tháng";
-  }
+const toGenderLabel = (gender) => {
+  if (gender === "male" || gender === "duc") return "Đực";
+  if (gender === "female" || gender === "cai") return "Cái";
+  return "Chưa rõ";
 };
 
 const formatDate = (dateString) => {

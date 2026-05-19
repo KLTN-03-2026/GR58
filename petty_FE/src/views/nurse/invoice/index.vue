@@ -95,7 +95,7 @@
                 </div>
                 <div class="flex flex-col items-end gap-1">
                   <p class="text-lg font-bold text-[#155dfc]">
-                    {{ formatCurrency(item.tong_tien || item.dich_vu?.gia_tien || 0) }}
+                    {{ formatCurrency(getDisplayAmount(item)) }}
                   </p>
                   <span
                     :class="[
@@ -400,6 +400,16 @@ const viewInvoiceDetail = async (inv) => {
 
 const formatCurrency = (val) => {
   return new Intl.NumberFormat('vi-VN').format(val) + ' ₫'
+}
+
+const getDisplayAmount = (item) => {
+  if (item?.tong_tien_hien_thi !== null && item?.tong_tien_hien_thi !== undefined) {
+    return Number(item.tong_tien_hien_thi) || 0
+  }
+  if (item?.tong_tien !== null && item?.tong_tien !== undefined) {
+    return Number(item.tong_tien) || 0
+  }
+  return Number(item?.dich_vu?.gia_tien) || 0
 }
 
 const formatTime = (dt) => {

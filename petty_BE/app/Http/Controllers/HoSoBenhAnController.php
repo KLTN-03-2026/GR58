@@ -3,13 +3,54 @@
 namespace App\Http\Controllers;
 
 use App\Models\ThuCung;
-use App\Models\KhachHang;
 use App\Models\PhieuKham;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use App\Helpers\PetImageHelper;
 
 class HoSoBenhAnController extends Controller
 {
+    private function mapOwnerType($khachHang): string
+    {
+        return $khachHang && !empty($khachHang->email) ? 'member' : 'vanglai';
+    }
+
+    private function mapExamItem(PhieuKham $pk): array
+    {
+        $serviceNames = [];
+        if ($pk->relationLoaded('lichHen') && $pk->lichHen) {
+            if ($pk->lichHen->relationLoaded('dichVus')) {
+                $serviceNames = $pk->lichHen->dichVus->pluck('ten')->filter()->values()->all();
+            } elseif ($pk->lichHen->relationLoaded('dichVu') && $pk->lichHen->dichVu) {
+                $serviceNames = [$pk->lichHen->dichVu->ten];
+            }
+        }
+
+        return [
+            'id' => $pk->id,
+            'created_at' => $pk->created_at?->format('Y-m-d H:i:s'),
+            'date' => $pk->created_at?->format('d/m/Y'),
+            'time' => $pk->created_at?->format('H:i'),
+            'reason' => $pk->ly_do_den_kham ?? '',
+            'symptoms' => $pk->trieu_chung ?? '',
+            'diagnosis' => $pk->chan_doan ?? '',
+            'notes' => $pk->ghi_chu ?? '',
+            'referral_type' => $pk->loai_chi_dinh ?? '',
+            'vital_signs' => [
+                'temperature' => $pk->nhiet_do,
+                'weight' => $pk->can_nang,
+                'heart_rate' => $pk->nhip_tim,
+                'respiratory_rate' => $pk->nhip_tho,
+            ],
+            'prescription' => is_array($pk->don_thuoc) ? $pk->don_thuoc : [],
+            'doctor' => [
+                'id' => $pk->nhanVien?->id,
+                'name' => $pk->nhanVien?->full_name ?? 'Chưa xác định',
+            ],
+            'services' => $serviceNames,
+        ];
+    }
+
     /**
      * Lấy danh sách hồ sơ bệnh án:
      * - Nhóm theo Khách hàng
@@ -49,7 +90,7 @@ class HoSoBenhAnController extends Controller
                 $khachHang = $pets->first()->khachHang;
                 if (!$khachHang) continue;
 
-                $customerType = $khachHang->email ? 'member' : 'vanglai';
+                $customerType = $this->mapOwnerType($khachHang);
 
                 // Filter by type
                 if ($type === 'member' && $customerType !== 'member') continue;
@@ -61,8 +102,9 @@ class HoSoBenhAnController extends Controller
                     $phieuKhams = PhieuKham::whereHas('lichHen', function ($q) use ($pet) {
                             $q->where('thu_cung_id', $pet->id);
                         })
-                        ->with(['nhanVien', 'lichHen'])
-                        ->orderByDesc('created_at')
+                        ->with(['nhanVien', 'lichHen.dichVu', 'lichHen.dichVus'])
+                        ->orderByDesc('updated_at')
+                        ->orderByDesc('id')
                         ->get();
 
                     if ($phieuKhams->isEmpty()) continue;
@@ -86,14 +128,14 @@ class HoSoBenhAnController extends Controller
                         'weight'       => $pet->can_nang
                                             ? (is_numeric($pet->can_nang) ? $pet->can_nang . ' kg' : $pet->can_nang)
                                             : 'Chưa rõ',
-                        'image'        => $pet->anh_dai_dien
-                                            ? asset('storage/' . $pet->anh_dai_dien)
-                                            : null,
+                        'image'        => $pet->anh_dai_dien_url
+                                            ?? PetImageHelper::getDefaultImage($pet->loai_thu_cung ?? 'khac', $pet->gioi_tinh),
                         'lastVisit'    => $lastVisitDate->format('d/m/Y H:i'),
                         'lastVisitAgo' => $diffText,
                         'lastDiagnosis'=> $latestKham->chan_doan ?? 'Chưa có chẩn đoán',
                         'lastDoctor'   => $latestKham->nhanVien?->full_name ?? 'Chưa xác định',
                         'totalExams'   => $phieuKhams->count(),
+                        'latest_exam_id' => $latestKham->id,
                     ];
                 }
 
@@ -104,7 +146,7 @@ class HoSoBenhAnController extends Controller
                     'name'  => $khachHang->full_name ?? 'Khách vãng lai',
                     'phone' => $khachHang->phone ?? '',
                     'email' => $khachHang->email ?? '',
-                    'type'  => 'member', // Tất cả đã có tài khoản đều là member
+                    'type'  => $customerType,
                     'pets'  => $petsData,
                 ];
             }
@@ -142,29 +184,23 @@ class HoSoBenhAnController extends Controller
             $phieuKhams = PhieuKham::whereHas('lichHen', function ($q) use ($thuCungId) {
                     $q->where('thu_cung_id', $thuCungId);
                 })
-                ->with(['nhanVien', 'lichHen.dichVu'])
-                ->orderByDesc('created_at')
+                ->with(['nhanVien', 'lichHen.dichVu', 'lichHen.dichVus'])
+                ->orderByDesc('updated_at')
+                ->orderByDesc('id')
                 ->get();
 
-            $exams = $phieuKhams->map(function ($pk) {
-                return [
-                    'id'             => $pk->id,
-                    'date'           => $pk->created_at->format('d/m/Y'),
-                    'time'           => $pk->created_at->format('H:i'),
-                    'ly_do_den_kham' => $pk->ly_do_den_kham ?? '',
-                    'trieu_chung'    => $pk->trieu_chung ?? '',
-                    'chan_doan'      => $pk->chan_doan ?? '',
-                    'ghi_chu'        => $pk->ghi_chu ?? '',
-                    'loai_chi_dinh'  => $pk->loai_chi_dinh ?? '',
-                    'nhiet_do'       => $pk->nhiet_do,
-                    'can_nang'       => $pk->can_nang,
-                    'nhip_tim'       => $pk->nhip_tim,
-                    'nhip_tho'       => $pk->nhip_tho,
-                    'dich_vu'        => $pk->lichHen?->dichVu?->ten_dich_vu ?? null,
-                    'bac_si'         => $pk->nhanVien?->full_name ?? 'Chưa xác định',
-                    'bac_si_id'      => $pk->nhanVien?->id,
-                ];
-            });
+            $exams = $phieuKhams->map(fn ($pk) => $this->mapExamItem($pk))->values();
+            $latestExam = $exams->first();
+
+            $weightHistory = $exams
+                ->filter(fn ($exam) => !is_null($exam['vital_signs']['weight']))
+                ->map(function ($exam) {
+                    return [
+                        'date' => $exam['date'],
+                        'value' => (float) $exam['vital_signs']['weight'],
+                    ];
+                })
+                ->values();
 
             return response()->json([
                 'success' => true,
@@ -174,15 +210,46 @@ class HoSoBenhAnController extends Controller
                         'name'    => $pet->ten_thu_cung,
                         'species' => $pet->loai_thu_cung,
                         'breed'   => $pet->giong_thu_cung,
-                        'image'   => $pet->anh_dai_dien ? asset('storage/' . $pet->anh_dai_dien) : null,
+                        'image'   => $pet->anh_dai_dien_url
+                            ?? PetImageHelper::getDefaultImage($pet->loai_thu_cung ?? 'khac', $pet->gioi_tinh),
+                        'gender'  => $pet->gioi_tinh,
+                        'weight'  => $pet->can_nang,
+                        'note'    => $pet->ghi_chu ?? '',
                     ],
                     'khach_hang' => [
                         'id'    => $pet->khachHang?->id,
                         'name'  => $pet->khachHang?->full_name,
                         'phone' => $pet->khachHang?->phone,
+                        'address' => $pet->khachHang?->address,
+                        'type' => $this->mapOwnerType($pet->khachHang),
                     ],
-                    'phieu_khams' => $exams,
-                    'total'       => $exams->count(),
+                    'summary' => [
+                        'total_exams' => $exams->count(),
+                        'latest_diagnosis' => $latestExam['diagnosis'] ?? 'Chưa có chẩn đoán',
+                        'latest_visit' => $latestExam['date'] ?? null,
+                    ],
+                    'history' => $exams,
+                    'weight_history' => $weightHistory,
+                    'latest_exam' => $latestExam ?? [
+                        'id' => null,
+                        'created_at' => null,
+                        'date' => null,
+                        'time' => null,
+                        'reason' => '',
+                        'symptoms' => '',
+                        'diagnosis' => 'Chưa có dữ liệu khám',
+                        'notes' => '',
+                        'referral_type' => '',
+                        'vital_signs' => [
+                            'temperature' => null,
+                            'weight' => null,
+                            'heart_rate' => null,
+                            'respiratory_rate' => null,
+                        ],
+                        'prescription' => [],
+                        'doctor' => ['id' => null, 'name' => 'Chưa xác định'],
+                        'services' => [],
+                    ],
                 ],
             ]);
 

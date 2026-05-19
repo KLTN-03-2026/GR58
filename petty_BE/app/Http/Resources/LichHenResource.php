@@ -14,6 +14,34 @@ class LichHenResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $tongTienDichVu = 0;
+        if ($this->relationLoaded('dichVus') && $this->dichVus && $this->dichVus->count() > 0) {
+            $tongTienDichVu = (float) $this->dichVus->sum(function ($dv) {
+                return (float) ($dv->pivot->thanh_tien ?? (($dv->pivot->don_gia ?? $dv->gia_tien ?? 0) * ($dv->pivot->so_luong ?? 1)));
+            });
+        } elseif ($this->relationLoaded('dichVu') && $this->dichVu) {
+            $tongTienDichVu = (float) ($this->dichVu->gia_tien ?? 0);
+        } else {
+            $tongTienDichVu = (float) ($this->tong_tien ?? 0);
+        }
+
+        $tongTienThuoc = 0;
+        $donThuoc = null;
+        if ($this->relationLoaded('phieuKham') && $this->phieuKham) {
+            $donThuoc = $this->phieuKham->don_thuoc;
+            if (is_array($donThuoc) && !empty($donThuoc)) {
+                $tongTienThuoc = (float) collect($donThuoc)->sum(function ($item) {
+                    $soLuong = (float) ($item['so_luong'] ?? $item['quantity'] ?? 0);
+                    $donGia = (float) ($item['don_gia'] ?? $item['unit_price'] ?? 0);
+                    return $soLuong * $donGia;
+                });
+            }
+        }
+
+        $tongTienHienThi = $this->da_thanh_toan
+            ? $tongTienThuoc
+            : ($tongTienDichVu + $tongTienThuoc);
+
         return [
             'id' => $this->id,
             'ngay_gio' => $this->ngay_gio,
@@ -27,6 +55,7 @@ class LichHenResource extends JsonResource
             'thoi_gian_bat_dau_kham' => $this->thoi_gian_bat_dau_kham ? $this->thoi_gian_bat_dau_kham->format('Y-m-d H:i:s') : null,
             'thoi_gian_hoan_thanh' => $this->thoi_gian_hoan_thanh ? $this->thoi_gian_hoan_thanh->format('Y-m-d H:i:s') : null,
             'tong_tien' => $this->tong_tien,
+            'tong_tien_hien_thi' => $tongTienHienThi,
             'da_thanh_toan' => $this->da_thanh_toan,
             'da_thu_thuoc' => $this->da_thu_thuoc,
             'phuong_thuc_thanh_toan' => $this->phuong_thuc_thanh_toan,
@@ -99,6 +128,12 @@ class LichHenResource extends JsonResource
             }),
             'thanh_toans' => $this->whenLoaded('thanhToans', function () {
                 return $this->thanhToans;
+            }),
+            'phieu_kham' => $this->whenLoaded('phieuKham', function () use ($donThuoc) {
+                return [
+                    'id' => $this->phieuKham->id,
+                    'don_thuoc' => $donThuoc,
+                ];
             }),
             'created_at' => $this->created_at ? $this->created_at->format('Y-m-d H:i:s') : null,
             'updated_at' => $this->updated_at ? $this->updated_at->format('Y-m-d H:i:s') : null,

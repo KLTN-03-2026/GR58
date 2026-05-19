@@ -194,12 +194,12 @@
                       v-for="(date, index) in calendarDates"
                       :key="index"
                       @click="selectDate(date)"
-                      :disabled="!date.isCurrentMonth || date.isPast"
+                      :disabled="!date.isCurrentMonth || date.isPast || !date.isAvailable"
                       :class="[
                         'w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors',
                         date.isSelected
                           ? 'bg-black text-white'
-                          : !date.isCurrentMonth || date.isPast
+                          : !date.isCurrentMonth || date.isPast || !date.isAvailable
                           ? 'opacity-50 cursor-not-allowed text-gray-500'
                           : 'text-black hover:bg-gray-100 cursor-pointer',
                       ]"
@@ -210,6 +210,12 @@
                 </div>
               </div>
             </div>
+            <p v-if="loadingAvailableDays" class="mt-2 text-sm text-gray-500">
+              Đang tải lịch làm việc của phòng khám...
+            </p>
+            <p v-if="daysMessage" class="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2">
+              {{ daysMessage }}
+            </p>
           </div>
 
           <!-- Time Picker -->
@@ -578,6 +584,9 @@ const weekDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const timeSlots    = ref([]);
 const loadingSlots = ref(false);
 const slotsMessage = ref('');
+const loadingAvailableDays = ref(false);
+const availableDateSet = ref(new Set());
+const daysMessage = ref('');
 
 // Trạng thái lựa chọn
 const selectedPet = ref(null);
@@ -695,6 +704,7 @@ const calendarDates = computed(() => {
       day,
       isCurrentMonth: true,
       isPast,
+      isAvailable: availableDateSet.value.has(toDateKey(date)),
       isSelected,
       date,
     });
@@ -707,6 +717,7 @@ const calendarDates = computed(() => {
       day,
       isCurrentMonth: false,
       isPast: false,
+      isAvailable: false,
       isSelected: false,
       date: new Date(currentYear.value, currentMonth.value + 1, day),
     });
@@ -813,8 +824,50 @@ const fetchAvailableSlots = async (date) => {
   }
 };
 
+const toDateKey = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+const fetchAvailableDaysInMonth = async () => {
+  loadingAvailableDays.value = true;
+  daysMessage.value = '';
+  availableDateSet.value = new Set();
+
+  try {
+    const month = `${currentYear.value}-${String(currentMonth.value + 1).padStart(2, '0')}`;
+    const res = await axios.get(`${API_BASE}/lich-hen/available-days`, { params: { month } });
+    const availableDates = Array.isArray(res.data?.available_dates) ? res.data.available_dates : [];
+    availableDateSet.value = new Set(availableDates);
+
+    if (availableDates.length === 0) {
+      daysMessage.value = 'Tháng này phòng khám chưa có lịch làm việc. Vui lòng chọn tháng khác.';
+    }
+
+    if (
+      selectedDate.value &&
+      selectedDate.value.getFullYear() === currentYear.value &&
+      selectedDate.value.getMonth() === currentMonth.value
+    ) {
+      const selectedKey = toDateKey(selectedDate.value);
+      if (!availableDateSet.value.has(selectedKey)) {
+        selectedDate.value = null;
+        selectedTime.value = null;
+        timeSlots.value = [];
+        slotsMessage.value = '';
+      }
+    }
+  } catch (err) {
+    daysMessage.value = err.response?.data?.message || 'Không thể tải lịch làm việc theo tháng';
+  } finally {
+    loadingAvailableDays.value = false;
+  }
+};
+
 const selectDate = (date) => {
-  if (!date.isCurrentMonth || date.isPast) return;
+  if (!date.isCurrentMonth || date.isPast || !date.isAvailable) return;
   selectedDate.value = date.date;
   fetchAvailableSlots(date.date);
 };
@@ -1021,6 +1074,7 @@ const formatPrice = (price) => {
 
 // Quan sát thay đổi tháng của lịch để xử lý (nếu cần) khi ngày được chọn nằm ngoài phạm vi
 watch([currentMonth, currentYear], () => {
+  fetchAvailableDaysInMonth();
   if (selectedDate.value) {
     const selectedMonth = selectedDate.value.getMonth();
     const selectedYear = selectedDate.value.getFullYear();
@@ -1042,6 +1096,7 @@ watch(
       await fetchPets();
       // refresh services when modal opens too
       await fetchServices();
+      await fetchAvailableDaysInMonth();
       // refresh customer display name
       refreshCustomerName();
     }

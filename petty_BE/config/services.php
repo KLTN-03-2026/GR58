@@ -43,6 +43,7 @@ return [
     'groq' => [
         'api_key' => env('GROQ_API_KEY'),
         'model' => env('GROQ_MODEL', 'meta-llama/llama-4-scout-17b-16e-instruct'),
+        'vision_model' => env('GROQ_VISION_MODEL', env('GROQ_MODEL', 'meta-llama/llama-4-scout-17b-16e-instruct')),
     ],
 
     'slack' => [

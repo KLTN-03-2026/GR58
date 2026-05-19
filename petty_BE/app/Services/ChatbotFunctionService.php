@@ -336,7 +336,7 @@ class ChatbotFunctionService
 
                 $capacity = $shifts->filter(function ($shift) use ($hour) {
                     if ($shift->thoi_gian_truc === LichLamViec::CA_SANG) {
-                        return $hour >= 8 && $hour <= 15;
+                        return $hour >= 8 && $hour <= 16;
                     }
                     if ($shift->thoi_gian_truc === LichLamViec::CA_CHIEU) {
                         return $hour >= 13 && $hour <= 16;
@@ -371,7 +371,7 @@ class ChatbotFunctionService
                     throw new \RuntimeException('Thú cưng đã có lịch hẹn trong khung giờ này');
                 }
 
-                return LichHen::create([
+                $lichHen = LichHen::create([
                     'khach_hang_id' => $user->id,
                     'thu_cung_id' => $pet->id,
                     'dich_vu_id' => $dichVu->id,
@@ -380,6 +380,10 @@ class ChatbotFunctionService
                     'trang_thai' => 'confirmed',
                     'nguon_goc' => 'online',
                 ]);
+
+                $this->attachServiceAndUpdateTotal($lichHen, $dichVu);
+
+                return $lichHen;
             });
 
             return [
@@ -389,10 +393,27 @@ class ChatbotFunctionService
                     'ngay_gio' => $ngayGio->format('d/m/Y H:i'),
                     'thu_cung' => $pet->ten_thu_cung,
                     'dich_vu' => $dichVu->ten,
+                    'tong_tien' => (float) ($lichHen->fresh()->tong_tien ?? $dichVu->gia_tien ?? 0),
                 ],
             ];
         } catch (\RuntimeException $e) {
             return ['error' => $e->getMessage()];
         }
+    }
+
+    private function attachServiceAndUpdateTotal(LichHen $lichHen, DichVu $dichVu): void
+    {
+        $donGia = (float) ($dichVu->gia_tien ?? 0);
+        $thanhTien = $donGia;
+
+        $lichHen->dichVus()->sync([
+            $dichVu->id => [
+                'so_luong' => 1,
+                'don_gia' => $donGia,
+                'thanh_tien' => $thanhTien,
+            ],
+        ]);
+
+        $lichHen->update(['tong_tien' => $thanhTien]);
     }
 }

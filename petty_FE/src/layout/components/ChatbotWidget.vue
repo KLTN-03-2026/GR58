@@ -293,6 +293,7 @@ async function sendMessage() {
   history.value.push({
     role: 'user',
     content: message || 'Người dùng đã gửi hình ảnh thú cưng.',
+    images: imagesSnapshot.map((img) => img.data),
   })
 
   input.value = ''
@@ -327,7 +328,7 @@ async function sendMessage() {
     const actions = data.actions || []
 
     messages.value.push({ role: 'assistant', content: reply, images: [], actions })
-    history.value.push({ role: 'assistant', content: reply })
+    history.value.push({ role: 'assistant', content: reply, images: [] })
   } catch (error) {
     messages.value.push({
       role: 'assistant',

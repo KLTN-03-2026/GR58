@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-5">
       <h3 class="font-normal text-base leading-4 text-gray-900 tracking-[-0.3125px]">
-        Đính kèm kết quả cận lâm sàng
+        Đính kèm kết quả
       </h3>
       <!-- Upload trigger -->
       <label

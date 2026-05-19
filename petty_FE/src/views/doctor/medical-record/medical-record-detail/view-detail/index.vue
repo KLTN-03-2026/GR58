@@ -196,6 +196,7 @@
             </div>
             <div
               class="w-full border !border-gray-300 rounded-lg overflow-hidden"
+              v-if="examinationData.prescription.length"
             >
               <table class="w-full">
                 <thead class="bg-gray-100">
@@ -246,6 +247,12 @@
                 </tbody>
               </table>
             </div>
+            <div
+              v-else
+              class="w-full border !border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-500"
+            >
+              Không có dữ liệu đơn thuốc trong phiếu khám này.
+            </div>
           </div>
 
           <!-- Notes Section -->
@@ -258,6 +265,11 @@
                 {{ examinationData.notes }}
               </p>
             </div>
+          </div>
+
+          <!-- Attachments Section -->
+          <div class="w-full flex flex-col gap-3" v-if="examinationData.id">
+            <ClinicalAttachmentUploader :phieu-kham-id="examinationData.id" />
           </div>
         </div>
       </div>
@@ -276,7 +288,8 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed } from "vue";
+import ClinicalAttachmentUploader from "@/components/doctor/ClinicalAttachmentUploader.vue";
 
 // Icons
 const icons = {
@@ -308,51 +321,48 @@ const icons = {
     "https://www.figma.com/api/mcp/asset/3936b78c-2b8f-43be-8bc9-f02a5c77c3b9",
 };
 
-// Sample examination data
-const examinationData = ref({
-  date: "01/12/2024",
-  time: "14:30",
-  doctor: "BS. Trần Văn B",
-  ownerName: "Nguyễn Văn A",
-  ownerPhone: "0901234567",
-  petName: "Milo",
-  petSpecies: "Chó Golden Retriever",
-  reason: "Ngứa ngáy, rụng lông vùng bụng",
-  vitals: {
-    temperature: "38.5°C",
-    heartRate: "110 lần/phút",
-    respiratory: "25 lần/phút",
-    weight: "28 kg",
+const props = defineProps({
+  record: {
+    type: Object,
+    default: null,
   },
-  symptoms:
-    "Thú cưng liên tục ngứa vùng bụng và chân, rụng lông nhiều. Da có vết đỏ và vảy. Chủ nhân cho biết triệu chứng xuất hiện sau khi đổi thức ăn mới.",
-  diagnosis:
-    "Viêm da dị ứng (Allergic Dermatitis) do phản ứng với thành phần trong thức ăn mới. Vùng da bị nhiễm trùng thứ phát do gãi nhiều.",
-  prescription: [
-    {
-      name: "Ketoconazole Cream 2%",
-      dosage: "Bôi mỏng",
-      frequency: "2 lần/ngày",
-      duration: "7 ngày",
-      note: "Bôi vào vùng da bị viêm",
+  patient: {
+    type: Object,
+    default: () => ({}),
+  },
+});
+
+const examinationData = computed(() => {
+  const record = props.record || {};
+  const vitals = record.vital_signs || {};
+  const prescription = Array.isArray(record.prescription) ? record.prescription : [];
+  return {
+    id: record.id || null,
+    date: record.date || "-",
+    time: record.time || "-",
+    doctor: record.doctor?.name || "Chưa xác định",
+    ownerName: props.patient?.ownerName || "Chưa có chủ nuôi",
+    ownerPhone: props.patient?.ownerPhone || "Chưa có SĐT",
+    petName: props.patient?.name || "Chưa có tên",
+    petSpecies: props.patient?.species || "Chưa rõ",
+    reason: record.reason || "Không có",
+    vitals: {
+      temperature: vitals.temperature ? `${vitals.temperature}°C` : "-",
+      heartRate: vitals.heart_rate ? `${vitals.heart_rate} lần/phút` : "-",
+      respiratory: vitals.respiratory_rate ? `${vitals.respiratory_rate} lần/phút` : "-",
+      weight: vitals.weight ? `${vitals.weight} kg` : "-",
     },
-    {
-      name: "Amoxicillin 500mg",
-      dosage: "1 viên",
-      frequency: "2 lần/ngày",
-      duration: "7 ngày",
-      note: "Uống sau ăn",
-    },
-    {
-      name: "Cetirizine 10mg",
-      dosage: "1/2 viên",
-      frequency: "1 lần/ngày",
-      duration: "10 ngày",
-      note: "Giảm ngứa",
-    },
-  ],
-  notes:
-    "Khuyên chủ nhân ngừng thức ăn mới, quay về thức ăn cũ. Tái khám sau 7 ngày để đánh giá tiến triển. Nếu không cải thiện, cần làm xét nghiệm dị ứng.",
+    symptoms: record.symptoms || "Không có",
+    diagnosis: record.diagnosis || "Chưa có chẩn đoán",
+    prescription: prescription.map((item) => ({
+      name: item.ten || "Chưa rõ",
+      dosage: item.so_luong ? `${item.so_luong} ${item.don_vi || ""}`.trim() : "-",
+      frequency: item.lieu_dung || "-",
+      duration: "-",
+      note: item.ghi_chu || "",
+    })),
+    notes: record.notes || "Không có ghi chú",
+  };
 });
 
 const emit = defineEmits(["close"]);

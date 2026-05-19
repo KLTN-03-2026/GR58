@@ -366,6 +366,7 @@ import api from "@/utils/api";
 import { showErrorToast } from "@/utils/toast";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { resolveImageUrl } from "@/utils/image";
 //Icon SVG
 import SearchIcon from "@/assets/svg/search.svg";
 const router = useRouter();
@@ -404,6 +405,7 @@ const selectedFilter = ref("all");
 const customers = ref([]);
 const loading = ref(false);
 const expandedPets = ref(new Set());
+const DEFAULT_PET_IMAGE = "https://www.figma.com/api/mcp/asset/7dc3f4c9-30fd-4f46-b415-7a1aab552e01";
 
 // Load danh sách hồ sơ bệnh án từ API
 const loadHoSoBenhAn = async () => {
@@ -416,7 +418,13 @@ const loadHoSoBenhAn = async () => {
       },
     });
     if (response.data.success) {
-      customers.value = response.data.data || [];
+      customers.value = (response.data.data || []).map((customer) => ({
+        ...customer,
+        pets: (customer.pets || []).map((pet) => ({
+          ...pet,
+          image: resolveImageUrl(pet.image, DEFAULT_PET_IMAGE),
+        })),
+      }));
     }
   } catch (error) {
     console.error("Error loading hồ sơ bệnh án:", error);
@@ -425,103 +433,6 @@ const loadHoSoBenhAn = async () => {
     loading.value = false;
   }
 };
-
-/* FAKE DATA - commented out, now loading from API
-const FAKE_customers = [
-  {
-    id: 1,
-    name: "Nguyễn Văn A",
-    phone: "0901234567",
-    type: "member",
-    pets: [
-      {
-        id: 1,
-        name: "Milo",
-        species: "Chó Golden Retriever",
-        image:
-          "https://www.figma.com/api/mcp/asset/800b99a2-25e2-4122-b7c9-7f659b22befc",
-        lastVisit: "3 ngày trước",
-        diagnosis: "Viêm da",
-        age: "3 tuổi",
-        gender: "Đực",
-        weight: "28 kg",
-      },
-      {
-        id: 2,
-        name: "Kitty",
-        species: "Mèo Mướp",
-        image:
-          "https://www.figma.com/api/mcp/asset/8b49f52a-230f-4db5-bd4a-9dafe0c324a8",
-        lastVisit: "2 tháng trước",
-        diagnosis: "Tiêm phòng 3 bệnh",
-        age: "2 tuổi",
-        gender: "Cái",
-        weight: "3.5 kg",
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: "Trần Thị B",
-    phone: "0912345678",
-    type: "vanglai",
-    pets: [
-      {
-        id: 3,
-        name: "Mimi",
-        species: "Mèo Mướp",
-        image:
-          "https://www.figma.com/api/mcp/asset/0c9926b8-75af-485d-9a9e-03313d5f87ca",
-        lastVisit: "Hôm nay",
-        diagnosis: "Tiêm phòng",
-        age: "1 tuổi",
-        gender: "Cái",
-        weight: "3 kg",
-      },
-    ],
-  },
-  {
-    id: 3,
-    name: "Lê Văn C",
-    phone: "0923456789",
-    type: "member",
-    pets: [
-      {
-        id: 4,
-        name: "Bông",
-        species: "Mèo Anh lông dài",
-        image:
-          "https://www.figma.com/api/mcp/asset/de5b3d83-fdf1-425e-a2b1-cd82f1ce26c6",
-        lastVisit: "5 ngày trước",
-        diagnosis: "Tẩy giun định kỳ",
-        age: "4 tuổi",
-        gender: "Đực",
-        weight: "5 kg",
-      },
-    ],
-  },
-  {
-    id: 4,
-    name: "Phạm Thị D",
-    phone: "0934567890",
-    type: "vanglai",
-    pets: [
-      {
-        id: 5,
-        name: "Max",
-        species: "Chó Husky",
-        image:
-          "https://www.figma.com/api/mcp/asset/500ba864-bf69-491e-97c8-81316dcba68a",
-        lastVisit: "1 tuần trước",
-        diagnosis: "Khám tổng quát",
-        age: "2 tuổi",
-        gender: "Đực",
-        weight: "25 kg",
-      },
-    ],
-  },
-]);
-*/
 
 // Computed: lấy từ API đã filter rồi
 const filteredCustomers = computed(() => customers.value);
